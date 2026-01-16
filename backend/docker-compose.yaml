@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine  # Dùng bản Alpine cho nhẹ
+    container_name: alarmm_postgres_container
+    restart: always
+    ports:
+      - "5432:5432" # Map cổng 5432 của máy ảo ra máy thật
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_super_secret_password # <-- Đặt mật khẩu của bạn ở đây
+      POSTGRES_DB: alarmm_db # <-- Tên Database (Docker sẽ tự tạo cái này cho bạn!)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Lưu dữ liệu để tắt Docker không bị mất
+
+volumes:
+  postgres_data:
