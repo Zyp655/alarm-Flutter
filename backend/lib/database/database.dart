@@ -23,20 +23,20 @@ class StudentProfiles extends Table {
   // Liên kết với bảng Users
   IntColumn get userId => integer().references(Users, #id)();
   TextColumn get fullName => text().withLength(min: 1, max: 100)();
-  TextColumn get studentId => text().nullable()(); // Mã sinh viên
-  TextColumn get major => text().nullable()();     // Ngành học (CNTT, KT...)
-  TextColumn get avatarUrl => text().nullable()(); // Link ảnh đại diện
+  TextColumn get studentId => text().nullable()();
+  TextColumn get major => text().nullable()();
+  TextColumn get avatarUrl => text().nullable()();
 }
 
 // 3. Bảng Lịch học (MỚI)
 class Schedules extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get userId => integer().references(Users, #id)();
-  TextColumn get subjectName => text()();       // Tên môn
-  TextColumn get room => text().nullable()();   // Phòng học
-  DateTimeColumn get startTime => dateTime()(); // Thời gian bắt đầu
-  DateTimeColumn get endTime => dateTime()();   // Thời gian kết thúc
-  TextColumn get note => text().nullable()();   // Ghi chú
+  TextColumn get subjectName => text()();
+  TextColumn get room => text().nullable()();
+  DateTimeColumn get startTime => dateTime()();
+  DateTimeColumn get endTime => dateTime()();
+  TextColumn get note => text().nullable()();
 }
 
 @DriftDatabase(tables: [Users, StudentProfiles, Schedules])

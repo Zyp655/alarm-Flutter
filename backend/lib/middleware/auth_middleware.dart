@@ -11,7 +11,8 @@ Handler authMiddleware(Handler handler) {
     final token = authHeader.substring(7);
 
     try {
-      final jwt = JWT.verify(token, SecretKey('my_secret_key_123'));
+      final jwt = JWT.verify(
+          token, SecretKey('my_secret_key_123'));
       final payload = jwt.payload as Map<String, dynamic>;
       final userId = payload['id'] as int;
 
