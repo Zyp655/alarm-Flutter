@@ -69,6 +69,9 @@ class StudentRepository {
     required DateTime start,
     required DateTime end,
     String? note,
+    String? imagePath,
+    int? currentAbsences,
+    int? maxAbsences,
   }) async {
     final result = await (db.update(db.schedules)
       ..where((t) => t.id.equals(scheduleId) & t.userId.equals(userId)))
@@ -79,6 +82,9 @@ class StudentRepository {
         startTime: Value(start),
         endTime: Value(end),
         note: Value(note),
+        imagePath: Value(imagePath),
+        currentAbsences: Value(currentAbsences ?? 0),
+        maxAbsences: Value(maxAbsences ?? 3),
       ),
     );
     return result > 0;

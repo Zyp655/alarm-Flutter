@@ -751,9 +751,41 @@ class $SchedulesTable extends Schedules
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagePathMeta =
+      const VerificationMeta('imagePath');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, userId, subjectName, room, startTime, endTime, note];
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+      'image_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _currentAbsencesMeta =
+      const VerificationMeta('currentAbsences');
+  @override
+  late final GeneratedColumn<int> currentAbsences = GeneratedColumn<int>(
+      'current_absences', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _maxAbsencesMeta =
+      const VerificationMeta('maxAbsences');
+  @override
+  late final GeneratedColumn<int> maxAbsences = GeneratedColumn<int>(
+      'max_absences', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(3));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        userId,
+        subjectName,
+        room,
+        startTime,
+        endTime,
+        note,
+        imagePath,
+        currentAbsences,
+        maxAbsences
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -801,6 +833,22 @@ class $SchedulesTable extends Schedules
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
     }
+    if (data.containsKey('image_path')) {
+      context.handle(_imagePathMeta,
+          imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta));
+    }
+    if (data.containsKey('current_absences')) {
+      context.handle(
+          _currentAbsencesMeta,
+          currentAbsences.isAcceptableOrUnknown(
+              data['current_absences']!, _currentAbsencesMeta));
+    }
+    if (data.containsKey('max_absences')) {
+      context.handle(
+          _maxAbsencesMeta,
+          maxAbsences.isAcceptableOrUnknown(
+              data['max_absences']!, _maxAbsencesMeta));
+    }
     return context;
   }
 
@@ -824,6 +872,12 @@ class $SchedulesTable extends Schedules
           .read(DriftSqlType.dateTime, data['${effectivePrefix}end_time'])!,
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      imagePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
+      currentAbsences: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}current_absences'])!,
+      maxAbsences: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}max_absences'])!,
     );
   }
 
@@ -841,6 +895,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
   final DateTime startTime;
   final DateTime endTime;
   final String? note;
+  final String? imagePath;
+  final int currentAbsences;
+  final int maxAbsences;
   const Schedule(
       {required this.id,
       required this.userId,
@@ -848,7 +905,10 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       this.room,
       required this.startTime,
       required this.endTime,
-      this.note});
+      this.note,
+      this.imagePath,
+      required this.currentAbsences,
+      required this.maxAbsences});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -863,6 +923,11 @@ class Schedule extends DataClass implements Insertable<Schedule> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || imagePath != null) {
+      map['image_path'] = Variable<String>(imagePath);
+    }
+    map['current_absences'] = Variable<int>(currentAbsences);
+    map['max_absences'] = Variable<int>(maxAbsences);
     return map;
   }
 
@@ -875,6 +940,11 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       startTime: Value(startTime),
       endTime: Value(endTime),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      imagePath: imagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagePath),
+      currentAbsences: Value(currentAbsences),
+      maxAbsences: Value(maxAbsences),
     );
   }
 
@@ -889,6 +959,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       startTime: serializer.fromJson<DateTime>(json['startTime']),
       endTime: serializer.fromJson<DateTime>(json['endTime']),
       note: serializer.fromJson<String?>(json['note']),
+      imagePath: serializer.fromJson<String?>(json['imagePath']),
+      currentAbsences: serializer.fromJson<int>(json['currentAbsences']),
+      maxAbsences: serializer.fromJson<int>(json['maxAbsences']),
     );
   }
   @override
@@ -902,6 +975,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       'startTime': serializer.toJson<DateTime>(startTime),
       'endTime': serializer.toJson<DateTime>(endTime),
       'note': serializer.toJson<String?>(note),
+      'imagePath': serializer.toJson<String?>(imagePath),
+      'currentAbsences': serializer.toJson<int>(currentAbsences),
+      'maxAbsences': serializer.toJson<int>(maxAbsences),
     };
   }
 
@@ -912,7 +988,10 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           Value<String?> room = const Value.absent(),
           DateTime? startTime,
           DateTime? endTime,
-          Value<String?> note = const Value.absent()}) =>
+          Value<String?> note = const Value.absent(),
+          Value<String?> imagePath = const Value.absent(),
+          int? currentAbsences,
+          int? maxAbsences}) =>
       Schedule(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -921,6 +1000,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
         startTime: startTime ?? this.startTime,
         endTime: endTime ?? this.endTime,
         note: note.present ? note.value : this.note,
+        imagePath: imagePath.present ? imagePath.value : this.imagePath,
+        currentAbsences: currentAbsences ?? this.currentAbsences,
+        maxAbsences: maxAbsences ?? this.maxAbsences,
       );
   Schedule copyWithCompanion(SchedulesCompanion data) {
     return Schedule(
@@ -932,6 +1014,12 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       startTime: data.startTime.present ? data.startTime.value : this.startTime,
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
       note: data.note.present ? data.note.value : this.note,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
+      currentAbsences: data.currentAbsences.present
+          ? data.currentAbsences.value
+          : this.currentAbsences,
+      maxAbsences:
+          data.maxAbsences.present ? data.maxAbsences.value : this.maxAbsences,
     );
   }
 
@@ -944,14 +1032,17 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           ..write('room: $room, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('imagePath: $imagePath, ')
+          ..write('currentAbsences: $currentAbsences, ')
+          ..write('maxAbsences: $maxAbsences')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, userId, subjectName, room, startTime, endTime, note);
+  int get hashCode => Object.hash(id, userId, subjectName, room, startTime,
+      endTime, note, imagePath, currentAbsences, maxAbsences);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -962,7 +1053,10 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           other.room == this.room &&
           other.startTime == this.startTime &&
           other.endTime == this.endTime &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.imagePath == this.imagePath &&
+          other.currentAbsences == this.currentAbsences &&
+          other.maxAbsences == this.maxAbsences);
 }
 
 class SchedulesCompanion extends UpdateCompanion<Schedule> {
@@ -973,6 +1067,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
   final Value<DateTime> startTime;
   final Value<DateTime> endTime;
   final Value<String?> note;
+  final Value<String?> imagePath;
+  final Value<int> currentAbsences;
+  final Value<int> maxAbsences;
   const SchedulesCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
@@ -981,6 +1078,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     this.startTime = const Value.absent(),
     this.endTime = const Value.absent(),
     this.note = const Value.absent(),
+    this.imagePath = const Value.absent(),
+    this.currentAbsences = const Value.absent(),
+    this.maxAbsences = const Value.absent(),
   });
   SchedulesCompanion.insert({
     this.id = const Value.absent(),
@@ -990,6 +1090,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     required DateTime startTime,
     required DateTime endTime,
     this.note = const Value.absent(),
+    this.imagePath = const Value.absent(),
+    this.currentAbsences = const Value.absent(),
+    this.maxAbsences = const Value.absent(),
   })  : userId = Value(userId),
         subjectName = Value(subjectName),
         startTime = Value(startTime),
@@ -1002,6 +1105,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     Expression<DateTime>? startTime,
     Expression<DateTime>? endTime,
     Expression<String>? note,
+    Expression<String>? imagePath,
+    Expression<int>? currentAbsences,
+    Expression<int>? maxAbsences,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1011,6 +1117,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       if (startTime != null) 'start_time': startTime,
       if (endTime != null) 'end_time': endTime,
       if (note != null) 'note': note,
+      if (imagePath != null) 'image_path': imagePath,
+      if (currentAbsences != null) 'current_absences': currentAbsences,
+      if (maxAbsences != null) 'max_absences': maxAbsences,
     });
   }
 
@@ -1021,7 +1130,10 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       Value<String?>? room,
       Value<DateTime>? startTime,
       Value<DateTime>? endTime,
-      Value<String?>? note}) {
+      Value<String?>? note,
+      Value<String?>? imagePath,
+      Value<int>? currentAbsences,
+      Value<int>? maxAbsences}) {
     return SchedulesCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
@@ -1030,6 +1142,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       note: note ?? this.note,
+      imagePath: imagePath ?? this.imagePath,
+      currentAbsences: currentAbsences ?? this.currentAbsences,
+      maxAbsences: maxAbsences ?? this.maxAbsences,
     );
   }
 
@@ -1057,6 +1172,15 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
+    }
+    if (currentAbsences.present) {
+      map['current_absences'] = Variable<int>(currentAbsences.value);
+    }
+    if (maxAbsences.present) {
+      map['max_absences'] = Variable<int>(maxAbsences.value);
+    }
     return map;
   }
 
@@ -1069,7 +1193,10 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
           ..write('room: $room, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('imagePath: $imagePath, ')
+          ..write('currentAbsences: $currentAbsences, ')
+          ..write('maxAbsences: $maxAbsences')
           ..write(')'))
         .toString();
   }
@@ -1718,6 +1845,9 @@ typedef $$SchedulesTableCreateCompanionBuilder = SchedulesCompanion Function({
   required DateTime startTime,
   required DateTime endTime,
   Value<String?> note,
+  Value<String?> imagePath,
+  Value<int> currentAbsences,
+  Value<int> maxAbsences,
 });
 typedef $$SchedulesTableUpdateCompanionBuilder = SchedulesCompanion Function({
   Value<int> id,
@@ -1727,6 +1857,9 @@ typedef $$SchedulesTableUpdateCompanionBuilder = SchedulesCompanion Function({
   Value<DateTime> startTime,
   Value<DateTime> endTime,
   Value<String?> note,
+  Value<String?> imagePath,
+  Value<int> currentAbsences,
+  Value<int> maxAbsences,
 });
 
 final class $$SchedulesTableReferences
@@ -1774,6 +1907,16 @@ class $$SchedulesTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get currentAbsences => $composableBuilder(
+      column: $table.currentAbsences,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get maxAbsences => $composableBuilder(
+      column: $table.maxAbsences, builder: (column) => ColumnFilters(column));
 
   $$UsersTableFilterComposer get userId {
     final $$UsersTableFilterComposer composer = $composerBuilder(
@@ -1823,6 +1966,16 @@ class $$SchedulesTableOrderingComposer
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get currentAbsences => $composableBuilder(
+      column: $table.currentAbsences,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get maxAbsences => $composableBuilder(
+      column: $table.maxAbsences, builder: (column) => ColumnOrderings(column));
+
   $$UsersTableOrderingComposer get userId {
     final $$UsersTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -1870,6 +2023,15 @@ class $$SchedulesTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
+
+  GeneratedColumn<int> get currentAbsences => $composableBuilder(
+      column: $table.currentAbsences, builder: (column) => column);
+
+  GeneratedColumn<int> get maxAbsences => $composableBuilder(
+      column: $table.maxAbsences, builder: (column) => column);
 
   $$UsersTableAnnotationComposer get userId {
     final $$UsersTableAnnotationComposer composer = $composerBuilder(
@@ -1922,6 +2084,9 @@ class $$SchedulesTableTableManager extends RootTableManager<
             Value<DateTime> startTime = const Value.absent(),
             Value<DateTime> endTime = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> imagePath = const Value.absent(),
+            Value<int> currentAbsences = const Value.absent(),
+            Value<int> maxAbsences = const Value.absent(),
           }) =>
               SchedulesCompanion(
             id: id,
@@ -1931,6 +2096,9 @@ class $$SchedulesTableTableManager extends RootTableManager<
             startTime: startTime,
             endTime: endTime,
             note: note,
+            imagePath: imagePath,
+            currentAbsences: currentAbsences,
+            maxAbsences: maxAbsences,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -1940,6 +2108,9 @@ class $$SchedulesTableTableManager extends RootTableManager<
             required DateTime startTime,
             required DateTime endTime,
             Value<String?> note = const Value.absent(),
+            Value<String?> imagePath = const Value.absent(),
+            Value<int> currentAbsences = const Value.absent(),
+            Value<int> maxAbsences = const Value.absent(),
           }) =>
               SchedulesCompanion.insert(
             id: id,
@@ -1949,6 +2120,9 @@ class $$SchedulesTableTableManager extends RootTableManager<
             startTime: startTime,
             endTime: endTime,
             note: note,
+            imagePath: imagePath,
+            currentAbsences: currentAbsences,
+            maxAbsences: maxAbsences,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
