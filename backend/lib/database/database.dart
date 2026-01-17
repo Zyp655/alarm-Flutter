@@ -15,14 +15,14 @@ class Users extends Table {
 
   TextColumn get resetToken => text().nullable()();
 
-  DateTimeColumn get resetTokenExpiry =>
-      dateTime().nullable()();
+  IntColumn get role => integer().withDefault(const Constant(0))();
+
+  DateTimeColumn get resetTokenExpiry => dateTime().nullable()();
 }
 
 class StudentProfiles extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  // Liên kết với bảng Users
   IntColumn get userId => integer().references(Users, #id)();
 
   TextColumn get fullName => text().withLength(min: 1, max: 100)();
@@ -54,6 +54,10 @@ class Schedules extends Table {
   IntColumn get currentAbsences => integer().withDefault(const Constant(0))();
 
   IntColumn get maxAbsences => integer().withDefault(const Constant(3))();
+
+  RealColumn get currentScore => real().nullable()();
+
+  RealColumn get targetScore => real().withDefault(const Constant(4.0))();
 }
 
 @DriftDatabase(tables: [Users, StudentProfiles, Schedules])
@@ -67,8 +71,8 @@ class AppDatabase extends _$AppDatabase {
       password: 'my_super_secret_password',
     ),
     settings: const ConnectionSettings(sslMode: SslMode.disable),
-  ),);
+  ));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 }

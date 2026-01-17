@@ -42,6 +42,13 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   late final GeneratedColumn<String> resetToken = GeneratedColumn<String>(
       'reset_token', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<int> role = GeneratedColumn<int>(
+      'role', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _resetTokenExpiryMeta =
       const VerificationMeta('resetTokenExpiry');
   @override
@@ -50,7 +57,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, email, passwordHash, fullName, resetToken, resetTokenExpiry];
+      [id, email, passwordHash, fullName, resetToken, role, resetTokenExpiry];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -88,6 +95,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           resetToken.isAcceptableOrUnknown(
               data['reset_token']!, _resetTokenMeta));
     }
+    if (data.containsKey('role')) {
+      context.handle(
+          _roleMeta, role.isAcceptableOrUnknown(data['role']!, _roleMeta));
+    }
     if (data.containsKey('reset_token_expiry')) {
       context.handle(
           _resetTokenExpiryMeta,
@@ -113,6 +124,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           .read(DriftSqlType.string, data['${effectivePrefix}full_name']),
       resetToken: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}reset_token']),
+      role: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}role'])!,
       resetTokenExpiry: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}reset_token_expiry']),
     );
@@ -130,6 +143,7 @@ class User extends DataClass implements Insertable<User> {
   final String passwordHash;
   final String? fullName;
   final String? resetToken;
+  final int role;
   final DateTime? resetTokenExpiry;
   const User(
       {required this.id,
@@ -137,6 +151,7 @@ class User extends DataClass implements Insertable<User> {
       required this.passwordHash,
       this.fullName,
       this.resetToken,
+      required this.role,
       this.resetTokenExpiry});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -150,6 +165,7 @@ class User extends DataClass implements Insertable<User> {
     if (!nullToAbsent || resetToken != null) {
       map['reset_token'] = Variable<String>(resetToken);
     }
+    map['role'] = Variable<int>(role);
     if (!nullToAbsent || resetTokenExpiry != null) {
       map['reset_token_expiry'] = Variable<DateTime>(resetTokenExpiry);
     }
@@ -167,6 +183,7 @@ class User extends DataClass implements Insertable<User> {
       resetToken: resetToken == null && nullToAbsent
           ? const Value.absent()
           : Value(resetToken),
+      role: Value(role),
       resetTokenExpiry: resetTokenExpiry == null && nullToAbsent
           ? const Value.absent()
           : Value(resetTokenExpiry),
@@ -182,6 +199,7 @@ class User extends DataClass implements Insertable<User> {
       passwordHash: serializer.fromJson<String>(json['passwordHash']),
       fullName: serializer.fromJson<String?>(json['fullName']),
       resetToken: serializer.fromJson<String?>(json['resetToken']),
+      role: serializer.fromJson<int>(json['role']),
       resetTokenExpiry:
           serializer.fromJson<DateTime?>(json['resetTokenExpiry']),
     );
@@ -195,6 +213,7 @@ class User extends DataClass implements Insertable<User> {
       'passwordHash': serializer.toJson<String>(passwordHash),
       'fullName': serializer.toJson<String?>(fullName),
       'resetToken': serializer.toJson<String?>(resetToken),
+      'role': serializer.toJson<int>(role),
       'resetTokenExpiry': serializer.toJson<DateTime?>(resetTokenExpiry),
     };
   }
@@ -205,6 +224,7 @@ class User extends DataClass implements Insertable<User> {
           String? passwordHash,
           Value<String?> fullName = const Value.absent(),
           Value<String?> resetToken = const Value.absent(),
+          int? role,
           Value<DateTime?> resetTokenExpiry = const Value.absent()}) =>
       User(
         id: id ?? this.id,
@@ -212,6 +232,7 @@ class User extends DataClass implements Insertable<User> {
         passwordHash: passwordHash ?? this.passwordHash,
         fullName: fullName.present ? fullName.value : this.fullName,
         resetToken: resetToken.present ? resetToken.value : this.resetToken,
+        role: role ?? this.role,
         resetTokenExpiry: resetTokenExpiry.present
             ? resetTokenExpiry.value
             : this.resetTokenExpiry,
@@ -226,6 +247,7 @@ class User extends DataClass implements Insertable<User> {
       fullName: data.fullName.present ? data.fullName.value : this.fullName,
       resetToken:
           data.resetToken.present ? data.resetToken.value : this.resetToken,
+      role: data.role.present ? data.role.value : this.role,
       resetTokenExpiry: data.resetTokenExpiry.present
           ? data.resetTokenExpiry.value
           : this.resetTokenExpiry,
@@ -240,6 +262,7 @@ class User extends DataClass implements Insertable<User> {
           ..write('passwordHash: $passwordHash, ')
           ..write('fullName: $fullName, ')
           ..write('resetToken: $resetToken, ')
+          ..write('role: $role, ')
           ..write('resetTokenExpiry: $resetTokenExpiry')
           ..write(')'))
         .toString();
@@ -247,7 +270,7 @@ class User extends DataClass implements Insertable<User> {
 
   @override
   int get hashCode => Object.hash(
-      id, email, passwordHash, fullName, resetToken, resetTokenExpiry);
+      id, email, passwordHash, fullName, resetToken, role, resetTokenExpiry);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -257,6 +280,7 @@ class User extends DataClass implements Insertable<User> {
           other.passwordHash == this.passwordHash &&
           other.fullName == this.fullName &&
           other.resetToken == this.resetToken &&
+          other.role == this.role &&
           other.resetTokenExpiry == this.resetTokenExpiry);
 }
 
@@ -266,6 +290,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> passwordHash;
   final Value<String?> fullName;
   final Value<String?> resetToken;
+  final Value<int> role;
   final Value<DateTime?> resetTokenExpiry;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -273,6 +298,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.passwordHash = const Value.absent(),
     this.fullName = const Value.absent(),
     this.resetToken = const Value.absent(),
+    this.role = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -281,6 +307,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     required String passwordHash,
     this.fullName = const Value.absent(),
     this.resetToken = const Value.absent(),
+    this.role = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
   })  : email = Value(email),
         passwordHash = Value(passwordHash);
@@ -290,6 +317,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? passwordHash,
     Expression<String>? fullName,
     Expression<String>? resetToken,
+    Expression<int>? role,
     Expression<DateTime>? resetTokenExpiry,
   }) {
     return RawValuesInsertable({
@@ -298,6 +326,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (passwordHash != null) 'password_hash': passwordHash,
       if (fullName != null) 'full_name': fullName,
       if (resetToken != null) 'reset_token': resetToken,
+      if (role != null) 'role': role,
       if (resetTokenExpiry != null) 'reset_token_expiry': resetTokenExpiry,
     });
   }
@@ -308,6 +337,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       Value<String>? passwordHash,
       Value<String?>? fullName,
       Value<String?>? resetToken,
+      Value<int>? role,
       Value<DateTime?>? resetTokenExpiry}) {
     return UsersCompanion(
       id: id ?? this.id,
@@ -315,6 +345,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       passwordHash: passwordHash ?? this.passwordHash,
       fullName: fullName ?? this.fullName,
       resetToken: resetToken ?? this.resetToken,
+      role: role ?? this.role,
       resetTokenExpiry: resetTokenExpiry ?? this.resetTokenExpiry,
     );
   }
@@ -337,6 +368,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (resetToken.present) {
       map['reset_token'] = Variable<String>(resetToken.value);
     }
+    if (role.present) {
+      map['role'] = Variable<int>(role.value);
+    }
     if (resetTokenExpiry.present) {
       map['reset_token_expiry'] = Variable<DateTime>(resetTokenExpiry.value);
     }
@@ -351,6 +385,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('passwordHash: $passwordHash, ')
           ..write('fullName: $fullName, ')
           ..write('resetToken: $resetToken, ')
+          ..write('role: $role, ')
           ..write('resetTokenExpiry: $resetTokenExpiry')
           ..write(')'))
         .toString();
@@ -773,6 +808,20 @@ class $SchedulesTable extends Schedules
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(3));
+  static const VerificationMeta _currentScoreMeta =
+      const VerificationMeta('currentScore');
+  @override
+  late final GeneratedColumn<double> currentScore = GeneratedColumn<double>(
+      'current_score', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _targetScoreMeta =
+      const VerificationMeta('targetScore');
+  @override
+  late final GeneratedColumn<double> targetScore = GeneratedColumn<double>(
+      'target_score', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(4.0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -784,7 +833,9 @@ class $SchedulesTable extends Schedules
         note,
         imagePath,
         currentAbsences,
-        maxAbsences
+        maxAbsences,
+        currentScore,
+        targetScore
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -849,6 +900,18 @@ class $SchedulesTable extends Schedules
           maxAbsences.isAcceptableOrUnknown(
               data['max_absences']!, _maxAbsencesMeta));
     }
+    if (data.containsKey('current_score')) {
+      context.handle(
+          _currentScoreMeta,
+          currentScore.isAcceptableOrUnknown(
+              data['current_score']!, _currentScoreMeta));
+    }
+    if (data.containsKey('target_score')) {
+      context.handle(
+          _targetScoreMeta,
+          targetScore.isAcceptableOrUnknown(
+              data['target_score']!, _targetScoreMeta));
+    }
     return context;
   }
 
@@ -878,6 +941,10 @@ class $SchedulesTable extends Schedules
           .read(DriftSqlType.int, data['${effectivePrefix}current_absences'])!,
       maxAbsences: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}max_absences'])!,
+      currentScore: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}current_score']),
+      targetScore: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}target_score'])!,
     );
   }
 
@@ -898,6 +965,8 @@ class Schedule extends DataClass implements Insertable<Schedule> {
   final String? imagePath;
   final int currentAbsences;
   final int maxAbsences;
+  final double? currentScore;
+  final double targetScore;
   const Schedule(
       {required this.id,
       required this.userId,
@@ -908,7 +977,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       this.note,
       this.imagePath,
       required this.currentAbsences,
-      required this.maxAbsences});
+      required this.maxAbsences,
+      this.currentScore,
+      required this.targetScore});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -928,6 +999,10 @@ class Schedule extends DataClass implements Insertable<Schedule> {
     }
     map['current_absences'] = Variable<int>(currentAbsences);
     map['max_absences'] = Variable<int>(maxAbsences);
+    if (!nullToAbsent || currentScore != null) {
+      map['current_score'] = Variable<double>(currentScore);
+    }
+    map['target_score'] = Variable<double>(targetScore);
     return map;
   }
 
@@ -945,6 +1020,10 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           : Value(imagePath),
       currentAbsences: Value(currentAbsences),
       maxAbsences: Value(maxAbsences),
+      currentScore: currentScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentScore),
+      targetScore: Value(targetScore),
     );
   }
 
@@ -962,6 +1041,8 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       currentAbsences: serializer.fromJson<int>(json['currentAbsences']),
       maxAbsences: serializer.fromJson<int>(json['maxAbsences']),
+      currentScore: serializer.fromJson<double?>(json['currentScore']),
+      targetScore: serializer.fromJson<double>(json['targetScore']),
     );
   }
   @override
@@ -978,6 +1059,8 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       'imagePath': serializer.toJson<String?>(imagePath),
       'currentAbsences': serializer.toJson<int>(currentAbsences),
       'maxAbsences': serializer.toJson<int>(maxAbsences),
+      'currentScore': serializer.toJson<double?>(currentScore),
+      'targetScore': serializer.toJson<double>(targetScore),
     };
   }
 
@@ -991,7 +1074,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           Value<String?> note = const Value.absent(),
           Value<String?> imagePath = const Value.absent(),
           int? currentAbsences,
-          int? maxAbsences}) =>
+          int? maxAbsences,
+          Value<double?> currentScore = const Value.absent(),
+          double? targetScore}) =>
       Schedule(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -1003,6 +1088,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
         imagePath: imagePath.present ? imagePath.value : this.imagePath,
         currentAbsences: currentAbsences ?? this.currentAbsences,
         maxAbsences: maxAbsences ?? this.maxAbsences,
+        currentScore:
+            currentScore.present ? currentScore.value : this.currentScore,
+        targetScore: targetScore ?? this.targetScore,
       );
   Schedule copyWithCompanion(SchedulesCompanion data) {
     return Schedule(
@@ -1020,6 +1108,11 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           : this.currentAbsences,
       maxAbsences:
           data.maxAbsences.present ? data.maxAbsences.value : this.maxAbsences,
+      currentScore: data.currentScore.present
+          ? data.currentScore.value
+          : this.currentScore,
+      targetScore:
+          data.targetScore.present ? data.targetScore.value : this.targetScore,
     );
   }
 
@@ -1035,14 +1128,27 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           ..write('note: $note, ')
           ..write('imagePath: $imagePath, ')
           ..write('currentAbsences: $currentAbsences, ')
-          ..write('maxAbsences: $maxAbsences')
+          ..write('maxAbsences: $maxAbsences, ')
+          ..write('currentScore: $currentScore, ')
+          ..write('targetScore: $targetScore')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, userId, subjectName, room, startTime,
-      endTime, note, imagePath, currentAbsences, maxAbsences);
+  int get hashCode => Object.hash(
+      id,
+      userId,
+      subjectName,
+      room,
+      startTime,
+      endTime,
+      note,
+      imagePath,
+      currentAbsences,
+      maxAbsences,
+      currentScore,
+      targetScore);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1056,7 +1162,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           other.note == this.note &&
           other.imagePath == this.imagePath &&
           other.currentAbsences == this.currentAbsences &&
-          other.maxAbsences == this.maxAbsences);
+          other.maxAbsences == this.maxAbsences &&
+          other.currentScore == this.currentScore &&
+          other.targetScore == this.targetScore);
 }
 
 class SchedulesCompanion extends UpdateCompanion<Schedule> {
@@ -1070,6 +1178,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
   final Value<String?> imagePath;
   final Value<int> currentAbsences;
   final Value<int> maxAbsences;
+  final Value<double?> currentScore;
+  final Value<double> targetScore;
   const SchedulesCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
@@ -1081,6 +1191,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     this.imagePath = const Value.absent(),
     this.currentAbsences = const Value.absent(),
     this.maxAbsences = const Value.absent(),
+    this.currentScore = const Value.absent(),
+    this.targetScore = const Value.absent(),
   });
   SchedulesCompanion.insert({
     this.id = const Value.absent(),
@@ -1093,6 +1205,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     this.imagePath = const Value.absent(),
     this.currentAbsences = const Value.absent(),
     this.maxAbsences = const Value.absent(),
+    this.currentScore = const Value.absent(),
+    this.targetScore = const Value.absent(),
   })  : userId = Value(userId),
         subjectName = Value(subjectName),
         startTime = Value(startTime),
@@ -1108,6 +1222,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     Expression<String>? imagePath,
     Expression<int>? currentAbsences,
     Expression<int>? maxAbsences,
+    Expression<double>? currentScore,
+    Expression<double>? targetScore,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1120,6 +1236,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       if (imagePath != null) 'image_path': imagePath,
       if (currentAbsences != null) 'current_absences': currentAbsences,
       if (maxAbsences != null) 'max_absences': maxAbsences,
+      if (currentScore != null) 'current_score': currentScore,
+      if (targetScore != null) 'target_score': targetScore,
     });
   }
 
@@ -1133,7 +1251,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       Value<String?>? note,
       Value<String?>? imagePath,
       Value<int>? currentAbsences,
-      Value<int>? maxAbsences}) {
+      Value<int>? maxAbsences,
+      Value<double?>? currentScore,
+      Value<double>? targetScore}) {
     return SchedulesCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
@@ -1145,6 +1265,8 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       imagePath: imagePath ?? this.imagePath,
       currentAbsences: currentAbsences ?? this.currentAbsences,
       maxAbsences: maxAbsences ?? this.maxAbsences,
+      currentScore: currentScore ?? this.currentScore,
+      targetScore: targetScore ?? this.targetScore,
     );
   }
 
@@ -1181,6 +1303,12 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     if (maxAbsences.present) {
       map['max_absences'] = Variable<int>(maxAbsences.value);
     }
+    if (currentScore.present) {
+      map['current_score'] = Variable<double>(currentScore.value);
+    }
+    if (targetScore.present) {
+      map['target_score'] = Variable<double>(targetScore.value);
+    }
     return map;
   }
 
@@ -1196,7 +1324,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
           ..write('note: $note, ')
           ..write('imagePath: $imagePath, ')
           ..write('currentAbsences: $currentAbsences, ')
-          ..write('maxAbsences: $maxAbsences')
+          ..write('maxAbsences: $maxAbsences, ')
+          ..write('currentScore: $currentScore, ')
+          ..write('targetScore: $targetScore')
           ..write(')'))
         .toString();
   }
@@ -1223,6 +1353,7 @@ typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({
   required String passwordHash,
   Value<String?> fullName,
   Value<String?> resetToken,
+  Value<int> role,
   Value<DateTime?> resetTokenExpiry,
 });
 typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
@@ -1231,6 +1362,7 @@ typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
   Value<String> passwordHash,
   Value<String?> fullName,
   Value<String?> resetToken,
+  Value<int> role,
   Value<DateTime?> resetTokenExpiry,
 });
 
@@ -1292,6 +1424,9 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get resetToken => $composableBuilder(
       column: $table.resetToken, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get resetTokenExpiry => $composableBuilder(
       column: $table.resetTokenExpiry,
@@ -1365,6 +1500,9 @@ class $$UsersTableOrderingComposer
   ColumnOrderings<String> get resetToken => $composableBuilder(
       column: $table.resetToken, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get resetTokenExpiry => $composableBuilder(
       column: $table.resetTokenExpiry,
       builder: (column) => ColumnOrderings(column));
@@ -1393,6 +1531,9 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get resetToken => $composableBuilder(
       column: $table.resetToken, builder: (column) => column);
+
+  GeneratedColumn<int> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
 
   GeneratedColumn<DateTime> get resetTokenExpiry => $composableBuilder(
       column: $table.resetTokenExpiry, builder: (column) => column);
@@ -1468,6 +1609,7 @@ class $$UsersTableTableManager extends RootTableManager<
             Value<String> passwordHash = const Value.absent(),
             Value<String?> fullName = const Value.absent(),
             Value<String?> resetToken = const Value.absent(),
+            Value<int> role = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
           }) =>
               UsersCompanion(
@@ -1476,6 +1618,7 @@ class $$UsersTableTableManager extends RootTableManager<
             passwordHash: passwordHash,
             fullName: fullName,
             resetToken: resetToken,
+            role: role,
             resetTokenExpiry: resetTokenExpiry,
           ),
           createCompanionCallback: ({
@@ -1484,6 +1627,7 @@ class $$UsersTableTableManager extends RootTableManager<
             required String passwordHash,
             Value<String?> fullName = const Value.absent(),
             Value<String?> resetToken = const Value.absent(),
+            Value<int> role = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
           }) =>
               UsersCompanion.insert(
@@ -1492,6 +1636,7 @@ class $$UsersTableTableManager extends RootTableManager<
             passwordHash: passwordHash,
             fullName: fullName,
             resetToken: resetToken,
+            role: role,
             resetTokenExpiry: resetTokenExpiry,
           ),
           withReferenceMapper: (p0) => p0
@@ -1848,6 +1993,8 @@ typedef $$SchedulesTableCreateCompanionBuilder = SchedulesCompanion Function({
   Value<String?> imagePath,
   Value<int> currentAbsences,
   Value<int> maxAbsences,
+  Value<double?> currentScore,
+  Value<double> targetScore,
 });
 typedef $$SchedulesTableUpdateCompanionBuilder = SchedulesCompanion Function({
   Value<int> id,
@@ -1860,6 +2007,8 @@ typedef $$SchedulesTableUpdateCompanionBuilder = SchedulesCompanion Function({
   Value<String?> imagePath,
   Value<int> currentAbsences,
   Value<int> maxAbsences,
+  Value<double?> currentScore,
+  Value<double> targetScore,
 });
 
 final class $$SchedulesTableReferences
@@ -1917,6 +2066,12 @@ class $$SchedulesTableFilterComposer
 
   ColumnFilters<int> get maxAbsences => $composableBuilder(
       column: $table.maxAbsences, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get currentScore => $composableBuilder(
+      column: $table.currentScore, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get targetScore => $composableBuilder(
+      column: $table.targetScore, builder: (column) => ColumnFilters(column));
 
   $$UsersTableFilterComposer get userId {
     final $$UsersTableFilterComposer composer = $composerBuilder(
@@ -1976,6 +2131,13 @@ class $$SchedulesTableOrderingComposer
   ColumnOrderings<int> get maxAbsences => $composableBuilder(
       column: $table.maxAbsences, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get currentScore => $composableBuilder(
+      column: $table.currentScore,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get targetScore => $composableBuilder(
+      column: $table.targetScore, builder: (column) => ColumnOrderings(column));
+
   $$UsersTableOrderingComposer get userId {
     final $$UsersTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -2033,6 +2195,12 @@ class $$SchedulesTableAnnotationComposer
   GeneratedColumn<int> get maxAbsences => $composableBuilder(
       column: $table.maxAbsences, builder: (column) => column);
 
+  GeneratedColumn<double> get currentScore => $composableBuilder(
+      column: $table.currentScore, builder: (column) => column);
+
+  GeneratedColumn<double> get targetScore => $composableBuilder(
+      column: $table.targetScore, builder: (column) => column);
+
   $$UsersTableAnnotationComposer get userId {
     final $$UsersTableAnnotationComposer composer = $composerBuilder(
         composer: this,
@@ -2087,6 +2255,8 @@ class $$SchedulesTableTableManager extends RootTableManager<
             Value<String?> imagePath = const Value.absent(),
             Value<int> currentAbsences = const Value.absent(),
             Value<int> maxAbsences = const Value.absent(),
+            Value<double?> currentScore = const Value.absent(),
+            Value<double> targetScore = const Value.absent(),
           }) =>
               SchedulesCompanion(
             id: id,
@@ -2099,6 +2269,8 @@ class $$SchedulesTableTableManager extends RootTableManager<
             imagePath: imagePath,
             currentAbsences: currentAbsences,
             maxAbsences: maxAbsences,
+            currentScore: currentScore,
+            targetScore: targetScore,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -2111,6 +2283,8 @@ class $$SchedulesTableTableManager extends RootTableManager<
             Value<String?> imagePath = const Value.absent(),
             Value<int> currentAbsences = const Value.absent(),
             Value<int> maxAbsences = const Value.absent(),
+            Value<double?> currentScore = const Value.absent(),
+            Value<double> targetScore = const Value.absent(),
           }) =>
               SchedulesCompanion.insert(
             id: id,
@@ -2123,6 +2297,8 @@ class $$SchedulesTableTableManager extends RootTableManager<
             imagePath: imagePath,
             currentAbsences: currentAbsences,
             maxAbsences: maxAbsences,
+            currentScore: currentScore,
+            targetScore: targetScore,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
