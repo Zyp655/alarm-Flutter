@@ -9,7 +9,8 @@ class TeacherRepository {
   Future<bool> updateStudentResult({
     required int scheduleId,
     int? absences,
-    double? score,
+    double? midtermScore,
+    double? finalScore,
   }) async {
     final updateStatement = db.update(db.schedules)
       ..where((t) => t.id.equals(scheduleId));
@@ -17,8 +18,10 @@ class TeacherRepository {
     await updateStatement.write(
       SchedulesCompanion(
         currentAbsences:
-            absences != null ? Value(absences) : const Value.absent(),
-        currentScore: score != null ? Value(score) : const Value.absent(),
+        absences != null ? Value(absences) : const Value.absent(),
+        // 👇 Thay currentScore cũ bằng 2 cột mới
+        midtermScore: midtermScore != null ? Value(midtermScore) : const Value.absent(),
+        finalScore: finalScore != null ? Value(finalScore) : const Value.absent(),
       ),
     );
     return true;

@@ -34,10 +34,24 @@ class StudentProfiles extends Table {
   TextColumn get avatarUrl => text().nullable()();
 }
 
+class Classes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get className => text()();
+
+  TextColumn get classCode => text().unique()();
+
+  IntColumn get teacherId => integer().references(Users, #id)();
+
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 class Schedules extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   IntColumn get userId => integer().references(Users, #id)();
+
+  IntColumn get classId => integer().nullable().references(Classes, #id)();
 
   TextColumn get subjectName => text()();
 
@@ -55,24 +69,26 @@ class Schedules extends Table {
 
   IntColumn get maxAbsences => integer().withDefault(const Constant(3))();
 
-  RealColumn get currentScore => real().nullable()();
+  RealColumn get midtermScore => real().nullable()();
+
+  RealColumn get finalScore => real().nullable()();
 
   RealColumn get targetScore => real().withDefault(const Constant(4.0))();
 }
 
-@DriftDatabase(tables: [Users, StudentProfiles, Schedules])
+@DriftDatabase(tables: [Users, StudentProfiles, Schedules, Classes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase()
       : super(PgDatabase(
-    endpoint: Endpoint(
-      host: 'localhost',
-      database: 'alarmm_db',
-      username: 'postgres',
-      password: 'my_super_secret_password',
-    ),
-    settings: const ConnectionSettings(sslMode: SslMode.disable),
-  ));
+          endpoint: Endpoint(
+            host: 'localhost',
+            database: 'alarmm_db',
+            username: 'postgres',
+            password: 'my_super_secret_password',
+          ),
+          settings: const ConnectionSettings(sslMode: SslMode.disable),
+        ));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 }
