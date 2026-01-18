@@ -1,15 +1,7 @@
-import 'dart:math';
 import 'package:backend/database/database.dart';
-import 'package:backend/repositories/teacher_repository.dart';
+import 'package:backend/utils/code_generator.dart'; // 👇 Import file tiện ích
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
-String _generateClassCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  final rnd = Random();
-  return String.fromCharCodes(
-      Iterable.generate(6, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))));
-}
 
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
@@ -34,14 +26,7 @@ Future<Response> onRequest(RequestContext context) async {
       final start = DateTime.parse(item['start'] as String);
       final end = DateTime.parse(item['end'] as String);
 
-      await db.into(db.schedules).insert(SchedulesCompanion.insert(
-            userId: teacherId,
-            subjectName: subjectName,
-            startTime: start,
-            endTime: end,
-            room: Value(room),
-          ));
-      schedulesAdded++;
+      int classId;
 
       final existingClass = await (db.select(db.classes)
             ..where((t) =>
@@ -49,9 +34,12 @@ Future<Response> onRequest(RequestContext context) async {
             ..limit(1))
           .getSingleOrNull();
 
-      if (existingClass == null) {
-        final newCode = _generateClassCode();
-        await db.into(db.classes).insert(ClassesCompanion.insert(
+      if (existingClass != null) {
+        classId = existingClass.id;
+      } else {
+        final newCode = generateClassCode();
+
+        classId = await db.into(db.classes).insert(ClassesCompanion.insert(
               className: subjectName,
               classCode: newCode,
               teacherId: teacherId,
@@ -59,6 +47,16 @@ Future<Response> onRequest(RequestContext context) async {
             ));
         newClassesCreated++;
       }
+
+      await db.into(db.schedules).insert(SchedulesCompanion.insert(
+            userId: teacherId,
+            classId: Value(classId),
+            subjectName: subjectName,
+            startTime: start,
+            endTime: end,
+            room: Value(room),
+          ));
+      schedulesAdded++;
     }
 
     return Response.json(body: {
