@@ -14,33 +14,47 @@ Future<Response> onRequest(RequestContext context) async {
     final body = await context.request.json();
     final teacherId = body['teacherId'] as int;
     final subjectName = body['subjectName'] as String;
-
     final bool forceRefresh = (body['forceRefresh'] as bool?) ?? false;
 
-    final existingClass = await (db.select(db.classes)
+    var existingClass = await (db.select(db.classes)
           ..where((t) =>
               t.className.equals(subjectName) & t.teacherId.equals(teacherId))
           ..limit(1))
         .getSingleOrNull();
 
+    int classId;
+    String codeToReturn;
+
     if (existingClass == null) {
-      return Response(statusCode: 404, body: 'Không tìm thấy lớp học');
+      codeToReturn = generateClassCode();
+
+      classId = await db.into(db.classes).insert(ClassesCompanion.insert(
+            className: subjectName,
+            classCode: codeToReturn,
+            teacherId: teacherId,
+            createdAt: DateTime.now(),
+          ));
+    } else {
+      classId = existingClass.id;
+
+      if (!forceRefresh &&
+          existingClass.classCode != null &&
+          existingClass.classCode!.isNotEmpty) {
+        codeToReturn = existingClass.classCode!;
+      } else {
+        codeToReturn = generateClassCode();
+        await (db.update(db.classes)..where((t) => t.id.equals(classId)))
+            .write(ClassesCompanion(classCode: Value(codeToReturn)));
+      }
     }
 
-    if (!forceRefresh &&
-        existingClass.classCode != null &&
-        existingClass.classCode!.isNotEmpty) {
-      return Response.json(body: {'newCode': existingClass.classCode});
-    }
+    await (db.update(db.schedules)
+          ..where((t) =>
+              t.subjectName.equals(subjectName) & t.userId.equals(teacherId)))
+        .write(SchedulesCompanion(classId: Value(classId)));
 
-    // 3. Tạo mới
-    final newCode = generateClassCode();
-
-    await (db.update(db.classes)..where((t) => t.id.equals(existingClass.id)))
-        .write(ClassesCompanion(classCode: Value(newCode)));
-
-    return Response.json(body: {'newCode': newCode});
+    return Response.json(body: {'newCode': codeToReturn});
   } catch (e) {
-    return Response(statusCode: 500, body: 'Lỗi: $e');
+    return Response(statusCode: 500, body: 'Lỗi server: $e');
   }
 }

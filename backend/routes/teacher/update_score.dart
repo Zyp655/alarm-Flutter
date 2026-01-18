@@ -15,7 +15,6 @@ Future<Response> onRequest(RequestContext context) async {
   final midterm = body['midtermScore'] as double?;
   final finalScore = body['finalScore'] as double?;
 
-  // Cập nhật Database
   await (db.update(db.schedules)..where((t) => t.id.equals(scheduleId))).write(
     SchedulesCompanion(
       currentAbsences:

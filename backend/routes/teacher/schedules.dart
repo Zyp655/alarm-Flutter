@@ -6,10 +6,9 @@ Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
+  final db = context.read<AppDatabase>();
 
   try {
-    final db = context.read<AppDatabase>();
-
     final query = db.select(db.schedules).join([
       leftOuterJoin(db.classes, db.classes.id.equalsExp(db.schedules.classId)),
     ]);
@@ -38,6 +37,6 @@ Future<Response> onRequest(RequestContext context) async {
 
     return Response.json(body: list);
   } catch (e) {
-    return Response(statusCode: 500, body: 'Lỗi server: $e');
+    return Response(statusCode: 500, body: 'Error: $e');
   }
 }
