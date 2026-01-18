@@ -1,5 +1,6 @@
-import 'package:backend/repositories/teacher_repository.dart';
+import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
+import 'package:drift/drift.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
@@ -7,23 +8,35 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   try {
-    final repo = context.read<TeacherRepository>();
-    final schedules = await repo.getAllStudentSchedules();
+    final db = context.read<AppDatabase>();
 
-    return Response.json(
-      body: schedules.map((e) => {
-        'id': e.id,
-        'subject': e.subjectName,
-        'room': e.room,
-        'startTime': e.startTime.toIso8601String(),
-        'endTime': e.endTime.toIso8601String(),
-        'currentAbsences': e.currentAbsences,
-        'maxAbsences': e.maxAbsences,
-        'midtermScore': e.midtermScore,
-        'finalScore': e.finalScore,
-        'targetScore': e.targetScore,
-      }).toList(),
-    );
+    final query = db.select(db.schedules).join([
+      leftOuterJoin(db.classes, db.classes.id.equalsExp(db.schedules.classId)),
+    ]);
+
+    final result = await query.get();
+
+    final list = result.map((row) {
+      final schedule = row.readTable(db.schedules);
+      final classInfo = row.readTableOrNull(db.classes);
+
+      return {
+        'id': schedule.id,
+        'userId': schedule.userId,
+        'subject': schedule.subjectName,
+        'room': schedule.room,
+        'startTime': schedule.startTime.toIso8601String(),
+        'endTime': schedule.endTime.toIso8601String(),
+        'currentAbsences': schedule.currentAbsences,
+        'maxAbsences': schedule.maxAbsences,
+        'midtermScore': schedule.midtermScore,
+        'finalScore': schedule.finalScore,
+        'targetScore': schedule.targetScore,
+        'classCode': classInfo?.classCode,
+      };
+    }).toList();
+
+    return Response.json(body: list);
   } catch (e) {
     return Response(statusCode: 500, body: 'Lỗi server: $e');
   }

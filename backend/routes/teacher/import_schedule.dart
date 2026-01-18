@@ -45,8 +45,8 @@ Future<Response> onRequest(RequestContext context) async {
 
       final existingClass = await (db.select(db.classes)
             ..where((t) =>
-                t.className.equals(subjectName) &
-                t.teacherId.equals(teacherId)))
+                t.className.equals(subjectName) & t.teacherId.equals(teacherId))
+            ..limit(1))
           .getSingleOrNull();
 
       if (existingClass == null) {
