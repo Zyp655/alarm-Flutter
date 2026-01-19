@@ -11,15 +11,14 @@ Handler authMiddleware(Handler handler) {
     final token = authHeader.substring(7);
 
     try {
-      final jwt = JWT.verify(
-          token, SecretKey('my_secret_key_123'));
+      final jwt = JWT.verify(token, SecretKey('my_secret_key_123'));
       final payload = jwt.payload as Map<String, dynamic>;
       final userId = payload['id'] as int;
 
-      final updatedContext = context.provide<int>(() => userId);
-      return handler(updatedContext);
+      return provider<int>((_) => userId)(handler)(context);
+
     } catch (e) {
-      return Response.json(statusCode: 401, body: {'error': 'Invalid Token'});
+      return Response.json(statusCode: 401, body: {'error': 'Invalid Token: $e'});
     }
   };
 }
