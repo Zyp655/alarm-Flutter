@@ -22,7 +22,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     final user = UserModel.fromJson(response);
 
-    // Lưu Token ngay sau khi login thành công
     if (user.token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', user.token!);
