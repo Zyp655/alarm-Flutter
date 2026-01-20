@@ -26,12 +26,15 @@ Future<Response> onRequest(RequestContext context) async {
       final start = DateTime.parse(item['start'] as String);
       final end = DateTime.parse(item['end'] as String);
 
+      final credits = item['credits'] as int? ?? 3;
+      final maxAbsences = credits * 3;
+
       int classId;
 
       final existingClass = await (db.select(db.classes)
-            ..where((t) =>
-                t.className.equals(subjectName) & t.teacherId.equals(teacherId))
-            ..limit(1))
+        ..where((t) =>
+        t.className.equals(subjectName) & t.teacherId.equals(teacherId))
+        ..limit(1))
           .getSingleOrNull();
 
       if (existingClass != null) {
@@ -40,22 +43,24 @@ Future<Response> onRequest(RequestContext context) async {
         final newCode = generateClassCode();
 
         classId = await db.into(db.classes).insert(ClassesCompanion.insert(
-              className: subjectName,
-              classCode: newCode,
-              teacherId: teacherId,
-              createdAt: DateTime.now(),
-            ));
+          className: subjectName,
+          classCode: newCode,
+          teacherId: teacherId,
+          createdAt: DateTime.now(),
+        ));
         newClassesCreated++;
       }
 
       await db.into(db.schedules).insert(SchedulesCompanion.insert(
-            userId: teacherId,
-            classId: Value(classId),
-            subjectName: subjectName,
-            startTime: start,
-            endTime: end,
-            room: Value(room),
-          ));
+        userId: teacherId,
+        classId: Value(classId),
+        subjectName: subjectName,
+        startTime: start,
+        endTime: end,
+        room: Value(room),
+        credits: Value(credits),
+        maxAbsences: Value(maxAbsences),
+      ));
       schedulesAdded++;
     }
 

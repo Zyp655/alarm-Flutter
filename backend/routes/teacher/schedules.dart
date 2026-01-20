@@ -8,10 +8,17 @@ Future<Response> onRequest(RequestContext context) async {
   }
   final db = context.read<AppDatabase>();
 
+  final params = context.request.uri.queryParameters;
+  if (!params.containsKey('userId')) {
+    return Response(statusCode: 400, body: 'Missing userId');
+  }
+  final userId = int.parse(params['userId']!);
+
   try {
     final query = db.select(db.schedules).join([
       leftOuterJoin(db.classes, db.classes.id.equalsExp(db.schedules.classId)),
-    ]);
+    ])
+      ..where(db.schedules.userId.equals(userId));
 
     final result = await query.get();
 
@@ -26,17 +33,19 @@ Future<Response> onRequest(RequestContext context) async {
         'room': schedule.room,
         'startTime': schedule.startTime.toIso8601String(),
         'endTime': schedule.endTime.toIso8601String(),
+        'credits': schedule.credits,
         'currentAbsences': schedule.currentAbsences,
         'maxAbsences': schedule.maxAbsences,
         'midtermScore': schedule.midtermScore,
         'finalScore': schedule.finalScore,
         'targetScore': schedule.targetScore,
         'classCode': classInfo?.classCode,
+        'createdAt': classInfo?.createdAt.toIso8601String(),
       };
     }).toList();
 
     return Response.json(body: list);
   } catch (e) {
-    return Response(statusCode: 500, body: 'Error: $e');
+    return Response.json(statusCode: 500, body: {'error': e.toString()});
   }
 }

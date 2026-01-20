@@ -6,11 +6,9 @@ import 'package:dart_frog/dart_frog.dart';
 final _db = AppDatabase();
 
 Handler middleware(Handler handler) {
-  _db.customSelect('SELECT 1').get();
-
   return handler
       .use(requestLogger())
+      .use(provider<AppDatabase>((_) => _db))
       .use(provider<StudentRepository>((_) => StudentRepository(_db)))
-      .use(provider<UserRepository>((_) => UserRepository(_db)))
-      .use(provider<AppDatabase>((_) => _db));
+      .use(provider<UserRepository>((_) => UserRepository(_db)));
 }

@@ -6,7 +6,6 @@ Handler middleware(Handler handler) {
   return handler
       .use(requestLogger())
       .use(provider<TeacherRepository>((context) {
-    final db = context.read<AppDatabase>();
-    return TeacherRepository(db);
+    return TeacherRepository(context.read<AppDatabase>());
   }));
 }

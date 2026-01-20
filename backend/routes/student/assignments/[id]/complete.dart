@@ -65,7 +65,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
       'completedAt': DateTime.now().toIso8601String(),
     });
   } catch (e) {
-    print('❌ ERROR completing assignment: $e');
     return Response.json(statusCode: 500, body: {'error': e.toString()});
   }
 }
