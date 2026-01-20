@@ -32,7 +32,6 @@ Future<Response> onRequest(RequestContext context) async {
       return Response(statusCode: 409, body: 'Bạn đã ở trong lớp này rồi');
     }
 
-
     final teacherSchedules = await (db.select(db.schedules)
       ..where((t) =>
       t.classId.equals(classInfo.id) &
@@ -57,6 +56,9 @@ Future<Response> onRequest(RequestContext context) async {
             endTime: s.endTime,
             note: Value(s.note),
             currentAbsences: const Value(0),
+
+            credits: Value(s.credits),
+            maxAbsences: Value(s.maxAbsences),
           ),
         );
       }

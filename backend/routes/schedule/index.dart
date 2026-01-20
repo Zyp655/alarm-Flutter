@@ -10,7 +10,6 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   final userId = context.read<int>();
-
   final db = context.read<AppDatabase>();
   final repo = context.read<StudentRepository>();
 
@@ -35,6 +34,7 @@ Future<Response> onRequest(RequestContext context) async {
         'end': schedule.endTime.toIso8601String(),
         'note': schedule.note,
         'classCode': classInfo?.classCode,
+        'credits': schedule.credits,
         'currentAbsences': schedule.currentAbsences,
         'maxAbsences': schedule.maxAbsences,
         'midtermScore': schedule.midtermScore,
@@ -46,32 +46,46 @@ Future<Response> onRequest(RequestContext context) async {
     return Response.json(body: jsonList);
   }
 
-  // --- XỬ LÝ POST (Giữ nguyên logic cũ dùng Repo) ---
   if (context.request.method == HttpMethod.post) {
     try {
       final json = await context.request.json();
 
       if (json is List) {
-        for (var item in json) {
-          final map = item as Map<String, dynamic>;
-          await repo.addSchedule(
-            userId,
-            map['subject'] as String,
-            DateTime.parse(map['start'] as String),
-            DateTime.parse(map['end'] as String),
-            map['room'] as String? ?? '',
-          );
-        }
+        await db.batch((batch) {
+          for (var item in json) {
+            final map = item as Map<String, dynamic>;
+            final credits = map['credits'] as int? ?? 3;
+
+            batch.insert(
+              db.schedules,
+              SchedulesCompanion.insert(
+                userId: userId,
+                subjectName: map['subject'] as String,
+                startTime: DateTime.parse(map['start'] as String),
+                endTime: DateTime.parse(map['end'] as String),
+                room: Value(map['room'] as String? ?? ''),
+                credits: Value(credits),
+                maxAbsences: Value(credits * 3),
+              ),
+            );
+          }
+        });
         return Response.json(
             body: {'message': 'Đã import ${json.length} lịch học'});
       } else if (json is Map<String, dynamic>) {
-        await repo.addSchedule(
-          userId,
-          json['subject'] as String,
-          DateTime.parse(json['start'] as String),
-          DateTime.parse(json['end'] as String),
-          json['room'] as String? ?? '',
-        );
+        final credits = json['credits'] as int? ?? 3;
+
+        await db.into(db.schedules).insert(
+              SchedulesCompanion.insert(
+                userId: userId,
+                subjectName: json['subject'] as String,
+                startTime: DateTime.parse(json['start'] as String),
+                endTime: DateTime.parse(json['end'] as String),
+                room: Value(json['room'] as String? ?? ''),
+                credits: Value(credits),
+                maxAbsences: Value(credits * 3),
+              ),
+            );
         return Response.json(body: {'message': 'Đã thêm lịch học'});
       }
 
