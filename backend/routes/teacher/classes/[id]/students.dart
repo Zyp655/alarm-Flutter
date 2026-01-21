@@ -15,7 +15,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
   }
 
   try {
-    // Check if class exists
     final classExists = await (db.select(db.classes)
           ..where((t) => t.id.equals(classId)))
         .getSingleOrNull();
@@ -29,12 +28,14 @@ Future<Response> onRequest(RequestContext context, String id) async {
       leftOuterJoin(
           db.studentProfiles, db.studentProfiles.userId.equalsExp(db.users.id)),
     ])
-      ..where(db.schedules.classId.equals(classId) &
-          db.schedules.userId.isNotValue(classExists.teacherId));
+      ..where(db.schedules.classId.equals(classId));
 
     final result = await query.get();
 
-    final students = result.map((row) {
+    final students = result
+        .where((row) =>
+            row.readTable(db.schedules).userId != classExists.teacherId)
+        .map((row) {
       final schedule = row.readTable(db.schedules);
       final user = row.readTable(db.users);
       final profile = row.readTableOrNull(db.studentProfiles);
@@ -55,6 +56,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
 
     return Response.json(body: students);
   } catch (e) {
+    print('Error in get students: $e');
     return Response.json(statusCode: 500, body: {'error': e.toString()});
   }
 }

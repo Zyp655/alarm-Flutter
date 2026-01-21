@@ -1,0 +1,199 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/exceptions.dart';
+import '../../../schedule/domain/enitities/schedule_entity.dart';
+import '../../domain/entities/subject_entity.dart';
+import '../../domain/repositories/teacher_repository.dart';
+import '../datasources/teacher_remote_data_source.dart';
+import '../../domain/entities/student_entity.dart';
+import '../../domain/entities/assignment_entity.dart';
+import '../models/assignment_model.dart';
+
+class TeacherRepositoryImpl implements TeacherRepository {
+  final TeacherRemoteDataSource remoteDataSource;
+
+  TeacherRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<Either<Failure, List<SubjectEntity>>> getSubjects(
+    int teacherId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getSubjects(teacherId);
+      return Right(result);
+    } on ServerException {
+      return Left(ServerFailure("Không thể tải danh sách môn học"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> createSubject(
+    int teacherId,
+    String name,
+    int credits,
+    String? code,
+  ) async {
+    try {
+      await remoteDataSource.createSubject(teacherId, name, credits, code);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> createClass(
+    String className,
+    int teacherId,
+    String subjectName,
+    String room,
+    DateTime startTime,
+    DateTime endTime,
+    DateTime startDate,
+    int repeatWeeks,
+    int notificationMinutes,
+    int credits,
+  ) async {
+    try {
+      await remoteDataSource.createClass(
+        className,
+        teacherId,
+        subjectName,
+        room,
+        startTime,
+        endTime,
+        startDate,
+        repeatWeeks,
+        notificationMinutes,
+        credits,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ScheduleEntity>>> getAllSchedules(
+    int teacherId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getAllSchedules(teacherId);
+      return Right(result);
+    } on ServerException {
+      return Left(ServerFailure("Không thể tải danh sách lớp"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateScore(
+    int scheduleId,
+    int? absences,
+    double? midtermScore,
+    double? finalScore,
+  ) async {
+    try {
+      await remoteDataSource.updateScore(
+        scheduleId,
+        absences,
+        midtermScore,
+        finalScore,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> importSchedules(
+    int teacherId,
+    List<Map<String, dynamic>> schedules,
+  ) async {
+    try {
+      await remoteDataSource.importSchedules(teacherId, schedules);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Lỗi không xác định khi import lịch'));
+    }
+  }
+
+  @override
+  Future<String> regenerateClassCode(
+    int teacherId,
+    String subjectName,
+    bool isRefresh,
+  ) async {
+    try {
+      return await remoteDataSource.regenerateClassCode(
+        teacherId,
+        subjectName,
+        isRefresh,
+      );
+    } catch (e) {
+      throw Exception("Lỗi Repository: $e");
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<StudentEntity>>> getStudentsInClass(
+    int classId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getStudentsInClass(classId);
+      final entities = result.map((e) {
+        return StudentEntity(
+          scheduleId: e['id'],
+          userId: e['userId'],
+          studentName: e['fullName'] ?? 'Unknown',
+          studentId: e['studentId'] ?? '',
+          email: e['email'] ?? '',
+          currentAbsences: e['currentAbsences'] ?? 0,
+          maxAbsences: e['maxAbsences'] ?? 0,
+          midtermScore: e['midtermScore'],
+          finalScore: e['finalScore'],
+          targetScore: (e['targetScore'] as num).toDouble(),
+        );
+      }).toList();
+      return Right(entities);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<AssignmentEntity>>> getAssignments(
+    int teacherId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getAssignments(teacherId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> createAssignment(
+    AssignmentEntity assignment,
+    int teacherId,
+  ) async {
+    try {
+      final model = AssignmentModel(
+        id: assignment.id ?? 0,
+        classId: assignment.classId,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.dueDate,
+        rewardPoints: assignment.rewardPoints,
+        createdAt: assignment.createdAt ?? DateTime.now(),
+      );
+      await remoteDataSource.createAssignment(model, teacherId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+}
