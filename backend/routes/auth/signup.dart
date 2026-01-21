@@ -13,21 +13,28 @@ Future<Response> onRequest(RequestContext context) async {
     final email = body['email'] as String?;
     final password = body['password'] as String?;
 
-    if (email == null || email.isEmpty || password == null || password.isEmpty) {
+    if (email == null ||
+        email.isEmpty ||
+        password == null ||
+        password.isEmpty) {
       return Response.json(
           statusCode: 400, body: {'error': 'Vui lòng nhập email và mật khẩu'});
     }
 
     final user = await repo.createUser(email: email, password: password);
 
-    return Response.json(body: {'message': 'Đăng ký thành công', 'id': user.id});
-  } catch (e) {
+    return Response.json(
+        body: {'message': 'Đăng ký thành công', 'id': user.id});
+  } catch (e, stackTrace) {
+    print('SIGNUP ERROR: $e');
+    print('STACK TRACE: $stackTrace');
     final errorString = e.toString();
 
-    if (errorString.contains('23505') || errorString.contains('already exists')) {
-      return Response.json(
-          statusCode: 409,
-          body: {'error': 'Email này đã được sử dụng. Vui lòng chọn email khác.'});
+    if (errorString.contains('23505') ||
+        errorString.contains('already exists')) {
+      return Response.json(statusCode: 409, body: {
+        'error': 'Email này đã được sử dụng. Vui lòng chọn email khác.'
+      });
     }
 
     return Response.json(

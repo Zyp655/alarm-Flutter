@@ -783,8 +783,6 @@ class $SubjectsTable extends Subjects with TableInfo<$SubjectsTable, Subject> {
       'is_deleted', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
       clientDefault: () => false);
   @override
   List<GeneratedColumn> get $columns =>
@@ -2656,8 +2654,6 @@ class $StudentAssignmentsTable extends StudentAssignments
       'is_completed', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("is_completed" IN (0, 1))'),
       defaultValue: const Constant(false));
   static const VerificationMeta _completedAtMeta =
       const VerificationMeta('completedAt');
@@ -2672,8 +2668,6 @@ class $StudentAssignmentsTable extends StudentAssignments
       'reward_claimed', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("reward_claimed" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
@@ -3002,6 +2996,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         assignments,
         studentAssignments
       ];
+  @override
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
 typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({

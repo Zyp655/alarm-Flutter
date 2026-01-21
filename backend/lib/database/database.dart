@@ -110,24 +110,13 @@ class AppDatabase extends _$AppDatabase {
         ));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
-      },
-      onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 10) {
-          await m.addColumn(schedules, schedules.notificationMinutes);
-        }
-        if (from < 11) {
-        }
-        if (from < 12) {
-          await m.createTable(assignments);
-          await m.createTable(studentAssignments);
-        }
       },
     );
   }
