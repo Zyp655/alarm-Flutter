@@ -9,6 +9,10 @@ import '../../domain/usecases/update_student_score_usecase.dart';
 import '../../domain/usecases/get_students_in_class_usecase.dart';
 import '../../domain/usecases/get_assignments_usecase.dart';
 import '../../domain/usecases/create_assignment_usecase.dart';
+import '../../domain/usecases/update_assignment_usecase.dart';
+import '../../domain/usecases/delete_assignment_usecase.dart';
+import '../../../schedule/domain/usecases/update_schedule_usecase.dart';
+import '../../../schedule/domain/usecases/delete_schedule_usecase.dart';
 import 'teacher_event.dart';
 import 'teacher_state.dart';
 
@@ -21,6 +25,10 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
   final GetStudentsInClassUseCase getStudentsInClass;
   final GetAssignmentsUseCase getAssignments;
   final CreateAssignmentUseCase createAssignment;
+  final UpdateAssignmentUseCase updateAssignment;
+  final DeleteAssignmentUseCase deleteAssignment;
+  final UpdateScheduleUseCase updateSchedule;
+  final DeleteScheduleUseCase deleteSchedule;
 
   final GetSubjectsUseCase getSubjects;
   final CreateSubjectUseCase createSubject;
@@ -36,6 +44,10 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
     required this.createSubject,
     required this.getAssignments,
     required this.createAssignment,
+    required this.updateAssignment,
+    required this.deleteAssignment,
+    required this.updateSchedule,
+    required this.deleteSchedule,
   }) : super(TeacherInitial()) {
     on<LoadSubjects>((event, emit) async {
       emit(TeacherLoading());
@@ -88,6 +100,24 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
       });
     });
 
+    on<UpdateClassRequested>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await updateSchedule(event.schedule);
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(ClassUpdatedSuccess());
+        add(LoadTeacherClasses(event.teacherId));
+      });
+    });
+
+    on<DeleteClassRequested>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await deleteSchedule(event.scheduleId);
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(ClassDeletedSuccess());
+        add(LoadTeacherClasses(event.teacherId));
+      });
+    });
+
     on<UpdateScoreRequested>((event, emit) async {
       emit(TeacherLoading());
       final result = await updateScore(
@@ -136,6 +166,27 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
       final result = await createAssignment(event.assignment, event.teacherId);
       result.fold((failure) => emit(TeacherError(failure.message)), (_) {
         emit(AssignmentCreatedSuccess());
+        add(LoadAssignments(event.teacherId));
+      });
+    });
+
+    on<UpdateAssignmentRequested>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await updateAssignment(event.assignment, event.teacherId);
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(AssignmentUpdatedSuccess());
+        add(LoadAssignments(event.teacherId));
+      });
+    });
+
+    on<DeleteAssignmentRequested>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await deleteAssignment(
+        event.assignmentId,
+        event.teacherId,
+      );
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(AssignmentDeletedSuccess());
         add(LoadAssignments(event.teacherId));
       });
     });

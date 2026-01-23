@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/assignment_entity.dart';
+import '../../../schedule/domain/enitities/schedule_entity.dart';
 
 abstract class TeacherEvent extends Equatable {
   const TeacherEvent();
@@ -149,4 +150,44 @@ class CreateAssignmentRequested extends TeacherEvent {
   const CreateAssignmentRequested(this.assignment, this.teacherId);
   @override
   List<Object> get props => [assignment, teacherId];
+}
+
+class UpdateClassRequested extends TeacherEvent {
+  final ScheduleEntity schedule;
+  final int teacherId;
+
+  const UpdateClassRequested(this.schedule, this.teacherId);
+
+  @override
+  List<Object> get props => [schedule, teacherId];
+}
+
+class DeleteClassRequested extends TeacherEvent {
+  final int scheduleId;
+  final int teacherId;
+
+  const DeleteClassRequested(this.scheduleId, this.teacherId);
+
+  @override
+  List<Object> get props => [scheduleId, teacherId];
+}
+
+class UpdateAssignmentRequested extends TeacherEvent {
+  final AssignmentEntity assignment;
+  final int teacherId;
+
+  const UpdateAssignmentRequested(this.assignment, this.teacherId);
+
+  @override
+  List<Object> get props => [assignment, teacherId];
+}
+
+class DeleteAssignmentRequested extends TeacherEvent {
+  final int assignmentId;
+  final int teacherId;
+
+  const DeleteAssignmentRequested(this.assignmentId, this.teacherId);
+
+  @override
+  List<Object> get props => [assignmentId, teacherId];
 }

@@ -196,4 +196,39 @@ class TeacherRepositoryImpl implements TeacherRepository {
       return Left(ServerFailure(e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateAssignment(
+    AssignmentEntity assignment,
+    int teacherId,
+  ) async {
+    try {
+      final model = AssignmentModel(
+        id: assignment.id ?? 0,
+        classId: assignment.classId,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.dueDate,
+        rewardPoints: assignment.rewardPoints,
+        createdAt: assignment.createdAt ?? DateTime.now(),
+      );
+      await remoteDataSource.updateAssignment(model, teacherId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAssignment(
+    int assignmentId,
+    int teacherId,
+  ) async {
+    try {
+      await remoteDataSource.deleteAssignment(assignmentId, teacherId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
 }

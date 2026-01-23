@@ -169,7 +169,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
     final TextEditingController repeatWeeksController = TextEditingController(
       text: "1",
     );
-    // Default credits to 2 as per user request
     final TextEditingController creditsController = TextEditingController(
       text: "2",
     );
@@ -182,7 +181,7 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
 
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent accidental close
+      barrierDismissible: false, 
       builder: (ctx) {
         return BlocProvider.value(
           value: context.read<TeacherBloc>(),
@@ -236,7 +235,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Class Name
                               TextField(
                                 controller: classNameController,
                                 decoration: const InputDecoration(
@@ -249,7 +247,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Room
                               TextField(
                                 controller: roomController,
                                 decoration: const InputDecoration(
@@ -262,7 +259,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Start Date
                               InkWell(
                                 onTap: () async {
                                   final picked = await showDatePicker(
@@ -302,7 +298,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Time Row
                               Row(
                                 children: [
                                   Expanded(
@@ -381,7 +376,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Configuration Row: Repeat - Notify - Credits
                               Row(
                                 children: [
                                   Expanded(
@@ -432,7 +426,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Create Button
                               ElevatedButton(
                                 onPressed: () {
                                   final className = classNameController.text
@@ -455,7 +448,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                                       ) ??
                                       2;
 
-                                  // Validation
                                   if (className.isEmpty ||
                                       room.isEmpty ||
                                       startDate == null ||
@@ -537,7 +529,6 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                           ),
                         ),
                       ),
-                      // Close Button (X)
                       Positioned(
                         top: 8,
                         right: 8,
@@ -562,12 +553,10 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 👇 Logic lọc danh sách lớp
     final subjectSchedules = List<ScheduleEntity>.from(
       widget.allSchedules.where((s) => s.subject == widget.subjectName),
     );
 
-    // 👇 Nếu không có lớp, hiện Scaffold với FAB để tạo lớp
     if (subjectSchedules.isEmpty) {
       return Scaffold(
         body: const Center(
@@ -619,7 +608,7 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                 child: const Icon(Icons.class_, color: Colors.blue),
               ),
               title: Text(
-                item.subject,
+                'Môn học: ${item.subject}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Column(
@@ -634,7 +623,7 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                     ),
                 ],
               ),
-              
+
               trailing: IconButton(
                 icon: const Icon(Icons.vpn_key, color: Colors.orange),
                 tooltip: "Xem/Lấy Mã Lớp",
@@ -656,7 +645,11 @@ class _TeacherSubjectClassesPageState extends State<TeacherSubjectClassesPage> {
                       ),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<TeacherBloc>().add(
+                    LoadTeacherClasses(_getCurrentUserId()),
+                  );
+                });
               },
             ),
           );

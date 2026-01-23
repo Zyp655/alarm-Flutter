@@ -7,6 +7,7 @@ import '../bloc/teacher_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../widgets/create_task_dialog.dart';
+import '../widgets/edit_task_dialog.dart';
 
 class TeacherTasksPage extends StatefulWidget {
   const TeacherTasksPage({super.key});
@@ -25,6 +26,35 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
     }
   }
 
+  void _showDeleteConfirmation(BuildContext context, int assignmentId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Xóa Bài Tập"),
+        content: const Text("Bạn có chắc chắn muốn xóa bài tập này không?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Hủy"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is AuthSuccess && authState.user != null) {
+                context.read<TeacherBloc>().add(
+                  DeleteAssignmentRequested(assignmentId, authState.user!.id),
+                );
+              }
+              Navigator.pop(dialogContext);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Xóa"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Builder(
@@ -41,6 +71,32 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Tạo bài tập thành công!")),
                 );
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthSuccess && authState.user != null) {
+                  context.read<TeacherBloc>().add(
+                    LoadAssignments(authState.user!.id),
+                  );
+                }
+              } else if (state is AssignmentUpdatedSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Cập nhật bài tập thành công!")),
+                );
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthSuccess && authState.user != null) {
+                  context.read<TeacherBloc>().add(
+                    LoadAssignments(authState.user!.id),
+                  );
+                }
+              } else if (state is AssignmentDeletedSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Xóa bài tập thành công!")),
+                );
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthSuccess && authState.user != null) {
+                  context.read<TeacherBloc>().add(
+                    LoadAssignments(authState.user!.id),
+                  );
+                }
               }
             },
             builder: (context, state) {
@@ -76,20 +132,40 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                             Text("Điểm thưởng: ${assignment.rewardPoints}"),
                           ],
                         ),
-                        trailing: const Icon(
-                          Icons.assignment,
-                          color: Colors.blue,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                final teacherBloc = context.read<TeacherBloc>();
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => BlocProvider.value(
+                                    value: teacherBloc,
+                                    child: EditTaskDialog(
+                                      assignment: assignment,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                _showDeleteConfirmation(
+                                  context,
+                                  assignment.id!,
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                        onTap: () {
-                          // TODO: Navigate to assignment detail (optional)
-                        },
                       ),
                     );
                   },
                 );
               }
-              // If we are in another state (e.g. SubjectsLoaded), we might need to trigger load
-              // But for now, let's just show empty or loading if it's initial
               return const Center(child: Text("Đang tải dữ liệu..."));
             },
           ),

@@ -106,7 +106,6 @@ class _StudentListContentState extends State<_StudentListContent> {
   @override
   void initState() {
     super.initState();
-    // FIX: Use id (PK) if classId is null
     final idToUse = widget.classItem.id ?? widget.classItem.classId;
 
     if (idToUse != null) {
@@ -213,10 +212,10 @@ class _StudentListContentState extends State<_StudentListContent> {
                               context.read<TeacherBloc>().add(
                                 RegenerateCodeRequested(
                                   widget.teacherId ??
-                                      1, // Fixed: use widget.teacherId
+                                      1, 
                                   widget
                                       .classItem
-                                      .subject, // Fixed: use widget.classItem
+                                      .subject,
                                   true,
                                 ),
                               );

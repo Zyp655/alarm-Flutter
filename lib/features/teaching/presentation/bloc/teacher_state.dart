@@ -68,4 +68,12 @@ class AssignmentsLoaded extends TeacherState {
   List<Object> get props => [assignments];
 }
 
+class ClassDeletedSuccess extends TeacherState {}
+
+class ClassUpdatedSuccess extends TeacherState {}
+
 class AssignmentCreatedSuccess extends TeacherState {}
+
+class AssignmentUpdatedSuccess extends TeacherState {}
+
+class AssignmentDeletedSuccess extends TeacherState {}

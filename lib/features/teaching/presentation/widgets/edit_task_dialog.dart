@@ -10,19 +10,21 @@ import '../../domain/entities/assignment_entity.dart';
 import '../../../schedule/domain/enitities/schedule_entity.dart';
 import '../../domain/entities/subject_entity.dart';
 
-class CreateTaskDialog extends StatefulWidget {
-  const CreateTaskDialog({super.key});
+class EditTaskDialog extends StatefulWidget {
+  final AssignmentEntity assignment;
+
+  const EditTaskDialog({super.key, required this.assignment});
 
   @override
-  State<CreateTaskDialog> createState() => _CreateTaskDialogState();
+  State<EditTaskDialog> createState() => _EditTaskDialogState();
 }
 
-class _CreateTaskDialogState extends State<CreateTaskDialog> {
+class _EditTaskDialogState extends State<EditTaskDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _pointsController = TextEditingController(text: "0");
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _pointsController;
+  late DateTime _selectedDate;
   int? _selectedClassId;
   int? _selectedSubjectId;
   List<ScheduleEntity> _classes = [];
@@ -31,6 +33,15 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.assignment.title);
+    _descriptionController = TextEditingController(
+      text: widget.assignment.description ?? '',
+    );
+    _pointsController = TextEditingController(
+      text: widget.assignment.rewardPoints.toString(),
+    );
+    _selectedDate = widget.assignment.dueDate;
+    _selectedClassId = widget.assignment.classId;
     _loadSubjectsAndClasses();
   }
 
@@ -43,14 +54,39 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
   }
 
   @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _pointsController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocConsumer<TeacherBloc, TeacherState>(
       listener: (context, state) {
         if (state is SubjectsLoaded) {
           setState(() {
             _subjects = state.subjects;
-            if (_subjects.isNotEmpty && _selectedSubjectId == null) {
-              _selectedSubjectId = _subjects.first.id;
+            if (_selectedSubjectId == null && _subjects.isNotEmpty) {
+              final matchingClass = _classes.firstWhere(
+                (c) => c.id == widget.assignment.classId,
+                orElse: () => ScheduleEntity(
+                  subject: '',
+                  room: '',
+                  start: DateTime.now(),
+                  end: DateTime.now(),
+                ),
+              );
+              if (matchingClass.subject.isNotEmpty) {
+                final matchingSubject = _subjects.firstWhere(
+                  (s) => s.name == matchingClass.subject,
+                  orElse: () => _subjects.first,
+                );
+                _selectedSubjectId = matchingSubject.id;
+              } else {
+                _selectedSubjectId = _subjects.first.id;
+              }
             }
           });
         } else if (state is TeacherLoaded) {
@@ -86,7 +122,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
         }
 
         return AlertDialog(
-          title: const Text("Giao Bài Tập"),
+          title: const Text("Chỉnh Sửa Bài Tập"),
           content: SingleChildScrollView(
             child: Form(
               key: _formKey,
@@ -115,7 +151,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                       onChanged: (val) {
                         setState(() {
                           _selectedSubjectId = val;
-                          _selectedClassId = null; 
+                          _selectedClassId = null;
                         });
                       },
                       decoration: const InputDecoration(
@@ -239,22 +275,26 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                 if (_formKey.currentState!.validate()) {
                   final authState = context.read<AuthBloc>().state;
                   if (authState is AuthSuccess && authState.user != null) {
-                    final assignment = AssignmentEntity(
+                    final updatedAssignment = AssignmentEntity(
+                      id: widget.assignment.id,
                       classId: _selectedClassId!,
                       title: _titleController.text,
                       description: _descriptionController.text,
                       dueDate: _selectedDate,
                       rewardPoints: int.tryParse(_pointsController.text) ?? 0,
-                      createdAt: DateTime.now(),
+                      createdAt: widget.assignment.createdAt,
                     );
                     context.read<TeacherBloc>().add(
-                      CreateAssignmentRequested(assignment, authState.user!.id),
+                      UpdateAssignmentRequested(
+                        updatedAssignment,
+                        authState.user!.id,
+                      ),
                     );
                     Navigator.pop(context);
                   }
                 }
               },
-              child: const Text("Tạo"),
+              child: const Text("Cập Nhật"),
             ),
           ],
         );

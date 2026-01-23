@@ -12,6 +12,16 @@ abstract class TeacherRepository {
     AssignmentEntity assignment,
     int teacherId,
   );
+
+  Future<Either<Failure, void>> updateAssignment(
+    AssignmentEntity assignment,
+    int teacherId,
+  );
+
+  Future<Either<Failure, void>> deleteAssignment(
+    int assignmentId,
+    int teacherId,
+  );
   Future<Either<Failure, void>> createClass(
     String className,
     int teacherId,

@@ -12,6 +12,10 @@ abstract class TeacherRemoteDataSource {
 
   Future<void> createAssignment(AssignmentModel assignment, int teacherId);
 
+  Future<void> updateAssignment(AssignmentModel assignment, int teacherId);
+
+  Future<void> deleteAssignment(int assignmentId, int teacherId);
+
   Future<void> createClass(
     String className,
     int teacherId,
@@ -280,6 +284,42 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
 
     if (response.statusCode != 200) {
       throw ServerException("Lỗi tạo bài tập: ${response.body}");
+    }
+  }
+
+  @override
+  Future<void> updateAssignment(
+    AssignmentModel assignment,
+    int teacherId,
+  ) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/assignments/${assignment.id}/update',
+    );
+
+    final body = assignment.toJson();
+    body['teacherId'] = teacherId;
+
+    final response = await client.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw ServerException("Lỗi cập nhật bài tập: ${response.body}");
+    }
+  }
+
+  @override
+  Future<void> deleteAssignment(int assignmentId, int teacherId) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/assignments/$assignmentId/delete?teacherId=$teacherId',
+    );
+
+    final response = await client.delete(url);
+
+    if (response.statusCode != 200) {
+      throw ServerException("Lỗi xóa bài tập: ${response.body}");
     }
   }
 }
