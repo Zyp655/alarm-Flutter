@@ -1506,6 +1506,12 @@ class $SchedulesTable extends Schedules
   late final GeneratedColumn<double> finalScore = GeneratedColumn<double>(
       'final_score', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _examScoreMeta =
+      const VerificationMeta('examScore');
+  @override
+  late final GeneratedColumn<double> examScore = GeneratedColumn<double>(
+      'exam_score', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _targetScoreMeta =
       const VerificationMeta('targetScore');
   @override
@@ -1559,6 +1565,7 @@ class $SchedulesTable extends Schedules
         currentAbsences,
         midtermScore,
         finalScore,
+        examScore,
         targetScore,
         credits,
         maxAbsences,
@@ -1644,6 +1651,10 @@ class $SchedulesTable extends Schedules
           finalScore.isAcceptableOrUnknown(
               data['final_score']!, _finalScoreMeta));
     }
+    if (data.containsKey('exam_score')) {
+      context.handle(_examScoreMeta,
+          examScore.isAcceptableOrUnknown(data['exam_score']!, _examScoreMeta));
+    }
     if (data.containsKey('target_score')) {
       context.handle(
           _targetScoreMeta,
@@ -1703,6 +1714,8 @@ class $SchedulesTable extends Schedules
           .read(DriftSqlType.double, data['${effectivePrefix}midterm_score']),
       finalScore: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}final_score']),
+      examScore: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exam_score']),
       targetScore: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}target_score'])!,
       credits: attachedDatabase.typeMapping
@@ -1736,6 +1749,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
   final int currentAbsences;
   final double? midtermScore;
   final double? finalScore;
+  final double? examScore;
   final double targetScore;
   final int credits;
   final int maxAbsences;
@@ -1755,6 +1769,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       required this.currentAbsences,
       this.midtermScore,
       this.finalScore,
+      this.examScore,
       required this.targetScore,
       required this.credits,
       required this.maxAbsences,
@@ -1790,6 +1805,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
     if (!nullToAbsent || finalScore != null) {
       map['final_score'] = Variable<double>(finalScore);
     }
+    if (!nullToAbsent || examScore != null) {
+      map['exam_score'] = Variable<double>(examScore);
+    }
     map['target_score'] = Variable<double>(targetScore);
     map['credits'] = Variable<int>(credits);
     map['max_absences'] = Variable<int>(maxAbsences);
@@ -1823,6 +1841,9 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       finalScore: finalScore == null && nullToAbsent
           ? const Value.absent()
           : Value(finalScore),
+      examScore: examScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(examScore),
       targetScore: Value(targetScore),
       credits: Value(credits),
       maxAbsences: Value(maxAbsences),
@@ -1849,6 +1870,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       currentAbsences: serializer.fromJson<int>(json['currentAbsences']),
       midtermScore: serializer.fromJson<double?>(json['midtermScore']),
       finalScore: serializer.fromJson<double?>(json['finalScore']),
+      examScore: serializer.fromJson<double?>(json['examScore']),
       targetScore: serializer.fromJson<double>(json['targetScore']),
       credits: serializer.fromJson<int>(json['credits']),
       maxAbsences: serializer.fromJson<int>(json['maxAbsences']),
@@ -1873,6 +1895,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       'currentAbsences': serializer.toJson<int>(currentAbsences),
       'midtermScore': serializer.toJson<double?>(midtermScore),
       'finalScore': serializer.toJson<double?>(finalScore),
+      'examScore': serializer.toJson<double?>(examScore),
       'targetScore': serializer.toJson<double>(targetScore),
       'credits': serializer.toJson<int>(credits),
       'maxAbsences': serializer.toJson<int>(maxAbsences),
@@ -1895,6 +1918,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           int? currentAbsences,
           Value<double?> midtermScore = const Value.absent(),
           Value<double?> finalScore = const Value.absent(),
+          Value<double?> examScore = const Value.absent(),
           double? targetScore,
           int? credits,
           int? maxAbsences,
@@ -1917,6 +1941,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
         midtermScore:
             midtermScore.present ? midtermScore.value : this.midtermScore,
         finalScore: finalScore.present ? finalScore.value : this.finalScore,
+        examScore: examScore.present ? examScore.value : this.examScore,
         targetScore: targetScore ?? this.targetScore,
         credits: credits ?? this.credits,
         maxAbsences: maxAbsences ?? this.maxAbsences,
@@ -1946,6 +1971,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           : this.midtermScore,
       finalScore:
           data.finalScore.present ? data.finalScore.value : this.finalScore,
+      examScore: data.examScore.present ? data.examScore.value : this.examScore,
       targetScore:
           data.targetScore.present ? data.targetScore.value : this.targetScore,
       credits: data.credits.present ? data.credits.value : this.credits,
@@ -1972,6 +1998,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           ..write('currentAbsences: $currentAbsences, ')
           ..write('midtermScore: $midtermScore, ')
           ..write('finalScore: $finalScore, ')
+          ..write('examScore: $examScore, ')
           ..write('targetScore: $targetScore, ')
           ..write('credits: $credits, ')
           ..write('maxAbsences: $maxAbsences, ')
@@ -1996,6 +2023,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
       currentAbsences,
       midtermScore,
       finalScore,
+      examScore,
       targetScore,
       credits,
       maxAbsences,
@@ -2018,6 +2046,7 @@ class Schedule extends DataClass implements Insertable<Schedule> {
           other.currentAbsences == this.currentAbsences &&
           other.midtermScore == this.midtermScore &&
           other.finalScore == this.finalScore &&
+          other.examScore == this.examScore &&
           other.targetScore == this.targetScore &&
           other.credits == this.credits &&
           other.maxAbsences == this.maxAbsences &&
@@ -2039,6 +2068,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
   final Value<int> currentAbsences;
   final Value<double?> midtermScore;
   final Value<double?> finalScore;
+  final Value<double?> examScore;
   final Value<double> targetScore;
   final Value<int> credits;
   final Value<int> maxAbsences;
@@ -2058,6 +2088,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     this.currentAbsences = const Value.absent(),
     this.midtermScore = const Value.absent(),
     this.finalScore = const Value.absent(),
+    this.examScore = const Value.absent(),
     this.targetScore = const Value.absent(),
     this.credits = const Value.absent(),
     this.maxAbsences = const Value.absent(),
@@ -2078,6 +2109,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     this.currentAbsences = const Value.absent(),
     this.midtermScore = const Value.absent(),
     this.finalScore = const Value.absent(),
+    this.examScore = const Value.absent(),
     this.targetScore = const Value.absent(),
     this.credits = const Value.absent(),
     this.maxAbsences = const Value.absent(),
@@ -2101,6 +2133,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     Expression<int>? currentAbsences,
     Expression<double>? midtermScore,
     Expression<double>? finalScore,
+    Expression<double>? examScore,
     Expression<double>? targetScore,
     Expression<int>? credits,
     Expression<int>? maxAbsences,
@@ -2122,6 +2155,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       if (currentAbsences != null) 'current_absences': currentAbsences,
       if (midtermScore != null) 'midterm_score': midtermScore,
       if (finalScore != null) 'final_score': finalScore,
+      if (examScore != null) 'exam_score': examScore,
       if (targetScore != null) 'target_score': targetScore,
       if (credits != null) 'credits': credits,
       if (maxAbsences != null) 'max_absences': maxAbsences,
@@ -2144,6 +2178,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       Value<int>? currentAbsences,
       Value<double?>? midtermScore,
       Value<double?>? finalScore,
+      Value<double?>? examScore,
       Value<double>? targetScore,
       Value<int>? credits,
       Value<int>? maxAbsences,
@@ -2163,6 +2198,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
       currentAbsences: currentAbsences ?? this.currentAbsences,
       midtermScore: midtermScore ?? this.midtermScore,
       finalScore: finalScore ?? this.finalScore,
+      examScore: examScore ?? this.examScore,
       targetScore: targetScore ?? this.targetScore,
       credits: credits ?? this.credits,
       maxAbsences: maxAbsences ?? this.maxAbsences,
@@ -2213,6 +2249,9 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
     if (finalScore.present) {
       map['final_score'] = Variable<double>(finalScore.value);
     }
+    if (examScore.present) {
+      map['exam_score'] = Variable<double>(examScore.value);
+    }
     if (targetScore.present) {
       map['target_score'] = Variable<double>(targetScore.value);
     }
@@ -2247,6 +2286,7 @@ class SchedulesCompanion extends UpdateCompanion<Schedule> {
           ..write('currentAbsences: $currentAbsences, ')
           ..write('midtermScore: $midtermScore, ')
           ..write('finalScore: $finalScore, ')
+          ..write('examScore: $examScore, ')
           ..write('targetScore: $targetScore, ')
           ..write('credits: $credits, ')
           ..write('maxAbsences: $maxAbsences, ')
@@ -7594,6 +7634,7 @@ typedef $$SchedulesTableCreateCompanionBuilder = SchedulesCompanion Function({
   Value<int> currentAbsences,
   Value<double?> midtermScore,
   Value<double?> finalScore,
+  Value<double?> examScore,
   Value<double> targetScore,
   Value<int> credits,
   Value<int> maxAbsences,
@@ -7614,6 +7655,7 @@ typedef $$SchedulesTableUpdateCompanionBuilder = SchedulesCompanion Function({
   Value<int> currentAbsences,
   Value<double?> midtermScore,
   Value<double?> finalScore,
+  Value<double?> examScore,
   Value<double> targetScore,
   Value<int> credits,
   Value<int> maxAbsences,
@@ -7712,6 +7754,9 @@ class $$SchedulesTableFilterComposer
 
   ColumnFilters<double> get finalScore => $composableBuilder(
       column: $table.finalScore, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get examScore => $composableBuilder(
+      column: $table.examScore, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get targetScore => $composableBuilder(
       column: $table.targetScore, builder: (column) => ColumnFilters(column));
@@ -7835,6 +7880,9 @@ class $$SchedulesTableOrderingComposer
   ColumnOrderings<double> get finalScore => $composableBuilder(
       column: $table.finalScore, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get examScore => $composableBuilder(
+      column: $table.examScore, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get targetScore => $composableBuilder(
       column: $table.targetScore, builder: (column) => ColumnOrderings(column));
 
@@ -7932,6 +7980,9 @@ class $$SchedulesTableAnnotationComposer
 
   GeneratedColumn<double> get finalScore => $composableBuilder(
       column: $table.finalScore, builder: (column) => column);
+
+  GeneratedColumn<double> get examScore =>
+      $composableBuilder(column: $table.examScore, builder: (column) => column);
 
   GeneratedColumn<double> get targetScore => $composableBuilder(
       column: $table.targetScore, builder: (column) => column);
@@ -8046,6 +8097,7 @@ class $$SchedulesTableTableManager extends RootTableManager<
             Value<int> currentAbsences = const Value.absent(),
             Value<double?> midtermScore = const Value.absent(),
             Value<double?> finalScore = const Value.absent(),
+            Value<double?> examScore = const Value.absent(),
             Value<double> targetScore = const Value.absent(),
             Value<int> credits = const Value.absent(),
             Value<int> maxAbsences = const Value.absent(),
@@ -8066,6 +8118,7 @@ class $$SchedulesTableTableManager extends RootTableManager<
             currentAbsences: currentAbsences,
             midtermScore: midtermScore,
             finalScore: finalScore,
+            examScore: examScore,
             targetScore: targetScore,
             credits: credits,
             maxAbsences: maxAbsences,
@@ -8086,6 +8139,7 @@ class $$SchedulesTableTableManager extends RootTableManager<
             Value<int> currentAbsences = const Value.absent(),
             Value<double?> midtermScore = const Value.absent(),
             Value<double?> finalScore = const Value.absent(),
+            Value<double?> examScore = const Value.absent(),
             Value<double> targetScore = const Value.absent(),
             Value<int> credits = const Value.absent(),
             Value<int> maxAbsences = const Value.absent(),
@@ -8106,6 +8160,7 @@ class $$SchedulesTableTableManager extends RootTableManager<
             currentAbsences: currentAbsences,
             midtermScore: midtermScore,
             finalScore: finalScore,
+            examScore: examScore,
             targetScore: targetScore,
             credits: credits,
             maxAbsences: maxAbsences,

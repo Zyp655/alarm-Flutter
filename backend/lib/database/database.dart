@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
 import 'package:postgres/postgres.dart';
+import 'package:dotenv/dotenv.dart';
 
 part 'database.g.dart';
 
@@ -55,6 +56,7 @@ class Schedules extends Table {
   IntColumn get currentAbsences => integer().withDefault(const Constant(0))();
   RealColumn get midtermScore => real().nullable()();
   RealColumn get finalScore => real().nullable()();
+  RealColumn get examScore => real().nullable()();
   RealColumn get targetScore => real().withDefault(const Constant(4.0))();
   IntColumn get credits => integer().withDefault(const Constant(2))();
   IntColumn get maxAbsences => integer().withDefault(const Constant(6))();
@@ -158,19 +160,25 @@ class StudentAssignments extends Table {
   Tasks,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase()
-      : super(PgDatabase(
-          endpoint: Endpoint(
-            host: 'localhost',
-            database: 'alarmm_db',
-            username: 'postgres',
-            password: 'my_super_secret_password',
-          ),
-          settings: const ConnectionSettings(sslMode: SslMode.disable),
-        ));
+  AppDatabase() : super(_createDatabase());
+
+  static QueryExecutor _createDatabase() {
+    final env = DotEnv()..load();
+
+    return PgDatabase(
+      endpoint: Endpoint(
+        host: env['DB_HOST'] ?? 'localhost',
+        database: env['DB_NAME'] ?? 'alarmm_db',
+        username: env['DB_USERNAME'] ?? 'postgres',
+        password: env['DB_PASSWORD'] ?? '',
+        port: int.tryParse(env['DB_PORT'] ?? '5432') ?? 5432,
+      ),
+      settings: const ConnectionSettings(sslMode: SslMode.disable),
+    );
+  }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -181,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
         }
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (to == 3) {
+        if (from < 3) {
           await m.drop(submissions);
           await m.drop(studentAssignments);
           await m.drop(attendances);
@@ -197,6 +205,10 @@ class AppDatabase extends _$AppDatabase {
           for (final table in allTables) {
             await m.createTable(table);
           }
+        }
+
+        if (from < 4) {
+          await m.addColumn(schedules, schedules.examScore);
         }
       },
     );

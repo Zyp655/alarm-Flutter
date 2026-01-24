@@ -14,6 +14,7 @@ Future<Response> onRequest(RequestContext context) async {
   final absences = body['absences'] as int?;
   final midterm = body['midtermScore'] as double?;
   final finalScore = body['finalScore'] as double?;
+  final examScore = body['examScore'] as double?;
 
   final targetSchedule = await (db.select(db.schedules)
         ..where((t) => t.id.equals(scheduleId)))
@@ -35,6 +36,7 @@ Future<Response> onRequest(RequestContext context) async {
         midtermScore: midterm != null ? Value(midterm) : const Value.absent(),
         finalScore:
             finalScore != null ? Value(finalScore) : const Value.absent(),
+        examScore: examScore != null ? Value(examScore) : const Value.absent(),
       ),
     );
   } else {
@@ -46,6 +48,7 @@ Future<Response> onRequest(RequestContext context) async {
         midtermScore: midterm != null ? Value(midterm) : const Value.absent(),
         finalScore:
             finalScore != null ? Value(finalScore) : const Value.absent(),
+        examScore: examScore != null ? Value(examScore) : const Value.absent(),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:backend/database/database.dart';
+import 'package:backend/helpers/notification_helper.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 
@@ -65,6 +66,18 @@ Future<Response> onRequest(RequestContext context) async {
               studentId: studentId,
             ),
           );
+    }
+
+    if (studentIds.isNotEmpty) {
+      await NotificationHelper.createBatchNotifications(
+        db: db,
+        userIds: studentIds,
+        type: 'assignment_new',
+        title: 'Bài tập mới',
+        message: 'Giáo viên đã giao bài tập: $title',
+        relatedId: assignmentId,
+        relatedType: 'assignment',
+      );
     }
 
     return Response.json(body: {
