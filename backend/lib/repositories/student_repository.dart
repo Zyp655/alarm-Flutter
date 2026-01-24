@@ -71,6 +71,8 @@ class StudentRepository {
     String? imagePath,
     int? currentAbsences,
     int? maxAbsences,
+    String? type,
+    String? format,
   }) async {
     final result = await (db.update(db.schedules)
           ..where((t) => t.id.equals(scheduleId) & t.userId.equals(userId)))
@@ -87,6 +89,8 @@ class StudentRepository {
             : const Value.absent(),
         maxAbsences:
             maxAbsences != null ? Value(maxAbsences) : const Value.absent(),
+        type: type != null ? Value(type) : const Value.absent(),
+        format: format != null ? Value(format) : const Value.absent(),
       ),
     );
     return result > 0;

@@ -18,10 +18,11 @@ class TeacherRepository {
     await updateStatement.write(
       SchedulesCompanion(
         currentAbsences:
-        absences != null ? Value(absences) : const Value.absent(),
-        // 👇 Thay currentScore cũ bằng 2 cột mới
-        midtermScore: midtermScore != null ? Value(midtermScore) : const Value.absent(),
-        finalScore: finalScore != null ? Value(finalScore) : const Value.absent(),
+            absences != null ? Value(absences) : const Value.absent(),
+        midtermScore:
+            midtermScore != null ? Value(midtermScore) : const Value.absent(),
+        finalScore:
+            finalScore != null ? Value(finalScore) : const Value.absent(),
       ),
     );
     return true;
