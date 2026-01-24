@@ -29,7 +29,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
       final json = await context.request.json() as Map<String, dynamic>;
 
       final currentSchedule = await (db.select(db.schedules)
-        ..where((t) => t.id.equals(scheduleId) & t.userId.equals(userId)))
+            ..where((t) => t.id.equals(scheduleId) & t.userId.equals(userId)))
           .getSingleOrNull();
 
       if (currentSchedule == null) {
@@ -38,9 +38,9 @@ Future<Response> onRequest(RequestContext context, String id) async {
 
       if (currentSchedule.classId != null) {
         await (db.update(db.schedules)
-          ..where((t) =>
-          t.classId.equals(currentSchedule.classId!) &
-          t.userId.equals(userId)))
+              ..where((t) =>
+                  t.classId.equals(currentSchedule.classId!) &
+                  t.userId.equals(userId)))
             .write(SchedulesCompanion(
           midtermScore: Value((json['midtermScore'] as num?)?.toDouble()),
           finalScore: Value((json['finalScore'] as num?)?.toDouble()),
@@ -60,6 +60,8 @@ Future<Response> onRequest(RequestContext context, String id) async {
           imagePath: json['imagePath'] as String?,
           currentAbsences: json['currentAbsences'] as int?,
           maxAbsences: json['maxAbsences'] as int?,
+          type: json['type'] as String?,
+          format: json['format'] as String?,
         );
       }
 

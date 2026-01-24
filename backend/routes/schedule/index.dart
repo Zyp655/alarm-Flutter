@@ -40,6 +40,8 @@ Future<Response> onRequest(RequestContext context) async {
         'midtermScore': schedule.midtermScore,
         'finalScore': schedule.finalScore,
         'targetScore': schedule.targetScore,
+        'type': schedule.type,
+        'format': schedule.format,
       };
     }).toList();
 
@@ -66,6 +68,8 @@ Future<Response> onRequest(RequestContext context) async {
                 room: Value(map['room'] as String? ?? ''),
                 credits: Value(credits),
                 maxAbsences: Value(credits * 3),
+                type: Value(map['type'] as String? ?? 'classSession'),
+                format: Value(map['format'] as String? ?? 'offline'),
               ),
             );
           }
@@ -84,6 +88,8 @@ Future<Response> onRequest(RequestContext context) async {
                 room: Value(json['room'] as String? ?? ''),
                 credits: Value(credits),
                 maxAbsences: Value(credits * 3),
+                type: Value(json['type'] as String? ?? 'classSession'),
+                format: Value(json['format'] as String? ?? 'offline'),
               ),
             );
         return Response.json(body: {'message': 'Đã thêm lịch học'});
