@@ -93,6 +93,136 @@ class NotificationService {
     );
   }
 
+  Future<void> scheduleExamNotification({
+    required int id,
+    required String subject,
+    required String room,
+    required DateTime startTime,
+    required int minutesBefore,
+  }) async {
+    final studyReminderTime = startTime.subtract(const Duration(hours: 24));
+    if (studyReminderTime.isAfter(DateTime.now())) {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id + 100000, // Offset to avoid collision
+        '📚 Nhắc nhở ôn thi: $subject',
+        'Còn 24h nữa là đến giờ thi môn $subject. Hãy ôn tập kỹ nhé!',
+        tz.TZDateTime.from(studyReminderTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'exam_study_channel',
+            'Nhắc nhở ôn thi',
+            channelDescription: 'Nhắc nhở trước 24h để ôn tập',
+            importance: Importance.high,
+            priority: Priority.high,
+            color: Colors.blue,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    }
+
+    final examReminderTime = startTime.subtract(
+      Duration(minutes: minutesBefore),
+    );
+    if (examReminderTime.isAfter(DateTime.now())) {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        ' SẮP THI: $subject',
+        'Phòng thi: $room. Giờ thi: ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')}. Đừng đến muộn!',
+        tz.TZDateTime.from(examReminderTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'exam_alert_channel',
+            'Lịch Thi (Quan trọng)',
+            channelDescription: 'Thông báo lịch thi quan trọng',
+            importance: Importance.max,
+            priority: Priority.max, 
+            playSound: true,
+            color: Colors.red,
+            styleInformation: BigTextStyleInformation(''),
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    }
+  }
+
+  Future<void> scheduleAssignmentNotification({
+    required int id,
+    required String title,
+    required DateTime dueDate,
+  }) async {
+    final reminderTime = dueDate.subtract(const Duration(hours: 24));
+    if (reminderTime.isAfter(DateTime.now())) {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id + 200000,
+        ' Nhắc nhở bài tập: $title',
+        'Hạn nộp bài là ngày mai lúc ${dueDate.hour}:${dueDate.minute.toString().padLeft(2, '0')}. Hãy hoàn thành sớm!',
+        tz.TZDateTime.from(reminderTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'assignment_channel',
+            'Bài Tập',
+            channelDescription: 'Nhắc nhở hạn nộp bài tập',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    }
+
+    final urgentTime = dueDate.subtract(const Duration(hours: 1));
+    if (urgentTime.isAfter(DateTime.now())) {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id + 300000,
+        ' GẤP: Sắp hết hạn nộp bài $title',
+        'Chỉ còn 1 giờ nữa là hết hạn nộp bài!',
+        tz.TZDateTime.from(urgentTime, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'assignment_urgent_channel',
+            'Bài Tập (Khẩn cấp)',
+            channelDescription: 'Thông báo khẩn cấp về hạn nộp bài',
+            importance: Importance.max,
+            priority: Priority.max,
+            color: Colors.red,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } else if (dueDate.isAfter(DateTime.now())) {
+      await flutterLocalNotificationsPlugin.show(
+        id + 300000,
+        '⚡ GẤP: Sắp hết hạn nộp bài $title',
+        'Hạn nộp: ${dueDate.hour}:${dueDate.minute.toString().padLeft(2, '0')}. Hãy nộp bài ngay!',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'assignment_urgent_channel',
+            'Bài Tập (Khẩn cấp)',
+            channelDescription: 'Thông báo khẩn cấp về hạn nộp bài',
+            importance: Importance.max,
+            priority: Priority.max,
+            color: Colors.red,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
+    }
+  }
+
   Future<void> showWarningNotification({
     required int id,
     required String title,
