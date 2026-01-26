@@ -110,40 +110,75 @@ class ScheduleDialogs {
         : const TimeOfDay(hour: 9, minute: 0);
     bool isRepeating = true;
 
+    ScheduleType selectedType = schedule?.type ?? ScheduleType.classSession;
+
     return showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(isEdit ? "Sửa Lịch Học" : "Thêm Lịch Học"),
+              title: Text(isEdit ? "Sửa Lịch" : "Thêm Lịch Mới"),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    DropdownButtonFormField<ScheduleType>(
+                      value: selectedType,
+                      decoration: const InputDecoration(
+                        labelText: "Loại lịch",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: ScheduleType.classSession,
+                          child: Text("Lịch Học"),
+                        ),
+                        DropdownMenuItem(
+                          value: ScheduleType.exam,
+                          child: Text("Lịch Thi"),
+                        ),
+                        DropdownMenuItem(
+                          value: ScheduleType.event,
+                          child: Text("Sự Kiện"),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          selectedType = val!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: subjectController,
                       decoration: const InputDecoration(
-                        labelText: "Tên môn",
+                        labelText: "Tên môn / Sự kiện",
                         icon: Icon(Icons.book),
                       ),
                     ),
                     TextField(
                       controller: roomController,
                       decoration: const InputDecoration(
-                        labelText: "Phòng",
+                        labelText: "Phòng / Địa điểm",
                         icon: Icon(Icons.room),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: creditsController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: "Số tín chỉ (1 tín = 3 tiết nghỉ)",
-                        icon: Icon(Icons.star_border),
+                    if (selectedType == ScheduleType.classSession) ...[
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: creditsController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: "Số tín chỉ",
+                          icon: Icon(Icons.star_border),
+                        ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 15),
                     _buildDateTimePicker(context, "Ngày", selectedDate, (val) {
                       setState(() => selectedDate = val);
@@ -164,17 +199,19 @@ class ScheduleDialogs {
                           icon: Icon(Icons.timer),
                         ),
                       ),
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: isRepeating,
-                            onChanged: (v) =>
-                                setState(() => isRepeating = v ?? true),
-                          ),
-                          const Text("Lặp lại hàng tuần?"),
-                        ],
-                      ),
-                      if (isRepeating)
+                      if (selectedType == ScheduleType.classSession)
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: isRepeating,
+                              onChanged: (v) =>
+                                  setState(() => isRepeating = v ?? true),
+                            ),
+                            const Text("Lặp lại hàng tuần?"),
+                          ],
+                        ),
+                      if (isRepeating &&
+                          selectedType == ScheduleType.classSession)
                         TextField(
                           controller: weeksController,
                           keyboardType: TextInputType.number,
@@ -213,7 +250,10 @@ class ScheduleDialogs {
                     );
 
                     int credits = int.tryParse(creditsController.text) ?? 3;
-                    int maxAbsences = credits * 3;
+                    int maxAbsences =
+                        (selectedType == ScheduleType.classSession)
+                        ? credits * 3
+                        : 0;
 
                     final resultEntity = ScheduleEntity(
                       id: schedule?.id,
@@ -223,6 +263,7 @@ class ScheduleDialogs {
                       end: endDateTime,
                       credits: credits,
                       maxAbsences: maxAbsences,
+                      type: selectedType,
                     );
 
                     int minutes = int.tryParse(minutesController.text) ?? 30;
@@ -231,7 +272,9 @@ class ScheduleDialogs {
                     Navigator.pop(context, {
                       'schedule': resultEntity,
                       'minutes': minutes,
-                      'repeat': isRepeating,
+                      'repeat':
+                          isRepeating &&
+                          selectedType == ScheduleType.classSession,
                       'weeks': weeks,
                     });
                   },

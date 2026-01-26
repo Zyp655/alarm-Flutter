@@ -30,7 +30,6 @@ class _SchedulePageState extends State<SchedulePage> {
     _notificationService.requestPermissions();
   }
 
-
   Future<void> _pickAndParseExcel(BuildContext context) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -87,14 +86,27 @@ class _SchedulePageState extends State<SchedulePage> {
         ignoredCount++;
       } else {
         int notificationId = item.subject.hashCode + item.start.hashCode;
-        await _notificationService.scheduleClassNotification(
-          id: notificationId,
-          subject: item.subject,
-          room: item.room,
-          startTime: item.start,
-          minutesBefore: minutesBefore,
-          isRepeating: repeat,
-        );
+
+        if (item.type == ScheduleType.exam) {
+          await _notificationService.scheduleExamNotification(
+            id: notificationId,
+            subject: item.subject,
+            room: item.room,
+            startTime: item.start,
+            minutesBefore: minutesBefore > 60
+                ? minutesBefore
+                : 60, 
+          );
+        } else {
+          await _notificationService.scheduleClassNotification(
+            id: notificationId,
+            subject: item.subject,
+            room: item.room,
+            startTime: item.start,
+            minutesBefore: minutesBefore,
+            isRepeating: repeat,
+          );
+        }
         successCount++;
       }
     }
@@ -187,7 +199,6 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  // --- UI ---
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +206,6 @@ class _SchedulePageState extends State<SchedulePage> {
       create: (_) => sl<ScheduleBloc>()..add(LoadSchedules()),
       child: Builder(
         builder: (context) {
-
           return Scaffold(
             appBar: AppBar(
               title: const Text("Thời Khóa Biểu"),

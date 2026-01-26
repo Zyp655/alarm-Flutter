@@ -14,11 +14,14 @@ class ScheduleModel extends ScheduleEntity {
     super.maxAbsences = 3,
     super.midtermScore,
     super.finalScore,
+    super.examScore, 
     super.targetScore = 4.0,
     super.classId,
     super.classCode,
     super.credits = 3,
     super.createdAt,
+    super.type = ScheduleType.classSession,
+    super.format = ScheduleFormat.offline,
   });
 
   factory ScheduleModel.fromJson(Map<String, dynamic> json) {
@@ -46,11 +49,25 @@ class ScheduleModel extends ScheduleEntity {
       maxAbsences: json['maxAbsences'] as int? ?? 3,
       midtermScore: (json['midtermScore'] as num?)?.toDouble(),
       finalScore: (json['finalScore'] as num?)?.toDouble(),
+      examScore: (json['examScore'] as num?)?.toDouble(),
       targetScore: (json['targetScore'] as num?)?.toDouble() ?? 4.0,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
+      type: _parseType(json['type'] as String?),
+      format: _parseFormat(json['format'] as String?),
     );
+  }
+
+  static ScheduleType _parseType(String? type) {
+    if (type == 'exam') return ScheduleType.exam;
+    if (type == 'event') return ScheduleType.event;
+    return ScheduleType.classSession;
+  }
+
+  static ScheduleFormat _parseFormat(String? format) {
+    if (format == 'online') return ScheduleFormat.online;
+    return ScheduleFormat.offline;
   }
 
   Map<String, dynamic> toJson() {
@@ -68,9 +85,12 @@ class ScheduleModel extends ScheduleEntity {
       'maxAbsences': maxAbsences,
       'midtermScore': midtermScore,
       'finalScore': finalScore,
+      'examScore': examScore, 
       'targetScore': targetScore,
       'classId': classId,
       'classCode': classCode,
+      'type': type.name,
+      'format': format.name, 
     };
   }
 
@@ -88,10 +108,13 @@ class ScheduleModel extends ScheduleEntity {
       maxAbsences: entity.maxAbsences,
       midtermScore: entity.midtermScore,
       finalScore: entity.finalScore,
+      examScore: entity.examScore, 
       targetScore: entity.targetScore,
       classId: entity.classId,
       classCode: entity.classCode,
       createdAt: entity.createdAt,
+      type: entity.type,
+      format: entity.format,
     );
   }
 }

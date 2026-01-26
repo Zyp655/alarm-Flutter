@@ -1,5 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+enum ScheduleType { classSession, exam, event }
+
+enum ScheduleFormat { offline, online }
+
 class ScheduleEntity extends Equatable {
   final int? id;
   final String subject;
@@ -14,11 +18,14 @@ class ScheduleEntity extends Equatable {
   final double targetScore;
   final double? midtermScore;
   final double? finalScore;
+  final double? examScore;
   final int? userId;
   final int? classId;
   final String? classCode;
   final int credits;
   final DateTime? createdAt;
+  final ScheduleType type;
+  final ScheduleFormat format;
 
   const ScheduleEntity({
     this.id,
@@ -34,11 +41,14 @@ class ScheduleEntity extends Equatable {
     this.targetScore = 4.0,
     this.midtermScore,
     this.finalScore,
+    this.examScore,
     this.userId,
     this.classId,
     this.classCode,
     this.credits = 3,
     this.createdAt,
+    this.type = ScheduleType.classSession,
+    this.format = ScheduleFormat.offline,
   });
 
   bool get isFailRisk => (currentScore ?? 10.0) < targetScore;
@@ -57,7 +67,10 @@ class ScheduleEntity extends Equatable {
     currentAbsences,
     midtermScore,
     finalScore,
+    examScore,
     credits,
     createdAt,
+    type,
+    format,
   ];
 }
