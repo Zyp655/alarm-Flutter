@@ -37,10 +37,8 @@ Future<Response> onRequest(RequestContext context) async {
     } else {
       classId = existingClass.id;
 
-      if (!forceRefresh &&
-          existingClass.classCode != null &&
-          existingClass.classCode!.isNotEmpty) {
-        codeToReturn = existingClass.classCode!;
+      if (!forceRefresh && existingClass.classCode.isNotEmpty) {
+        codeToReturn = existingClass.classCode;
       } else {
         codeToReturn = generateClassCode();
         await (db.update(db.classes)..where((t) => t.id.equals(classId)))

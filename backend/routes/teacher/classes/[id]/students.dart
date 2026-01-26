@@ -1,4 +1,5 @@
 import 'package:backend/database/database.dart';
+import 'package:backend/utils/grade_calculator.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 
@@ -50,7 +51,16 @@ Future<Response> onRequest(RequestContext context, String id) async {
         'maxAbsences': schedule.maxAbsences,
         'midtermScore': schedule.midtermScore,
         'finalScore': schedule.finalScore,
+        'examScore': schedule.examScore,
         'targetScore': schedule.targetScore,
+        'overallScore': GradeCalculator.calculateOverallScore(
+          credits: schedule.credits,
+          midtermScore: schedule.midtermScore,
+          finalScore: schedule.finalScore,
+          examScore: schedule.examScore,
+          currentAbsences: schedule.currentAbsences,
+          maxAbsences: schedule.maxAbsences,
+        ),
       };
     }).toList();
 

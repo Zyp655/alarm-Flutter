@@ -1,5 +1,5 @@
 import 'package:backend/database/database.dart';
-import 'package:backend/repositories/student_repository.dart';
+import 'package:backend/utils/grade_calculator.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 
@@ -11,7 +11,6 @@ Future<Response> onRequest(RequestContext context) async {
 
   final userId = context.read<int>();
   final db = context.read<AppDatabase>();
-  final repo = context.read<StudentRepository>();
 
   if (context.request.method == HttpMethod.get) {
     final query = db.select(db.schedules).join([
@@ -42,6 +41,14 @@ Future<Response> onRequest(RequestContext context) async {
         'targetScore': schedule.targetScore,
         'type': schedule.type,
         'format': schedule.format,
+        'overallScore': GradeCalculator.calculateOverallScore(
+          credits: schedule.credits,
+          midtermScore: schedule.midtermScore,
+          finalScore: schedule.finalScore,
+          examScore: schedule.examScore,
+          currentAbsences: schedule.currentAbsences,
+          maxAbsences: schedule.maxAbsences,
+        ),
       };
     }).toList();
 

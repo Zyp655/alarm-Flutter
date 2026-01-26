@@ -54,8 +54,8 @@ Future<Response> onRequest(RequestContext context) async {
         .get();
 
     final studentIds = studentsInClass
-        .where((s) => s.userId != null && s.userId != teacherId)
-        .map((s) => s.userId!)
+        .where((s) => s.userId != teacherId)
+        .map((s) => s.userId)
         .toSet()
         .toList();
 

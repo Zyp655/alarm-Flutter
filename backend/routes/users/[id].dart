@@ -18,22 +18,26 @@ Future<Response> onRequest(RequestContext context, String id) async {
 
       if (user == null) {
         return Response.json(
-            statusCode: 404, body: {'error': 'User not found'});
+          statusCode: 404,
+          body: {'error': 'User not found'},
+        );
       }
 
       final studentProfile = await (db.select(db.studentProfiles)
             ..where((s) => s.userId.equals(userId)))
           .getSingleOrNull();
 
-      return Response.json(body: {
-        'id': user.id,
-        'email': user.email,
-        'fullName': user.fullName,
-        'role': user.role,
-        'studentId': studentProfile?.studentId,
-        'major': studentProfile?.major,
-        'avatarUrl': studentProfile?.avatarUrl,
-      });
+      return Response.json(
+        body: {
+          'id': user.id,
+          'email': user.email,
+          'fullName': user.fullName,
+          'role': user.role,
+          'studentId': studentProfile?.studentId,
+          'major': studentProfile?.major,
+          'avatarUrl': studentProfile?.avatarUrl,
+        },
+      );
     } catch (e) {
       return Response.json(statusCode: 500, body: {'error': e.toString()});
     }
