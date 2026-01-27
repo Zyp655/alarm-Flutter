@@ -26,6 +26,7 @@ class ScheduleEntity extends Equatable {
   final DateTime? createdAt;
   final ScheduleType type;
   final ScheduleFormat format;
+  final double? overallScore;
 
   const ScheduleEntity({
     this.id,
@@ -49,6 +50,7 @@ class ScheduleEntity extends Equatable {
     this.createdAt,
     this.type = ScheduleType.classSession,
     this.format = ScheduleFormat.offline,
+    this.overallScore,
   });
 
   bool get isFailRisk => (currentScore ?? 10.0) < targetScore;
@@ -72,5 +74,6 @@ class ScheduleEntity extends Equatable {
     createdAt,
     type,
     format,
+    overallScore,
   ];
 }

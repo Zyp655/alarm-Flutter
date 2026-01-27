@@ -14,7 +14,7 @@ class ScheduleModel extends ScheduleEntity {
     super.maxAbsences = 3,
     super.midtermScore,
     super.finalScore,
-    super.examScore, 
+    super.examScore,
     super.targetScore = 4.0,
     super.classId,
     super.classCode,
@@ -22,6 +22,7 @@ class ScheduleModel extends ScheduleEntity {
     super.createdAt,
     super.type = ScheduleType.classSession,
     super.format = ScheduleFormat.offline,
+    super.overallScore,
   });
 
   factory ScheduleModel.fromJson(Map<String, dynamic> json) {
@@ -56,6 +57,7 @@ class ScheduleModel extends ScheduleEntity {
           : null,
       type: _parseType(json['type'] as String?),
       format: _parseFormat(json['format'] as String?),
+      overallScore: (json['overallScore'] as num?)?.toDouble(),
     );
   }
 
@@ -85,12 +87,12 @@ class ScheduleModel extends ScheduleEntity {
       'maxAbsences': maxAbsences,
       'midtermScore': midtermScore,
       'finalScore': finalScore,
-      'examScore': examScore, 
+      'examScore': examScore,
       'targetScore': targetScore,
       'classId': classId,
       'classCode': classCode,
       'type': type.name,
-      'format': format.name, 
+      'format': format.name,
     };
   }
 
@@ -108,7 +110,7 @@ class ScheduleModel extends ScheduleEntity {
       maxAbsences: entity.maxAbsences,
       midtermScore: entity.midtermScore,
       finalScore: entity.finalScore,
-      examScore: entity.examScore, 
+      examScore: entity.examScore,
       targetScore: entity.targetScore,
       classId: entity.classId,
       classCode: entity.classCode,
