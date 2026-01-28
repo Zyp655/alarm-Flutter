@@ -146,6 +146,207 @@ class StudentAssignments extends Table {
       boolean().withDefault(const Constant(false))();
 }
 
+class Quizzes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get createdBy => integer().references(Users, #id)();
+  TextColumn get topic => text()();
+  TextColumn get difficulty => text()();
+  TextColumn get subjectContext => text().nullable()();
+  IntColumn get questionCount => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get isPublic => boolean().withDefault(const Constant(false))();
+}
+
+class QuizQuestions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get quizId => integer().references(Quizzes, #id)();
+  TextColumn get questionType =>
+      text().withDefault(const Constant('multiple_choice'))();
+  TextColumn get question => text()();
+  TextColumn get options => text()();
+  IntColumn get correctIndex => integer().nullable()();
+  TextColumn get correctAnswer => text().nullable()();
+  TextColumn get explanation => text().nullable()();
+  IntColumn get orderIndex => integer()();
+}
+
+class QuizAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get quizId => integer().references(Quizzes, #id)();
+  @ReferenceName('quizAttemptsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get correctCount => integer()();
+  IntColumn get totalQuestions => integer()();
+  RealColumn get scorePercentage => real()();
+  IntColumn get timeSpentSeconds => integer()();
+  TextColumn get answers => text()();
+  DateTimeColumn get completedAt => dateTime()();
+}
+
+class QuizStatistics extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('quizStatisticsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  TextColumn get topic => text()();
+  IntColumn get totalAttempts => integer().withDefault(const Constant(0))();
+  IntColumn get totalCorrect => integer().withDefault(const Constant(0))();
+  IntColumn get totalQuestions => integer().withDefault(const Constant(0))();
+  RealColumn get averageScore => real().withDefault(const Constant(0.0))();
+  RealColumn get skillLevel => real().withDefault(const Constant(0.5))();
+  DateTimeColumn get lastAttemptAt => dateTime().nullable()();
+}
+
+class QuizRooms extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get roomCode => text().unique()();
+  @ReferenceName('quizRoomsHost')
+  IntColumn get hostId => integer().references(Users, #id)();
+  IntColumn get quizId => integer().nullable().references(Quizzes, #id)();
+  TextColumn get status => text().withDefault(const Constant('waiting'))();
+  IntColumn get maxPlayers => integer().withDefault(const Constant(10))();
+  IntColumn get currentQuestion => integer().withDefault(const Constant(0))();
+  IntColumn get questionTimeSeconds =>
+      integer().withDefault(const Constant(30))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+}
+
+class RoomPlayers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get roomId => integer().references(QuizRooms, #id)();
+  @ReferenceName('roomPlayersUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get score => integer().withDefault(const Constant(0))();
+  TextColumn get answers => text().nullable()();
+  BoolColumn get isReady => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get joinedAt => dateTime()();
+}
+
+class Leaderboards extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('leaderboardsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get classId => integer().nullable().references(Classes, #id)();
+  RealColumn get totalScore => real().withDefault(const Constant(0.0))();
+  IntColumn get quizzesCompleted => integer().withDefault(const Constant(0))();
+  TextColumn get period => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+class UserStreaks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('userStreaksUser')
+  IntColumn get userId => integer().unique().references(Users, #id)();
+  IntColumn get currentStreak => integer().withDefault(const Constant(0))();
+  IntColumn get longestStreak => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastActivityDate => dateTime().nullable()();
+  IntColumn get totalDaysActive => integer().withDefault(const Constant(0))();
+}
+
+class Achievements extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get code => text().unique()();
+  TextColumn get name => text()();
+  TextColumn get description => text()();
+  TextColumn get icon => text()();
+  IntColumn get points => integer().withDefault(const Constant(10))();
+}
+
+class UserAchievements extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('userAchievementsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get achievementId => integer().references(Achievements, #id)();
+  DateTimeColumn get earnedAt => dateTime()();
+}
+
+class QuizCache extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get cacheKey => text().unique()();
+  TextColumn get quizData => text()();
+  IntColumn get hitCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get lastAccessedAt => dateTime()();
+}
+
+// E-Learning Tables
+class Courses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  TextColumn get thumbnailUrl => text().nullable()();
+  IntColumn get instructorId => integer().references(Users, #id)();
+  RealColumn get price => real().withDefault(const Constant(0.0))();
+  TextColumn get tags => text().nullable()(); // JSON array
+  TextColumn get level => text().withDefault(
+      const Constant('beginner'))(); // beginner, intermediate, advanced
+  IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
+  BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+}
+
+class Modules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get courseId => integer().references(Courses, #id)();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  IntColumn get orderIndex => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class Lessons extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get moduleId => integer().references(Modules, #id)();
+  TextColumn get title => text()();
+  TextColumn get type => text()(); // video, text, quiz, assignment
+  TextColumn get contentUrl => text().nullable()(); // video URL or content
+  TextColumn get textContent => text().nullable()(); // for text lessons
+  IntColumn get quizId => integer().nullable().references(Quizzes, #id)();
+  IntColumn get assignmentId =>
+      integer().nullable().references(Assignments, #id)();
+  IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
+  BoolColumn get isFreePreview =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get orderIndex => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class Enrollments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get courseId => integer().references(Courses, #id)();
+  RealColumn get progressPercent => real().withDefault(const Constant(0.0))();
+  DateTimeColumn get enrolledAt => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get lastAccessedAt => dateTime().nullable()();
+}
+
+class LessonProgress extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('lessonProgressUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get lessonId => integer().references(Lessons, #id)();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  IntColumn get lastWatchedPosition =>
+      integer().withDefault(const Constant(0))(); // seconds for video
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+class CourseFiles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('courseFilesUploader')
+  IntColumn get uploadedBy => integer().references(Users, #id)();
+  IntColumn get lessonId => integer().nullable().references(Lessons, #id)();
+  TextColumn get fileName => text()();
+  TextColumn get filePath => text()(); // Path to file on server
+  TextColumn get fileType => text()(); // video, pdf, doc, image
+  IntColumn get fileSizeBytes => integer()();
+  TextColumn get mimeType => text()();
+  DateTimeColumn get uploadedAt => dateTime()();
+}
+
 @DriftDatabase(tables: [
   Users,
   StudentProfiles,
@@ -158,6 +359,24 @@ class StudentAssignments extends Table {
   Submissions,
   Attendances,
   Tasks,
+  Quizzes,
+  QuizQuestions,
+  QuizAttempts,
+  QuizStatistics,
+  QuizRooms,
+  RoomPlayers,
+  Leaderboards,
+  UserStreaks,
+  Achievements,
+  UserAchievements,
+  QuizCache,
+  // E-Learning tables
+  Courses,
+  Modules,
+  Lessons,
+  Enrollments,
+  LessonProgress,
+  CourseFiles,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -178,7 +397,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -209,6 +428,33 @@ class AppDatabase extends _$AppDatabase {
 
         if (from < 4) {
           await m.addColumn(schedules, schedules.examScore);
+        }
+
+        if (from < 5) {
+          await m.createTable(quizzes);
+          await m.createTable(quizQuestions);
+          await m.createTable(quizAttempts);
+          await m.createTable(quizStatistics);
+        }
+
+        if (from < 6) {
+          await m.createTable(quizRooms);
+          await m.createTable(roomPlayers);
+          await m.createTable(leaderboards);
+          await m.createTable(userStreaks);
+          await m.createTable(achievements);
+          await m.createTable(userAchievements);
+          await m.createTable(quizCache);
+        }
+
+        if (from < 7) {
+          // E-Learning tables migration
+          await m.createTable(courses);
+          await m.createTable(modules);
+          await m.createTable(lessons);
+          await m.createTable(enrollments);
+          await m.createTable(lessonProgress);
+          await m.createTable(courseFiles);
         }
       },
     );
