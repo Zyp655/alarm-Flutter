@@ -31,7 +31,6 @@ Future<Response> onRequest(RequestContext context) async {
     await db.transaction(() async {
       for (final attendance in attendances) {
         final studentId = attendance['studentId'] as int;
-        // status now stores the number of periods missed as a String ("0", "1", "2"...)
         final status = attendance['status'] as String;
         final note = attendance['note'] as String?;
 
@@ -42,7 +41,6 @@ Future<Response> onRequest(RequestContext context) async {
             .getSingleOrNull();
 
         if (existing != null) {
-          // Update
           await (db.update(db.attendances)
                 ..where((t) => t.id.equals(existing.id)))
               .write(
@@ -54,7 +52,6 @@ Future<Response> onRequest(RequestContext context) async {
             ),
           );
         } else {
-          // Insert
           await db.into(db.attendances).insert(
                 AttendancesCompanion.insert(
                   classId: classId,

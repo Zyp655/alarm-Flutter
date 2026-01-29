@@ -269,7 +269,6 @@ class QuizCache extends Table {
   DateTimeColumn get lastAccessedAt => dateTime()();
 }
 
-// E-Learning Tables
 class Courses extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
@@ -277,9 +276,8 @@ class Courses extends Table {
   TextColumn get thumbnailUrl => text().nullable()();
   IntColumn get instructorId => integer().references(Users, #id)();
   RealColumn get price => real().withDefault(const Constant(0.0))();
-  TextColumn get tags => text().nullable()(); // JSON array
-  TextColumn get level => text().withDefault(
-      const Constant('beginner'))(); // beginner, intermediate, advanced
+  TextColumn get tags => text().nullable()();
+  TextColumn get level => text().withDefault(const Constant('beginner'))();
   IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
   BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
@@ -299,9 +297,9 @@ class Lessons extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get moduleId => integer().references(Modules, #id)();
   TextColumn get title => text()();
-  TextColumn get type => text()(); // video, text, quiz, assignment
-  TextColumn get contentUrl => text().nullable()(); // video URL or content
-  TextColumn get textContent => text().nullable()(); // for text lessons
+  TextColumn get type => text()();
+  TextColumn get contentUrl => text().nullable()();
+  TextColumn get textContent => text().nullable()();
   IntColumn get quizId => integer().nullable().references(Quizzes, #id)();
   IntColumn get assignmentId =>
       integer().nullable().references(Assignments, #id)();
@@ -329,7 +327,7 @@ class LessonProgress extends Table {
   IntColumn get lessonId => integer().references(Lessons, #id)();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   IntColumn get lastWatchedPosition =>
-      integer().withDefault(const Constant(0))(); // seconds for video
+      integer().withDefault(const Constant(0))();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -340,11 +338,76 @@ class CourseFiles extends Table {
   IntColumn get uploadedBy => integer().references(Users, #id)();
   IntColumn get lessonId => integer().nullable().references(Lessons, #id)();
   TextColumn get fileName => text()();
-  TextColumn get filePath => text()(); // Path to file on server
-  TextColumn get fileType => text()(); // video, pdf, doc, image
+  TextColumn get filePath => text()();
+  TextColumn get fileType => text()();
   IntColumn get fileSizeBytes => integer()();
   TextColumn get mimeType => text()();
   DateTimeColumn get uploadedAt => dateTime()();
+}
+
+class Comments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get lessonId => integer().references(Lessons, #id)();
+  IntColumn get userId => integer().references(Users, #id)();
+  TextColumn get content => text()();
+  IntColumn get parentId => integer().nullable().references(Comments, #id)();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get isTeacherResponse =>
+      boolean().withDefault(const Constant(false))();
+}
+
+class Roadmaps extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  IntColumn get courseId => integer().nullable().references(Courses, #id)();
+  @ReferenceName('roadmapsCreator')
+  IntColumn get createdBy => integer().references(Users, #id)();
+  BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class RoadmapNodes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get roadmapId => integer().references(Roadmaps, #id)();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  TextColumn get nodeType => text()();
+  IntColumn get lessonId => integer().nullable().references(Lessons, #id)();
+  RealColumn get positionX => real()();
+  RealColumn get positionY => real()();
+  TextColumn get icon => text().nullable()();
+  TextColumn get color => text().nullable()();
+}
+
+class RoadmapEdges extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get roadmapId => integer().references(Roadmaps, #id)();
+  IntColumn get fromNodeId => integer().references(RoadmapNodes, #id)();
+  IntColumn get toNodeId => integer().references(RoadmapNodes, #id)();
+  TextColumn get edgeType => text().withDefault(const Constant('required'))();
+}
+
+class StudentActivityLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('activityLogsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get courseId => integer().references(Courses, #id)();
+  IntColumn get lessonId => integer().nullable().references(Lessons, #id)();
+  TextColumn get action => text()();
+  DateTimeColumn get timestamp => dateTime()();
+  TextColumn get metadata => text().nullable()();
+}
+
+class CourseReviews extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get courseId => integer().references(Courses, #id)();
+  @ReferenceName('courseReviewsUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get rating => integer()();
+  TextColumn get comment => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 }
 
 @DriftDatabase(tables: [
@@ -370,13 +433,18 @@ class CourseFiles extends Table {
   Achievements,
   UserAchievements,
   QuizCache,
-  // E-Learning tables
   Courses,
   Modules,
   Lessons,
   Enrollments,
   LessonProgress,
   CourseFiles,
+  Comments,
+  Roadmaps,
+  RoadmapNodes,
+  RoadmapEdges,
+  StudentActivityLogs,
+  CourseReviews,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -397,7 +465,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -448,13 +516,27 @@ class AppDatabase extends _$AppDatabase {
         }
 
         if (from < 7) {
-          // E-Learning tables migration
           await m.createTable(courses);
           await m.createTable(modules);
           await m.createTable(lessons);
           await m.createTable(enrollments);
           await m.createTable(lessonProgress);
           await m.createTable(courseFiles);
+        }
+
+        if (from < 8) {
+          await m.createTable(comments);
+        }
+
+        if (from < 9) {
+          await m.createTable(roadmaps);
+          await m.createTable(roadmapNodes);
+          await m.createTable(roadmapEdges);
+        }
+
+        if (from < 10) {
+          await m.createTable(studentActivityLogs);
+          await m.createTable(courseReviews);
         }
       },
     );
