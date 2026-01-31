@@ -1,18 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
-
 class GameManager {
   static final GameManager _instance = GameManager._internal();
-
   factory GameManager() => _instance;
-
   GameManager._internal();
-
   final Map<String, List<WebSocketChannel>> _rooms = {};
-
   final Map<String, Map<String, dynamic>> _roomStates = {};
-
   void createRoom(String roomCode, Map<String, dynamic> quizData) {
     _rooms[roomCode] = [];
     _roomStates[roomCode] = {
@@ -22,7 +16,6 @@ class GameManager {
       'currentQuestionIndex': 0,
     };
   }
-
   void join(String roomCode, WebSocketChannel channel) {
     if (!_rooms.containsKey(roomCode)) {
       _rooms[roomCode] = [];
@@ -32,13 +25,10 @@ class GameManager {
       };
     }
     _rooms[roomCode]!.add(channel);
-
     print(
         'User connected to room $roomCode. Total sockets: ${_rooms[roomCode]!.length}');
-
     channel.sink.add(jsonEncode(
         {'type': 'connected', 'message': 'Connected to room $roomCode'}));
-
     channel.stream.listen(
       (message) {
         _handleMessage(roomCode, channel, message);
@@ -52,7 +42,6 @@ class GameManager {
       },
     );
   }
-
   void _leave(String roomCode, WebSocketChannel channel) {
     _rooms[roomCode]?.remove(channel);
     final roomChannels = _rooms[roomCode];
@@ -66,14 +55,12 @@ class GameManager {
     }
     print('User disconnected from room $roomCode');
   }
-
   void _handleMessage(
       String roomCode, WebSocketChannel sender, dynamic message) {
     try {
       print('Msg in $roomCode: $message');
       final data = jsonDecode(message as String);
       final type = data['type'];
-
       if (type == 'join_room') {
         final user = data['user'];
         final players = _roomStates[roomCode]!['players'] as List;
@@ -83,7 +70,6 @@ class GameManager {
         } else {
           players[existingIndex] = user;
         }
-
         _broadcast(roomCode, {
           'type': 'room_update',
           'room': {'code': roomCode},
@@ -109,7 +95,7 @@ class GameManager {
               'question': firstQuestion,
               'currentQuestionIndex': 0,
               'totalQuestions': questions.length,
-              'timeLeft': 30, 
+              'timeLeft': 30,
             });
           } else {
             print('DEBUG start_game: No questions found!');
@@ -123,13 +109,11 @@ class GameManager {
           final userId = data['userId'] as int?;
           final answerIndex = data['answerIndex'] as int?;
           final questionIndex = data['questionIndex'] as int?;
-
           final questions = state['quiz']?['questions'] as List? ?? [];
           if (questionIndex != null && questionIndex < questions.length) {
             final currentQuestion = questions[questionIndex];
             final correctIndex = currentQuestion['correctIndex'] as int?;
             final isCorrect = answerIndex == correctIndex;
-
             final players = state['players'] as List;
             for (var player in players) {
               if (player['id'] == userId) {
@@ -137,14 +121,12 @@ class GameManager {
                     (player['score'] ?? 0) + (isCorrect ? 100 : 0);
               }
             }
-
             _broadcast(roomCode, {
               'type': 'answer_result',
               'userId': userId,
               'isCorrect': isCorrect,
               'correctIndex': correctIndex,
             });
-
             final nextIndex = (state['currentQuestionIndex'] as int) + 1;
             if (nextIndex < questions.length) {
               state['currentQuestionIndex'] = nextIndex;
@@ -175,7 +157,6 @@ class GameManager {
       print('Error handling message: $e');
     }
   }
-
   void _broadcast(String roomCode, dynamic message) {
     final channels = _rooms[roomCode] ?? [];
     final msgString = message is String ? message : jsonEncode(message);

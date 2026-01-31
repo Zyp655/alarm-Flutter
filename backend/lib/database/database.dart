@@ -149,6 +149,7 @@ class StudentAssignments extends Table {
 class Quizzes extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get createdBy => integer().references(Users, #id)();
+  IntColumn get moduleId => integer().nullable().references(Modules, #id)();
   TextColumn get topic => text()();
   TextColumn get difficulty => text()();
   TextColumn get subjectContext => text().nullable()();
@@ -318,6 +319,7 @@ class Enrollments extends Table {
   DateTimeColumn get enrolledAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get lastAccessedAt => dateTime().nullable()();
+  DateTimeColumn get lastNudgedAt => dateTime().nullable()(); // Added in v12
 }
 
 class LessonProgress extends Table {
@@ -465,7 +467,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -537,6 +539,16 @@ class AppDatabase extends _$AppDatabase {
         if (from < 10) {
           await m.createTable(studentActivityLogs);
           await m.createTable(courseReviews);
+        }
+
+        if (from < 11) {
+          // Add moduleId column to quizzes table
+          await m.addColumn(quizzes, quizzes.moduleId);
+        }
+
+        if (from < 12) {
+          // Add lastNudgedAt column to enrollments table
+          await m.addColumn(enrollments, enrollments.lastNudgedAt);
         }
       },
     );
