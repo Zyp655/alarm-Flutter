@@ -2,6 +2,7 @@
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
   final method = request.method;
@@ -12,6 +13,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _getCourses(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -31,23 +33,41 @@ Future<Response> _getCourses(RequestContext context) async {
         query = query..where((tbl) => tbl.instructorId.equals(instructorId));
       }
     }
+    if (queryParams.containsKey('majorId')) {
+      final majorId = int.tryParse(queryParams['majorId']!);
+      if (majorId != null) {
+        query = query..where((tbl) => tbl.majorId.equals(majorId));
+      }
+    }
     final courses = await query.get();
-    final coursesJson = courses
-        .map((course) => {
-              'id': course.id,
-              'title': course.title,
-              'description': course.description,
-              'thumbnailUrl': course.thumbnailUrl,
-              'instructorId': course.instructorId,
-              'price': course.price,
-              'tags': course.tags,
-              'level': course.level,
-              'durationMinutes': course.durationMinutes,
-              'isPublished': course.isPublished,
-              'createdAt': course.createdAt.toIso8601String(),
-              'updatedAt': course.updatedAt?.toIso8601String(),
-            })
-        .toList();
+
+    final List<Map<String, dynamic>> coursesJson = [];
+    for (final course in courses) {
+      String? majorName;
+      if (course.majorId != null) {
+        final major = await (db.select(db.majors)
+              ..where((m) => m.id.equals(course.majorId!)))
+            .getSingleOrNull();
+        majorName = major?.name;
+      }
+
+      coursesJson.add({
+        'id': course.id,
+        'title': course.title,
+        'description': course.description,
+        'thumbnailUrl': course.thumbnailUrl,
+        'instructorId': course.instructorId,
+        'price': course.price,
+        'tags': course.tags,
+        'level': course.level,
+        'durationMinutes': course.durationMinutes,
+        'isPublished': course.isPublished,
+        'majorId': course.majorId,
+        'majorName': majorName,
+        'createdAt': course.createdAt.toIso8601String(),
+        'updatedAt': course.updatedAt?.toIso8601String(),
+      });
+    }
     return Response.json(body: {'courses': coursesJson});
   } catch (e) {
     return Response.json(
@@ -56,6 +76,7 @@ Future<Response> _getCourses(RequestContext context) async {
     );
   }
 }
+
 Future<Response> _createCourse(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -76,8 +97,8 @@ Future<Response> _createCourse(RequestContext context) async {
             tags: Value(body['tags'] as String?),
             level: Value(body['level'] as String? ?? 'beginner'),
             durationMinutes: Value(body['durationMinutes'] as int? ?? 0),
-            isPublished: Value(body['isPublished'] as bool? ??
-                true),
+            isPublished: Value(body['isPublished'] as bool? ?? true),
+            majorId: Value(body['majorId'] as int?),
             createdAt: DateTime.now(),
             updatedAt: Value(DateTime.now()),
           ),
@@ -97,6 +118,7 @@ Future<Response> _createCourse(RequestContext context) async {
           'level': course.level,
           'durationMinutes': course.durationMinutes,
           'isPublished': course.isPublished,
+          'majorId': course.majorId,
           'createdAt': course.createdAt.toIso8601String(),
           'updatedAt': course.updatedAt?.toIso8601String(),
         },

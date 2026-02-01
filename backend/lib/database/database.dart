@@ -270,6 +270,15 @@ class QuizCache extends Table {
   DateTimeColumn get lastAccessedAt => dateTime()();
 }
 
+class Majors extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get code => text().unique()();
+  TextColumn get description => text().nullable()();
+  TextColumn get iconUrl => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 class Courses extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
@@ -281,6 +290,7 @@ class Courses extends Table {
   TextColumn get level => text().withDefault(const Constant('beginner'))();
   IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
   BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  IntColumn get majorId => integer().nullable().references(Majors, #id)();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
 }
@@ -319,7 +329,7 @@ class Enrollments extends Table {
   DateTimeColumn get enrolledAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get lastAccessedAt => dateTime().nullable()();
-  DateTimeColumn get lastNudgedAt => dateTime().nullable()(); // Added in v12
+  DateTimeColumn get lastNudgedAt => dateTime().nullable()(); 
 }
 
 class LessonProgress extends Table {
@@ -447,6 +457,7 @@ class CourseReviews extends Table {
   RoadmapEdges,
   StudentActivityLogs,
   CourseReviews,
+  Majors,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -467,7 +478,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -542,13 +553,16 @@ class AppDatabase extends _$AppDatabase {
         }
 
         if (from < 11) {
-          // Add moduleId column to quizzes table
           await m.addColumn(quizzes, quizzes.moduleId);
         }
 
         if (from < 12) {
-          // Add lastNudgedAt column to enrollments table
           await m.addColumn(enrollments, enrollments.lastNudgedAt);
+        }
+
+        if (from < 13) {
+          await m.createTable(majors);
+          await m.addColumn(courses, courses.majorId);
         }
       },
     );
