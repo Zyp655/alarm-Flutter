@@ -1,21 +1,17 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
-
-
 Future<Response> onRequest(RequestContext context, String id) async {
   final request = context.request;
   final method = request.method;
   final courseId = int.tryParse(id);
-
   if (courseId == null) {
     return Response.json(
       statusCode: HttpStatus.badRequest,
       body: {'error': 'Invalid course ID'},
     );
   }
-
   if (method == HttpMethod.get) {
     return _getCourseDetails(context, courseId);
   } else if (method == HttpMethod.put) {
@@ -23,37 +19,34 @@ Future<Response> onRequest(RequestContext context, String id) async {
   } else if (method == HttpMethod.delete) {
     return _deleteCourse(context, courseId);
   }
-
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
-
 Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
-
     final course = await (db.select(db.courses)
           ..where((tbl) => tbl.id.equals(courseId)))
         .getSingleOrNull();
-
     if (course == null) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Course not found'},
       );
     }
-
     final modules = await (db.select(db.modules)
           ..where((tbl) => tbl.courseId.equals(courseId))
           ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
         .get();
-
     final modulesWithLessons = <Map<String, dynamic>>[];
+    int totalDuration = 0;
     for (final module in modules) {
       final lessons = await (db.select(db.lessons)
             ..where((tbl) => tbl.moduleId.equals(module.id))
             ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
           .get();
-
+      for (final lesson in lessons) {
+        totalDuration += lesson.durationMinutes;
+      }
       modulesWithLessons.add({
         'id': module.id,
         'title': module.title,
@@ -72,7 +65,10 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
             .toList(),
       });
     }
-
+    final studentCount = await (db.select(db.enrollments)
+          ..where((tbl) => tbl.courseId.equals(courseId)))
+        .get()
+        .then((rows) => rows.length);
     return Response.json(body: {
       'id': course.id,
       'title': course.title,
@@ -82,7 +78,8 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
       'price': course.price,
       'tags': course.tags,
       'level': course.level,
-      'durationMinutes': course.durationMinutes,
+      'durationMinutes': totalDuration,
+      'studentCount': studentCount,
       'isPublished': course.isPublished,
       'modules': modulesWithLessons,
     });
@@ -93,15 +90,12 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
     );
   }
 }
-
 Future<Response> _updateCourse(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
     final body = await context.request.json() as Map<String, dynamic>;
-
     final updated = await db.update(db.courses)
       ..where((tbl) => tbl.id.equals(courseId));
-
     final count = await updated.write(
       CoursesCompanion(
         title: body.containsKey('title')
@@ -131,14 +125,12 @@ Future<Response> _updateCourse(RequestContext context, int courseId) async {
         updatedAt: Value(DateTime.now()),
       ),
     );
-
     if (count == 0) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Course not found'},
       );
     }
-
     return Response.json(body: {'message': 'Course updated successfully'});
   } catch (e) {
     return Response.json(
@@ -147,22 +139,18 @@ Future<Response> _updateCourse(RequestContext context, int courseId) async {
     );
   }
 }
-
 Future<Response> _deleteCourse(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
-
     final count = await (db.delete(db.courses)
           ..where((tbl) => tbl.id.equals(courseId)))
         .go();
-
     if (count == 0) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Course not found'},
       );
     }
-
     return Response.json(body: {'message': 'Course deleted successfully'});
   } catch (e) {
     return Response.json(

@@ -1,21 +1,17 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
-
-
 Future<Response> onRequest(RequestContext context, String id) async {
   final request = context.request;
   final method = request.method;
   final lessonId = int.tryParse(id);
-
   if (lessonId == null) {
     return Response.json(
       statusCode: HttpStatus.badRequest,
       body: {'error': 'Invalid lesson ID'},
     );
   }
-
   if (method == HttpMethod.get) {
     return _getLesson(context, lessonId);
   } else if (method == HttpMethod.put) {
@@ -23,25 +19,20 @@ Future<Response> onRequest(RequestContext context, String id) async {
   } else if (method == HttpMethod.delete) {
     return _deleteLesson(context, lessonId);
   }
-
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
-
 Future<Response> _getLesson(RequestContext context, int lessonId) async {
   try {
     final db = context.read<AppDatabase>();
-
     final lesson = await (db.select(db.lessons)
           ..where((tbl) => tbl.id.equals(lessonId)))
         .getSingleOrNull();
-
     if (lesson == null) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Lesson not found'},
       );
     }
-
     return Response.json(body: {
       'id': lesson.id,
       'moduleId': lesson.moduleId,
@@ -60,12 +51,10 @@ Future<Response> _getLesson(RequestContext context, int lessonId) async {
     );
   }
 }
-
 Future<Response> _updateLesson(RequestContext context, int lessonId) async {
   try {
     final db = context.read<AppDatabase>();
     final body = await context.request.json() as Map<String, dynamic>;
-
     final count = await (db.update(db.lessons)
           ..where((tbl) => tbl.id.equals(lessonId)))
         .write(
@@ -93,14 +82,12 @@ Future<Response> _updateLesson(RequestContext context, int lessonId) async {
             : const Value.absent(),
       ),
     );
-
     if (count == 0) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Lesson not found'},
       );
     }
-
     return Response.json(body: {'message': 'Lesson updated successfully'});
   } catch (e) {
     return Response.json(
@@ -109,26 +96,21 @@ Future<Response> _updateLesson(RequestContext context, int lessonId) async {
     );
   }
 }
-
 Future<Response> _deleteLesson(RequestContext context, int lessonId) async {
   try {
     final db = context.read<AppDatabase>();
-
     await (db.delete(db.lessonProgress)
           ..where((tbl) => tbl.lessonId.equals(lessonId)))
         .go();
-
     final count = await (db.delete(db.lessons)
           ..where((tbl) => tbl.id.equals(lessonId)))
         .go();
-
     if (count == 0) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'error': 'Lesson not found'},
       );
     }
-
     return Response.json(body: {'message': 'Lesson deleted successfully'});
   } catch (e) {
     return Response.json(
