@@ -1,9 +1,8 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import '../../lib/database/database.dart';
-
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(
@@ -11,10 +10,8 @@ Future<Response> onRequest(RequestContext context) async {
       body: jsonEncode({'error': 'Method not allowed'}),
     );
   }
-
   try {
     final db = context.read<AppDatabase>();
-
     final defaultAchievements = [
       {
         'code': 'first_quiz',
@@ -87,7 +84,6 @@ Future<Response> onRequest(RequestContext context) async {
         'points': 60,
       },
     ];
-
     int inserted = 0;
     for (final ach in defaultAchievements) {
       try {
@@ -103,7 +99,6 @@ Future<Response> onRequest(RequestContext context) async {
         inserted++;
       } catch (_) {}
     }
-
     return Response.json(
       body: {
         'success': true,
