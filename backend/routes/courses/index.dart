@@ -51,6 +51,33 @@ Future<Response> _getCourses(RequestContext context) async {
         majorName = major?.name;
       }
 
+      final reviews = await (db.select(db.courseReviews)
+            ..where((r) => r.courseId.equals(course.id)))
+          .get();
+      double averageRating = 0;
+      if (reviews.isNotEmpty) {
+        final total = reviews.fold<int>(0, (sum, r) => sum + r.rating);
+        averageRating = total / reviews.length;
+      }
+
+      final studentCount = await (db.select(db.enrollments)
+            ..where((e) => e.courseId.equals(course.id)))
+          .get()
+          .then((rows) => rows.length);
+
+      final modules = await (db.select(db.modules)
+            ..where((m) => m.courseId.equals(course.id)))
+          .get();
+      int totalDuration = 0;
+      for (final module in modules) {
+        final lessons = await (db.select(db.lessons)
+              ..where((l) => l.moduleId.equals(module.id)))
+            .get();
+        for (final lesson in lessons) {
+          totalDuration += lesson.durationMinutes;
+        }
+      }
+
       coursesJson.add({
         'id': course.id,
         'title': course.title,
@@ -60,10 +87,13 @@ Future<Response> _getCourses(RequestContext context) async {
         'price': course.price,
         'tags': course.tags,
         'level': course.level,
-        'durationMinutes': course.durationMinutes,
+        'durationMinutes': totalDuration,
         'isPublished': course.isPublished,
         'majorId': course.majorId,
         'majorName': majorName,
+        'studentCount': studentCount,
+        'averageRating': double.parse(averageRating.toStringAsFixed(1)),
+        'reviewsCount': reviews.length,
         'createdAt': course.createdAt.toIso8601String(),
         'updatedAt': course.updatedAt?.toIso8601String(),
       });

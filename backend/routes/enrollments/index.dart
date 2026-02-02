@@ -2,6 +2,7 @@
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
   final method = request.method;
@@ -12,6 +13,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _enrollCourse(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -70,6 +72,7 @@ Future<Response> _enrollCourse(RequestContext context) async {
     );
   }
 }
+
 Future<Response> _getMyEnrollments(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -92,6 +95,7 @@ Future<Response> _getMyEnrollments(RequestContext context) async {
           .getSingle();
       enrollmentsWithCourses.add({
         'id': enrollment.id,
+        'userId': enrollment.userId,
         'courseId': enrollment.courseId,
         'progressPercent': enrollment.progressPercent,
         'enrolledAt': enrollment.enrolledAt.toIso8601String(),

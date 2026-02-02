@@ -2,6 +2,7 @@
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context, String id) async {
   final request = context.request;
   final method = request.method;
@@ -21,6 +22,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
@@ -65,10 +67,21 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
             .toList(),
       });
     }
+  
     final studentCount = await (db.select(db.enrollments)
-          ..where((tbl) => tbl.courseId.equals(courseId)))
+          ..where((e) => e.courseId.equals(courseId)))
         .get()
         .then((rows) => rows.length);
+
+    final reviews = await (db.select(db.courseReviews)
+          ..where((r) => r.courseId.equals(courseId)))
+        .get();
+    double averageRating = 0;
+    if (reviews.isNotEmpty) {
+      final total = reviews.fold<int>(0, (sum, r) => sum + r.rating);
+      averageRating = total / reviews.length;
+    }
+
     return Response.json(body: {
       'id': course.id,
       'title': course.title,
@@ -80,6 +93,8 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
       'level': course.level,
       'durationMinutes': totalDuration,
       'studentCount': studentCount,
+      'averageRating': double.parse(averageRating.toStringAsFixed(1)),
+      'reviewsCount': reviews.length,
       'isPublished': course.isPublished,
       'modules': modulesWithLessons,
     });
@@ -90,6 +105,7 @@ Future<Response> _getCourseDetails(RequestContext context, int courseId) async {
     );
   }
 }
+
 Future<Response> _updateCourse(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
@@ -139,6 +155,7 @@ Future<Response> _updateCourse(RequestContext context, int courseId) async {
     );
   }
 }
+
 Future<Response> _deleteCourse(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
