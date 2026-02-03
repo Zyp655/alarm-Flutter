@@ -329,7 +329,7 @@ class Enrollments extends Table {
   DateTimeColumn get enrolledAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get lastAccessedAt => dateTime().nullable()();
-  DateTimeColumn get lastNudgedAt => dateTime().nullable()(); 
+  DateTimeColumn get lastNudgedAt => dateTime().nullable()();
 }
 
 class LessonProgress extends Table {
@@ -422,6 +422,32 @@ class CourseReviews extends Table {
   DateTimeColumn get updatedAt => dateTime().nullable()();
 }
 
+class StudyPlans extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('studyPlansUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get courseId => integer().references(Courses, #id)();
+  DateTimeColumn get targetCompletionDate => dateTime()();
+  IntColumn get dailyStudyMinutes =>
+      integer().withDefault(const Constant(30))();
+  TextColumn get preferredDays =>
+      text().withDefault(const Constant('["Mon","Tue","Wed","Thu","Fri"]'))();
+  TextColumn get reminderTime => text().withDefault(const Constant('19:00'))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class ScheduledLessons extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get studyPlanId => integer().references(StudyPlans, #id)();
+  IntColumn get lessonId => integer().references(Lessons, #id)();
+  DateTimeColumn get scheduledDate => dateTime()();
+  TextColumn get scheduledTime => text().withDefault(const Constant('19:00'))();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  BoolColumn get isSkipped => boolean().withDefault(const Constant(false))();
+}
+
 @DriftDatabase(tables: [
   Users,
   StudentProfiles,
@@ -458,6 +484,8 @@ class CourseReviews extends Table {
   StudentActivityLogs,
   CourseReviews,
   Majors,
+  StudyPlans,
+  ScheduledLessons,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -478,7 +506,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -563,6 +591,11 @@ class AppDatabase extends _$AppDatabase {
         if (from < 13) {
           await m.createTable(majors);
           await m.addColumn(courses, courses.majorId);
+        }
+
+        if (from < 14) {
+          await m.createTable(studyPlans);
+          await m.createTable(scheduledLessons);
         }
       },
     );

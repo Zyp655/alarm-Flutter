@@ -1,25 +1,20 @@
-import 'package:backend/database/database.dart';
+﻿import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final assignmentId = int.parse(id);
   final params = context.request.uri.queryParameters;
-
   if (!params.containsKey('userId')) {
     return Response.json(
       statusCode: 400,
       body: {'error': 'Missing userId parameter'},
     );
   }
-
   final studentId = int.parse(params['userId']!);
-
   try {
     final submission = await (db.select(db.submissions)
           ..where(
@@ -30,14 +25,12 @@ Future<Response> onRequest(RequestContext context, String id) async {
           ..orderBy([(s) => OrderingTerm.desc(s.version)])
           ..limit(1))
         .getSingleOrNull();
-
     if (submission == null) {
       return Response.json(
         statusCode: 404,
         body: {'error': 'No submission found'},
       );
     }
-
     return Response.json(
       body: {
         'id': submission.id,

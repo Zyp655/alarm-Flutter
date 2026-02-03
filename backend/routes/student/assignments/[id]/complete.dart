@@ -1,25 +1,20 @@
-import 'package:backend/database/database.dart';
+﻿import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final body = await context.request.json() as Map<String, dynamic>;
-
   final studentId = body['studentId'] as int?;
   if (studentId == null) {
     return Response(statusCode: 400, body: 'Missing studentId');
   }
-
   final studentAssignmentId = int.tryParse(id);
   if (studentAssignmentId == null) {
     return Response(statusCode: 400, body: 'Invalid assignment ID');
   }
-
   try {
     final query = db.select(db.studentAssignments).join([
       innerJoin(
@@ -29,16 +24,12 @@ Future<Response> onRequest(RequestContext context, String id) async {
     ])
       ..where(db.studentAssignments.id.equals(studentAssignmentId))
       ..where(db.studentAssignments.studentId.equals(studentId));
-
     final result = await query.getSingleOrNull();
-
     if (result == null) {
       return Response(statusCode: 404, body: 'Assignment not found');
     }
-
     final studentAssignment = result.readTable(db.studentAssignments);
     final assignment = result.readTable(db.assignments);
-
     if (studentAssignment.isCompleted) {
       return Response.json(body: {
         'message': 'Assignment already completed',
@@ -46,7 +37,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
         'rewardClaimed': studentAssignment.rewardClaimed,
       });
     }
-
     await (db.update(db.studentAssignments)
           ..where((sa) => sa.id.equals(studentAssignmentId)))
         .write(
@@ -56,9 +46,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
         rewardClaimed: const Value(true),
       ),
     );
-
-    
-
     return Response.json(body: {
       'message': 'Assignment completed successfully!',
       'rewardPoints': assignment.rewardPoints,

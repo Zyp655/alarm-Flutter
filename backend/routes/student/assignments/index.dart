@@ -1,21 +1,16 @@
-import 'package:backend/database/database.dart';
+﻿import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final params = context.request.uri.queryParameters;
-
   if (!params.containsKey('userId')) {
     return Response(statusCode: 400, body: 'Missing userId');
   }
-
   final studentId = int.parse(params['userId']!);
-
   try {
     final query = db.select(db.studentAssignments).join([
       innerJoin(
@@ -28,14 +23,11 @@ Future<Response> onRequest(RequestContext context) async {
       ),
     ])
       ..where(db.studentAssignments.studentId.equals(studentId));
-
     final results = await query.get();
-
     final assignments = results.map((row) {
       final studentAssignment = row.readTable(db.studentAssignments);
       final assignment = row.readTable(db.assignments);
       final classInfo = row.readTableOrNull(db.classes);
-
       return {
         'id': assignment.id,
         'studentAssignmentId': studentAssignment.id,
@@ -51,7 +43,6 @@ Future<Response> onRequest(RequestContext context) async {
         'classId': assignment.classId,
       };
     }).toList();
-
     return Response.json(body: assignments);
   } catch (e) {
     return Response.json(statusCode: 500, body: {'error': e.toString()});

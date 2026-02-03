@@ -1,38 +1,31 @@
-import 'package:backend/database/database.dart';
+﻿import 'package:backend/database/database.dart';
 import 'package:backend/helpers/notification_helper.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final assignmentId = int.parse(id);
   final body = await context.request.json() as Map<String, dynamic>;
-
   if (!body.containsKey('userId')) {
     return Response.json(
       statusCode: 400,
       body: {'error': 'Missing userId'},
     );
   }
-
   final studentId = body['userId'] as int;
-
   try {
     final assignment = await (db.select(db.assignments)
           ..where((a) => a.id.equals(assignmentId)))
         .getSingleOrNull();
-
     if (assignment == null) {
       return Response.json(
         statusCode: 404,
         body: {'error': 'Assignment not found'},
       );
     }
-
     final existing = await (db.select(db.submissions)
           ..where(
             (s) =>
@@ -42,10 +35,8 @@ Future<Response> onRequest(RequestContext context, String id) async {
           ..orderBy([(s) => OrderingTerm.desc(s.version)])
           ..limit(1))
         .getSingleOrNull();
-
     final isLate = DateTime.now().isAfter(assignment.dueDate);
     final version = existing != null ? existing.version + 1 : 1;
-
     final submission = await db.into(db.submissions).insertReturning(
           SubmissionsCompanion.insert(
             assignmentId: assignmentId,
@@ -62,11 +53,9 @@ Future<Response> onRequest(RequestContext context, String id) async {
             previousVersionId: Value(existing?.id),
           ),
         );
-
     final student = await (db.select(db.users)
           ..where((u) => u.id.equals(studentId)))
         .getSingle();
-
     await NotificationHelper.createNotification(
       db: db,
       userId: assignment.teacherId,
@@ -77,7 +66,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
       relatedId: submission.id,
       relatedType: 'submission',
     );
-
     return Response.json(
       statusCode: 201,
       body: {
