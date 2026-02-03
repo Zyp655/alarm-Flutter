@@ -68,10 +68,15 @@ class ApiClient {
     } else {
       try {
         final errorMap = jsonDecode(utf8.decode(response.bodyBytes));
-        throw ServerException(errorMap['error'] ?? errorMap['message'] ?? 'Unknown Error');
+        throw ServerException(
+          errorMap['error'] ?? errorMap['message'] ?? 'Unknown Error',
+          statusCode: response.statusCode,
+        );
       } catch (e) {
-        // Nếu body lỗi không phải JSON
-        throw ServerException('Lỗi máy chủ: ${response.statusCode}');
+        throw ServerException(
+          'Lỗi máy chủ: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
     }
   }
