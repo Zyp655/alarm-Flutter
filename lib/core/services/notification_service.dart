@@ -36,8 +36,8 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      },
+      onDidReceiveNotificationResponse:
+          (NotificationResponse response) async {},
     );
   }
 
