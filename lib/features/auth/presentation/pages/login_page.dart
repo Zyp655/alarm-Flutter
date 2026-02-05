@@ -4,6 +4,7 @@ import '../../../../core/route/app_route.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../../../core/utils/error_dialog_handler.dart';
 
 class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -52,12 +53,7 @@ class LoginPage extends StatelessWidget {
             BlocConsumer<AuthBloc, AuthState>(
               listener: (context, state) {
                 if (state is AuthFailure) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  ErrorDialogHandler.showError(context, state.failure);
                 } else if (state is AuthSuccess) {
                   FocusScope.of(context).unfocus();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -70,8 +66,9 @@ class LoginPage extends StatelessWidget {
                   if (state.user?.role == 1) {
                     Navigator.of(context).pushReplacementNamed('/teacher_home');
                   } else {
-                    Navigator.of(context)
-                        .pushReplacementNamed(AppRoutes.schedule);
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed(AppRoutes.schedule);
                   }
                 }
               },
@@ -90,20 +87,20 @@ class LoginPage extends StatelessWidget {
                       if (email.isEmpty || password.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text("Vui lòng nhập đầy đủ thông tin")),
+                            content: Text("Vui lòng nhập đầy đủ thông tin"),
+                          ),
                         );
                         return;
                       }
 
                       context.read<AuthBloc>().add(
-                        LoginRequested(
-                          email: email,
-                          password: password,
-                        ),
+                        LoginRequested(email: email, password: password),
                       );
                     },
-                    child:
-                    const Text("Đăng Nhập", style: TextStyle(fontSize: 18)),
+                    child: const Text(
+                      "Đăng Nhập",
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ),
                 );
               },

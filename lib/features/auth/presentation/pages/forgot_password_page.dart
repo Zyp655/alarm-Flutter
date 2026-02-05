@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../../../core/utils/error_dialog_handler.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -33,9 +34,7 @@ class ForgotPasswordPage extends StatelessWidget {
             BlocConsumer<AuthBloc, AuthState>(
               listener: (context, state) {
                 if (state is AuthFailure) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(state.message)));
+                  ErrorDialogHandler.showError(context, state.failure);
                 } else if (state is AuthSuccess) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

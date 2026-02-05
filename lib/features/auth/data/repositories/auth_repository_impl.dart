@@ -19,7 +19,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final userModel = await remoteDataSource.login(email, password);
       return Right(userModel);
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Left(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
       return Left(ServerFailure('Đã xảy ra lỗi không xác định'));
     }
@@ -31,7 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.signUp(email, password);
       return const Right(null);
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Left(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
       return Left(ServerFailure('Đã xảy ra lỗi không xác định'));
     }
@@ -43,7 +43,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.forgotPassword(email);
       return const Right(null);
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Left(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
       return Left(ServerFailure('Đã xảy ra lỗi không xác định'));
     }

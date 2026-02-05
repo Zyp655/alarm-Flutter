@@ -1,4 +1,5 @@
 import '../../domain/entities/user_entity.dart';
+import '../../../../core/error/failures.dart';
 
 abstract class AuthState {}
 
@@ -13,6 +14,6 @@ class AuthSuccess extends AuthState {
 }
 
 class AuthFailure extends AuthState {
-  final String message;
-  AuthFailure(this.message);
+  final Failure failure;
+  AuthFailure(this.failure);
 }
