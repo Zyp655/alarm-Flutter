@@ -11,6 +11,7 @@ import '../../features/course/presentation/pages/lesson_player_page.dart';
 import '../../features/course/presentation/pages/my_courses_page.dart';
 import '../../features/course/presentation/bloc/course_list_bloc.dart';
 import '../../features/course/domain/entities/lesson_entity.dart';
+import '../../features/course/domain/entities/module_entity.dart';
 import '../../injection_container.dart';
 import 'app_route.dart';
 
@@ -32,7 +33,6 @@ class RouteGenerator {
       case AppRoutes.teacherHome:
         return MaterialPageRoute(builder: (_) => const TeacherHomePage());
 
-      // E-Learning routes
       case AppRoutes.courseCatalog:
         return MaterialPageRoute(
           builder: (_) => BlocProvider(
@@ -56,6 +56,7 @@ class RouteGenerator {
             startPosition: args['startPosition'] as int?,
             previousLesson: args['previousLesson'] as LessonEntity?,
             nextLesson: args['nextLesson'] as LessonEntity?,
+            allModules: args['allModules'] as List<ModuleEntity>?,
           ),
         );
 

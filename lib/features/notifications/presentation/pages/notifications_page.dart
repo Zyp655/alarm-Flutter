@@ -78,6 +78,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
         );
         break;
+      case 'new_course':
+      case 'course_completed':
+      case 'learning_reminder':
+        if (notification.relatedId != null) {
+          Navigator.pushNamed(
+            context,
+            '/courses/detail',
+            arguments: notification.relatedId,
+          );
+        } else {
+          Navigator.pushNamed(context, '/courses');
+        }
+        break;
+      case 'new_lesson':
+        if (notification.relatedId != null) {
+          Navigator.pushNamed(
+            context,
+            '/courses/detail',
+            arguments: notification.relatedId,
+          );
+        }
+        break;
       default:
         break;
     }
