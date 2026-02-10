@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../schedule/data/models/schedule_model.dart';
@@ -51,6 +52,7 @@ abstract class TeacherRemoteDataSource {
     int? absences,
     double? midtermScore,
     double? finalScore,
+    double? examScore,
   );
 
   Future<void> importSchedules(
@@ -59,6 +61,26 @@ abstract class TeacherRemoteDataSource {
   );
 
   Future<List<Map<String, dynamic>>> getStudentsInClass(int classId);
+
+  Future<List<Map<String, dynamic>>> getSubmissions(int assignmentId);
+  Future<void> gradeSubmission({
+    required int submissionId,
+    required int teacherId,
+    required double grade,
+    String? feedback,
+  });
+
+  Future<void> markAttendance({
+    required int classId,
+    required DateTime date,
+    required int teacherId,
+    required List<Map<String, dynamic>> attendances,
+  });
+  Future<List<Map<String, dynamic>>> getAttendanceRecords({
+    required int classId,
+    required DateTime date,
+  });
+  Future<List<Map<String, dynamic>>> getAttendanceStatistics(int classId);
 }
 
 class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
@@ -66,12 +88,22 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
 
   TeacherRemoteDataSourceImpl({required this.client});
 
+  Future<Map<String, String>> _getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   @override
   Future<List<SubjectEntity>> getSubjects(int teacherId) async {
     final url = Uri.parse(
       '${ApiConstants.baseUrl}/teacher/subjects?teacherId=$teacherId',
     );
-    final response = await client.get(url);
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       final List decoded = jsonDecode(response.body);
@@ -98,9 +130,10 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     String? code,
   ) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/teacher/subjects');
+    final headers = await _getHeaders();
     final response = await client.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'teacherId': teacherId,
         'name': name,
@@ -128,9 +161,10 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     int credits,
   ) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/teacher/create_class');
+    final headers = await _getHeaders();
     final response = await client.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'className': className,
         'teacherId': teacherId,
@@ -155,7 +189,8 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     final url = Uri.parse(
       '${ApiConstants.baseUrl}/teacher/schedules?userId=$teacherId',
     );
-    final response = await client.get(url);
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       final List decoded = jsonDecode(response.body);
@@ -171,17 +206,20 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     int? absences,
     double? midtermScore,
     double? finalScore,
+    double? examScore,
   ) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/teacher/update_score');
 
+    final headers = await _getHeaders();
     final response = await client.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'schedule_id': scheduleId,
         'absences': absences,
         'midtermScore': midtermScore,
         'finalScore': finalScore,
+        'examScore': examScore,
       }),
     );
 
@@ -197,9 +235,10 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
   ) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/teacher/import_schedule');
 
+    final headers = await _getHeaders();
     final response = await client.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({'teacherId': teacherId, 'schedules': schedules}),
     );
 
@@ -214,9 +253,10 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     String subjectName,
     bool isRefresh,
   ) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/teacher/regenerate_code'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'teacherId': teacherId,
         'subjectName': subjectName,
@@ -237,7 +277,8 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     final url = Uri.parse(
       '${ApiConstants.baseUrl}/teacher/classes/$classId/students',
     );
-    final response = await client.get(url);
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       final List decoded = jsonDecode(response.body);
@@ -254,7 +295,8 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     final url = Uri.parse(
       '${ApiConstants.baseUrl}/teacher/assignments?userId=$teacherId',
     );
-    final response = await client.get(url);
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       final List decoded = jsonDecode(response.body);
@@ -271,14 +313,15 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     AssignmentModel assignment,
     int teacherId,
   ) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}/teacher/assignments/create');
+    final url = Uri.parse('${ApiConstants.baseUrl}/teacher/create_assignment');
 
     final body = assignment.toJson();
     body['teacherId'] = teacherId;
 
+    final headers = await _getHeaders();
     final response = await client.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     );
 
@@ -299,9 +342,10 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     final body = assignment.toJson();
     body['teacherId'] = teacherId;
 
+    final headers = await _getHeaders();
     final response = await client.put(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     );
 
@@ -316,10 +360,124 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
       '${ApiConstants.baseUrl}/teacher/assignments/$assignmentId/delete?teacherId=$teacherId',
     );
 
-    final response = await client.delete(url);
+    final headers = await _getHeaders();
+    final response = await client.delete(url, headers: headers);
 
     if (response.statusCode != 200) {
       throw ServerException("Lỗi xóa bài tập: ${response.body}");
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSubmissions(int assignmentId) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/assignments/$assignmentId/submissions',
+    );
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List decoded = jsonDecode(response.body);
+      return decoded.cast<Map<String, dynamic>>();
+    } else {
+      throw ServerException(
+        "Lỗi tải danh sách bài nộp: ${response.statusCode}",
+      );
+    }
+  }
+
+  @override
+  Future<void> gradeSubmission({
+    required int submissionId,
+    required int teacherId,
+    required double grade,
+    String? feedback,
+  }) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/submissions/$submissionId/grade',
+    );
+
+    final headers = await _getHeaders();
+    final response = await client.post(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        'teacherId': teacherId,
+        'grade': grade,
+        'feedback': feedback,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw ServerException("Lỗi chấm bài: ${response.body}");
+    }
+  }
+
+  @override
+  Future<void> markAttendance({
+    required int classId,
+    required DateTime date,
+    required int teacherId,
+    required List<Map<String, dynamic>> attendances,
+  }) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}/teacher/attendance/mark');
+
+    final headers = await _getHeaders();
+    final response = await client.post(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        'classId':
+            classId,
+        'teacherId': teacherId,
+        'date': date.toIso8601String(),
+        'attendances': attendances,
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw ServerException("Lỗi điểm danh: ${response.body}");
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAttendanceRecords({
+    required int classId,
+    required DateTime date,
+  }) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/attendance/records?classId=$classId&date=${date.toIso8601String()}',
+    );
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List decoded = jsonDecode(response.body);
+      return decoded.cast<Map<String, dynamic>>();
+    } else {
+      throw ServerException(
+        "Lỗi tải dữ liệu điểm danh: ${response.statusCode}",
+      );
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAttendanceStatistics(
+    int classId,
+  ) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/teacher/attendance/statistics?classId=$classId',
+    );
+    final headers = await _getHeaders();
+    final response = await client.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List decoded = jsonDecode(response.body);
+      return decoded.cast<Map<String, dynamic>>();
+    } else {
+      throw ServerException(
+        "Lỗi tải thống kê điểm danh: ${response.statusCode}",
+      );
     }
   }
 }

@@ -91,6 +91,7 @@ class TeacherRepositoryImpl implements TeacherRepository {
     int? absences,
     double? midtermScore,
     double? finalScore,
+    double? examScore,
   ) async {
     try {
       await remoteDataSource.updateScore(
@@ -98,6 +99,7 @@ class TeacherRepositoryImpl implements TeacherRepository {
         absences,
         midtermScore,
         finalScore,
+        examScore,
       );
       return const Right(null);
     } on ServerException catch (e) {
@@ -152,8 +154,9 @@ class TeacherRepositoryImpl implements TeacherRepository {
           email: e['email'] ?? '',
           currentAbsences: e['currentAbsences'] ?? 0,
           maxAbsences: e['maxAbsences'] ?? 0,
-          midtermScore: e['midtermScore'],
-          finalScore: e['finalScore'],
+          midtermScore: (e['midtermScore'] as num?)?.toDouble(),
+          finalScore: (e['finalScore'] as num?)?.toDouble(),
+          examScore: (e['examScore'] as num?)?.toDouble(),
           targetScore: (e['targetScore'] as num).toDouble(),
         );
       }).toList();
@@ -227,6 +230,86 @@ class TeacherRepositoryImpl implements TeacherRepository {
     try {
       await remoteDataSource.deleteAssignment(assignmentId, teacherId);
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSubmissions(
+    int assignmentId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getSubmissions(assignmentId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> gradeSubmission(
+    int submissionId,
+    double grade,
+    String? feedback,
+    int teacherId,
+  ) async {
+    try {
+      await remoteDataSource.gradeSubmission(
+        submissionId: submissionId,
+        teacherId: teacherId,
+        grade: grade,
+        feedback: feedback,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> markAttendance({
+    required int classId,
+    required DateTime date,
+    required int teacherId,
+    required List<Map<String, dynamic>> attendances,
+  }) async {
+    try {
+      await remoteDataSource.markAttendance(
+        classId: classId,
+        date: date,
+        teacherId: teacherId,
+        attendances: attendances,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getAttendanceRecords({
+    required int classId,
+    required DateTime date,
+  }) async {
+    try {
+      final result = await remoteDataSource.getAttendanceRecords(
+        classId: classId,
+        date: date,
+      );
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getAttendanceStatistics(
+    int classId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getAttendanceStatistics(classId);
+      return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     }
