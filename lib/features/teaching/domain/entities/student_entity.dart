@@ -10,6 +10,7 @@ class StudentEntity extends Equatable {
   final int maxAbsences;
   final double? midtermScore;
   final double? finalScore;
+  final double? examScore;
   final double targetScore;
 
   const StudentEntity({
@@ -22,6 +23,7 @@ class StudentEntity extends Equatable {
     required this.maxAbsences,
     this.midtermScore,
     this.finalScore,
+    this.examScore,
     required this.targetScore,
   });
 

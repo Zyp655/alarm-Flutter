@@ -8,16 +8,18 @@ class UpdateStudentScoreUseCase {
   UpdateStudentScoreUseCase(this.repository);
 
   Future<Either<Failure, void>> call(
-      int scheduleId,
-      int? absences,
-      double? midtermScore,
-      double? finalScore,
-      ) async {
+    int scheduleId,
+    int? absences,
+    double? midtermScore,
+    double? finalScore,
+    double? examScore,
+  ) async {
     return await repository.updateScore(
       scheduleId,
       absences,
       midtermScore,
       finalScore,
+      examScore,
     );
   }
 }

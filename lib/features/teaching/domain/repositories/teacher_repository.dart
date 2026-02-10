@@ -42,6 +42,7 @@ abstract class TeacherRepository {
     int? absences,
     double? midtermScore,
     double? finalScore,
+    double? examScore,
   );
 
   Future<Either<Failure, void>> importSchedules(
@@ -65,4 +66,31 @@ abstract class TeacherRepository {
   );
 
   Future<Either<Failure, List<StudentEntity>>> getStudentsInClass(int classId);
+
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSubmissions(
+    int assignmentId,
+  );
+
+  Future<Either<Failure, void>> gradeSubmission(
+    int submissionId,
+    double grade,
+    String? feedback,
+    int teacherId,
+  );
+
+  Future<Either<Failure, void>> markAttendance({
+    required int classId,
+    required DateTime date,
+    required int teacherId,
+    required List<Map<String, dynamic>> attendances,
+  });
+
+  Future<Either<Failure, List<Map<String, dynamic>>>> getAttendanceRecords({
+    required int classId,
+    required DateTime date,
+  });
+
+  Future<Either<Failure, List<Map<String, dynamic>>>> getAttendanceStatistics(
+    int classId,
+  );
 }
