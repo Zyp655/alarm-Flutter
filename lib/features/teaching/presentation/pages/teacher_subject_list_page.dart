@@ -57,12 +57,7 @@ class _TeacherSubjectListPageState extends State<TeacherSubjectListPage> {
                   );
                 } else {
                   context.read<TeacherBloc>().add(
-                    CreateSubjectRequested(
-                      _getCurrentUserId(),
-                      name,
-                      3, // Default credits
-                      '', // No code
-                    ),
+                    CreateSubjectRequested(_getCurrentUserId(), name, 3, ''),
                   );
                 }
                 Navigator.pop(ctx);
@@ -188,7 +183,7 @@ class _TeacherSubjectListPageState extends State<TeacherSubjectListPage> {
           "Môn ${subject.name}",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        // Subtitle removed as requested to show only name
+
         trailing: PopupMenuButton(
           itemBuilder: (context) => [
             const PopupMenuItem(
@@ -218,7 +213,6 @@ class _TeacherSubjectListPageState extends State<TeacherSubjectListPage> {
           },
         ),
         onTap: () {
-          // 👇 SỬA LỖI Ở ĐÂY: Dùng .then() để load lại dữ liệu khi quay về
           final teacherBloc = context.read<TeacherBloc>();
           Navigator.push(
             context,
@@ -232,7 +226,6 @@ class _TeacherSubjectListPageState extends State<TeacherSubjectListPage> {
               ),
             ),
           ).then((_) {
-            // Khi quay lại từ trang chi tiết -> Load lại danh sách môn học
             teacherBloc.add(LoadSubjects(_getCurrentUserId()));
           });
         },

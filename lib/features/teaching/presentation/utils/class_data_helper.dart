@@ -32,10 +32,8 @@ class ClassDataHelper {
       classCode = subjectSchedules.first.classCode;
     }
 
-    // 3. Tìm phòng học
     String? room = subjectSchedules.first.room;
 
-    // 4. Lọc danh sách sinh viên (Loại bỏ giáo viên và trùng lặp ID)
     final Map<int, ScheduleEntity> studentMap = {};
     for (var schedule in subjectSchedules) {
       if (schedule.userId == null || schedule.userId == currentTeacherId) {

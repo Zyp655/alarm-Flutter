@@ -21,7 +21,6 @@ class TeacherCalendarTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter schedules for this subject
     final subjectSchedules = schedules
         .where((s) => s.subject == subjectName)
         .toList();

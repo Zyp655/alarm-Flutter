@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../../../../core/common/animated_widgets.dart';
 import '../bloc/teacher_bloc.dart';
 import '../bloc/teacher_event.dart';
 import '../bloc/teacher_state.dart';
@@ -8,6 +10,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../widgets/create_task_dialog.dart';
 import '../widgets/edit_task_dialog.dart';
+
+import '../../../../injection_container.dart' as di;
 
 class TeacherTasksPage extends StatefulWidget {
   const TeacherTasksPage({super.key});
@@ -71,99 +75,158 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Tạo bài tập thành công!")),
                 );
-                final authState = context.read<AuthBloc>().state;
-                if (authState is AuthSuccess && authState.user != null) {
-                  context.read<TeacherBloc>().add(
-                    LoadAssignments(authState.user!.id),
-                  );
-                }
               } else if (state is AssignmentUpdatedSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Cập nhật bài tập thành công!")),
                 );
-                final authState = context.read<AuthBloc>().state;
-                if (authState is AuthSuccess && authState.user != null) {
-                  context.read<TeacherBloc>().add(
-                    LoadAssignments(authState.user!.id),
-                  );
-                }
               } else if (state is AssignmentDeletedSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Xóa bài tập thành công!")),
                 );
-                final authState = context.read<AuthBloc>().state;
-                if (authState is AuthSuccess && authState.user != null) {
-                  context.read<TeacherBloc>().add(
-                    LoadAssignments(authState.user!.id),
-                  );
-                }
               }
             },
             builder: (context, state) {
-              if (state is TeacherLoading) {
-                return const Center(child: CircularProgressIndicator());
+              if (state is TeacherLoading ||
+                  state is AssignmentCreatedSuccess ||
+                  state is AssignmentUpdatedSuccess ||
+                  state is AssignmentDeletedSuccess) {
+                return ListView.builder(
+                  itemCount: 5,
+                  itemBuilder: (context, index) =>
+                      const ShimmerCard(height: 140),
+                );
               } else if (state is AssignmentsLoaded) {
                 if (state.assignments.isEmpty) {
-                  return const Center(child: Text("Chưa có bài tập nào."));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        PulseWidget(
+                          child: Icon(
+                            Icons.assignment,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FadeInWidget(
+                          delay: const Duration(milliseconds: 300),
+                          child: Text(
+                            "Chưa có bài tập nào.",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
-                return ListView.builder(
-                  itemCount: state.assignments.length,
-                  itemBuilder: (context, index) {
-                    final assignment = state.assignments[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          assignment.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (assignment.description != null)
-                              Text(assignment.description!),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Hạn nộp: ${DateFormat('dd/MM/yyyy HH:mm').format(assignment.dueDate)}",
-                            ),
-                            Text("Điểm thưởng: ${assignment.rewardPoints}"),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () {
-                                final teacherBloc = context.read<TeacherBloc>();
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => BlocProvider.value(
-                                    value: teacherBloc,
-                                    child: EditTaskDialog(
-                                      assignment: assignment,
-                                    ),
+                return AnimationLimiter(
+                  child: ListView.builder(
+                    itemCount: state.assignments.length,
+                    itemBuilder: (context, index) {
+                      final assignment = state.assignments[index];
+                      return AnimationConfiguration.staggeredList(
+                        position: index,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  assignment.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                );
-                              },
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (assignment.description != null)
+                                      Text(assignment.description!),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Hạn nộp: ${DateFormat('dd/MM/yyyy HH:mm').format(assignment.dueDate)}",
+                                    ),
+                                    Text(
+                                      "Điểm thưởng: ${assignment.rewardPoints}",
+                                    ),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.blue,
+                                      ),
+                                      onPressed: () {
+                                        final assignmentBloc = context
+                                            .read<TeacherBloc>();
+                                        final dialogBloc = di.sl<TeacherBloc>();
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => BlocProvider(
+                                            create: (_) => dialogBloc,
+                                            child: EditTaskDialog(
+                                              assignment: assignment,
+                                              assignmentBloc: assignmentBloc,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () {
+                                        _showDeleteConfirmation(
+                                          context,
+                                          assignment.id!,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                _showDeleteConfirmation(
-                                  context,
-                                  assignment.id!,
-                                );
-                              },
-                            ),
-                          ],
+                          ),
                         ),
+                      );
+                    },
+                  ),
+                );
+              } else if (state is TeacherError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Lỗi: ${state.message}"),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          final authState = context.read<AuthBloc>().state;
+                          if (authState is AuthSuccess &&
+                              authState.user != null) {
+                            context.read<TeacherBloc>().add(
+                              LoadAssignments(authState.user!.id),
+                            );
+                          }
+                        },
+                        child: const Text("Thử lại"),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
               }
               return const Center(child: Text("Đang tải dữ liệu..."));
@@ -171,12 +234,13 @@ class _TeacherTasksPageState extends State<TeacherTasksPage> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () {
-              final teacherBloc = context.read<TeacherBloc>();
+              final assignmentBloc = context.read<TeacherBloc>();
+              final dialogBloc = di.sl<TeacherBloc>();
               showDialog(
                 context: context,
-                builder: (ctx) => BlocProvider.value(
-                  value: teacherBloc,
-                  child: const CreateTaskDialog(),
+                builder: (ctx) => BlocProvider(
+                  create: (_) => dialogBloc,
+                  child: CreateTaskDialog(assignmentBloc: assignmentBloc),
                 ),
               );
             },

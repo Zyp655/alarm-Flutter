@@ -105,6 +105,7 @@ class UpdateScoreRequested extends TeacherEvent {
   final int? absences;
   final double? midtermScore;
   final double? finalScore;
+  final double? examScore;
 
   const UpdateScoreRequested({
     required this.teacherId,
@@ -112,10 +113,17 @@ class UpdateScoreRequested extends TeacherEvent {
     this.absences,
     this.midtermScore,
     this.finalScore,
+    this.examScore,
   });
 
   @override
-  List<Object?> get props => [scheduleId, absences, midtermScore, finalScore];
+  List<Object?> get props => [
+    scheduleId,
+    absences,
+    midtermScore,
+    finalScore,
+    examScore,
+  ];
 }
 
 class ImportSchedulesRequested extends TeacherEvent {
@@ -190,4 +198,64 @@ class DeleteAssignmentRequested extends TeacherEvent {
 
   @override
   List<Object> get props => [assignmentId, teacherId];
+}
+
+class GetSubmissions extends TeacherEvent {
+  final int assignmentId;
+  const GetSubmissions(this.assignmentId);
+  @override
+  List<Object> get props => [assignmentId];
+}
+
+class GradeSubmission extends TeacherEvent {
+  final int submissionId;
+  final double grade;
+  final String? feedback;
+  final int teacherId;
+
+  const GradeSubmission({
+    required this.submissionId,
+    required this.grade,
+    this.feedback,
+    required this.teacherId,
+  });
+
+  @override
+  List<Object?> get props => [submissionId, grade, feedback, teacherId];
+}
+
+class MarkAttendanceRequested extends TeacherEvent {
+  final int classId;
+  final DateTime date;
+  final int teacherId;
+  final List<Map<String, dynamic>> attendances;
+
+  const MarkAttendanceRequested({
+    required this.classId,
+    required this.date,
+    required this.teacherId,
+    required this.attendances,
+  });
+
+  @override
+  List<Object> get props => [classId, date, teacherId, attendances];
+}
+
+class LoadAttendanceRecords extends TeacherEvent {
+  final int classId;
+  final DateTime date;
+
+  const LoadAttendanceRecords({required this.classId, required this.date});
+
+  @override
+  List<Object> get props => [classId, date];
+}
+
+class LoadAttendanceStatistics extends TeacherEvent {
+  final int classId;
+
+  const LoadAttendanceStatistics(this.classId);
+
+  @override
+  List<Object> get props => [classId];
 }

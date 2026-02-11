@@ -12,8 +12,13 @@ import '../../domain/entities/subject_entity.dart';
 
 class EditTaskDialog extends StatefulWidget {
   final AssignmentEntity assignment;
+  final TeacherBloc assignmentBloc;
 
-  const EditTaskDialog({super.key, required this.assignment});
+  const EditTaskDialog({
+    super.key,
+    required this.assignment,
+    required this.assignmentBloc,
+  });
 
   @override
   State<EditTaskDialog> createState() => _EditTaskDialogState();
@@ -284,7 +289,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                       rewardPoints: int.tryParse(_pointsController.text) ?? 0,
                       createdAt: widget.assignment.createdAt,
                     );
-                    context.read<TeacherBloc>().add(
+                    widget.assignmentBloc.add(
                       UpdateAssignmentRequested(
                         updatedAssignment,
                         authState.user!.id,

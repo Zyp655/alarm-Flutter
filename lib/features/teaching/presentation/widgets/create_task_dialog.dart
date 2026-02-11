@@ -11,7 +11,8 @@ import '../../../schedule/domain/enitities/schedule_entity.dart';
 import '../../domain/entities/subject_entity.dart';
 
 class CreateTaskDialog extends StatefulWidget {
-  const CreateTaskDialog({super.key});
+  final TeacherBloc assignmentBloc;
+  const CreateTaskDialog({super.key, required this.assignmentBloc});
 
   @override
   State<CreateTaskDialog> createState() => _CreateTaskDialogState();
@@ -115,7 +116,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                       onChanged: (val) {
                         setState(() {
                           _selectedSubjectId = val;
-                          _selectedClassId = null; 
+                          _selectedClassId = null;
                         });
                       },
                       decoration: const InputDecoration(
@@ -247,7 +248,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                       rewardPoints: int.tryParse(_pointsController.text) ?? 0,
                       createdAt: DateTime.now(),
                     );
-                    context.read<TeacherBloc>().add(
+                    widget.assignmentBloc.add(
                       CreateAssignmentRequested(assignment, authState.user!.id),
                     );
                     Navigator.pop(context);

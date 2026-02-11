@@ -13,6 +13,11 @@ import '../../domain/usecases/update_assignment_usecase.dart';
 import '../../domain/usecases/delete_assignment_usecase.dart';
 import '../../../schedule/domain/usecases/update_schedule_usecase.dart';
 import '../../../schedule/domain/usecases/delete_schedule_usecase.dart';
+import '../../domain/usecases/get_submissions_usecase.dart';
+import '../../domain/usecases/grade_submission_usecase.dart';
+import '../../domain/usecases/mark_attendance_usecase.dart';
+import '../../domain/usecases/get_attendance_records_usecase.dart';
+import '../../domain/usecases/get_attendance_statistics_usecase.dart';
 import 'teacher_event.dart';
 import 'teacher_state.dart';
 
@@ -29,6 +34,11 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
   final DeleteAssignmentUseCase deleteAssignment;
   final UpdateScheduleUseCase updateSchedule;
   final DeleteScheduleUseCase deleteSchedule;
+  final GetSubmissionsUseCase getSubmissions;
+  final GradeSubmissionUseCase gradeSubmission;
+  final MarkAttendanceUseCase markAttendance;
+  final GetAttendanceRecordsUseCase getAttendanceRecords;
+  final GetAttendanceStatisticsUseCase getAttendanceStatistics;
 
   final GetSubjectsUseCase getSubjects;
   final CreateSubjectUseCase createSubject;
@@ -48,6 +58,11 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
     required this.deleteAssignment,
     required this.updateSchedule,
     required this.deleteSchedule,
+    required this.getSubmissions,
+    required this.gradeSubmission,
+    required this.markAttendance,
+    required this.getAttendanceRecords,
+    required this.getAttendanceStatistics,
   }) : super(TeacherInitial()) {
     on<LoadSubjects>((event, emit) async {
       emit(TeacherLoading());
@@ -125,6 +140,7 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
         event.absences,
         event.midtermScore,
         event.finalScore,
+        event.examScore,
       );
       result.fold((failure) => emit(TeacherError(failure.message)), (_) {
         emit(ScoreUpdatedSuccess());
@@ -186,9 +202,63 @@ class TeacherBloc extends Bloc<TeacherEvent, TeacherState> {
         event.teacherId,
       );
       result.fold((failure) => emit(TeacherError(failure.message)), (_) {
-        emit(AssignmentDeletedSuccess());
         add(LoadAssignments(event.teacherId));
       });
+    });
+
+    on<GetSubmissions>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await getSubmissions(event.assignmentId);
+      result.fold(
+        (failure) => emit(TeacherError(failure.message)),
+        (submissions) => emit(SubmissionsLoaded(submissions)),
+      );
+    });
+
+    on<GradeSubmission>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await gradeSubmission(
+        event.submissionId,
+        event.grade,
+        event.feedback,
+        event.teacherId,
+      );
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(SubmissionGradedSuccess());
+      });
+    });
+
+    on<MarkAttendanceRequested>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await markAttendance(
+        classId: event.classId,
+        date: event.date,
+        teacherId: event.teacherId,
+        attendances: event.attendances,
+      );
+      result.fold((failure) => emit(TeacherError(failure.message)), (_) {
+        emit(AttendanceMarkedSuccess());
+      });
+    });
+
+    on<LoadAttendanceRecords>((event, emit) async {
+      emit(TeacherLoading());
+      final result = await getAttendanceRecords(
+        classId: event.classId,
+        date: event.date,
+      );
+      result.fold(
+        (failure) => emit(TeacherError(failure.message)),
+        (records) => emit(AttendanceRecordsLoaded(records)),
+      );
+    });
+
+    on<LoadAttendanceStatistics>((event, emit) async {
+      final result = await getAttendanceStatistics(event.classId);
+      result.fold(
+        (failure) => emit(TeacherError(failure.message)),
+        (statistics) => emit(AttendanceStatisticsLoaded(statistics)),
+      );
     });
   }
 

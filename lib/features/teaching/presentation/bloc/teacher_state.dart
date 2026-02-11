@@ -77,3 +77,28 @@ class AssignmentCreatedSuccess extends TeacherState {}
 class AssignmentUpdatedSuccess extends TeacherState {}
 
 class AssignmentDeletedSuccess extends TeacherState {}
+
+class SubmissionsLoaded extends TeacherState {
+  final List<Map<String, dynamic>> submissions;
+  const SubmissionsLoaded(this.submissions);
+  @override
+  List<Object> get props => [submissions];
+}
+
+class SubmissionGradedSuccess extends TeacherState {}
+
+class AttendanceMarkedSuccess extends TeacherState {}
+
+class AttendanceRecordsLoaded extends TeacherState {
+  final List<Map<String, dynamic>> records;
+  const AttendanceRecordsLoaded(this.records);
+  @override
+  List<Object> get props => [records];
+}
+
+class AttendanceStatisticsLoaded extends TeacherState {
+  final List<Map<String, dynamic>> statistics;
+  const AttendanceStatisticsLoaded(this.statistics);
+  @override
+  List<Object> get props => [statistics];
+}

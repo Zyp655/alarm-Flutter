@@ -9,6 +9,8 @@ import '../bloc/teacher_bloc.dart';
 import '../bloc/teacher_event.dart';
 import '../bloc/teacher_state.dart';
 import '../widgets/student_card.dart';
+import '../widgets/teacher_update_dialog.dart';
+import 'take_attendance_page.dart';
 
 class TeacherStudentListPage extends StatefulWidget {
   final String subjectName;
@@ -211,11 +213,8 @@ class _StudentListContentState extends State<_StudentListContent> {
                             onPressed: () {
                               context.read<TeacherBloc>().add(
                                 RegenerateCodeRequested(
-                                  widget.teacherId ??
-                                      1, 
-                                  widget
-                                      .classItem
-                                      .subject,
+                                  widget.teacherId ?? 1,
+                                  widget.classItem.subject,
                                   true,
                                 ),
                               );
@@ -277,6 +276,34 @@ class _StudentListContentState extends State<_StudentListContent> {
               _showClassCodeManager(context);
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.checklist),
+            tooltip: "Điểm danh nhanh",
+            onPressed: () {
+              if (widget.teacherId != null && _students.isNotEmpty) {
+                final teacherBloc = context.read<TeacherBloc>();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider.value(
+                      value: teacherBloc,
+                      child: TakeAttendancePage(
+                        classId:
+                            widget.classItem.id ?? widget.classItem.classId!,
+                        subjectName: widget.subjectName,
+                        students: _students,
+                        teacherId: widget.teacherId!,
+                      ),
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Chưa có danh sách sinh viên")),
+                );
+              }
+            },
+          ),
         ],
       ),
       body: BlocListener<TeacherBloc, TeacherState>(
@@ -285,6 +312,18 @@ class _StudentListContentState extends State<_StudentListContent> {
             setState(() {
               _students = state.students;
             });
+          } else if (state is ScoreUpdatedSuccess ||
+              state is AttendanceMarkedSuccess) {
+            final idToUse = widget.classItem.id ?? widget.classItem.classId;
+            if (idToUse != null) {
+              context.read<TeacherBloc>().add(GetStudentsInClass(idToUse));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Cập nhật thành công!"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
           }
         },
         child: _students.isEmpty
@@ -297,7 +336,16 @@ class _StudentListContentState extends State<_StudentListContent> {
                   return StudentCard(
                     student: student,
                     index: index,
-                    onEdit: () {},
+                    onEdit: () {
+                      if (widget.teacherId != null) {
+                        TeacherUpdateDialog.showForStudent(
+                          context,
+                          student,
+                          teacherId: widget.teacherId!,
+                          credits: widget.classItem.credits,
+                        );
+                      }
+                    },
                   );
                 },
               ),
