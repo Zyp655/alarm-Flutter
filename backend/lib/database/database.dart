@@ -366,6 +366,13 @@ class Comments extends Table {
   DateTimeColumn get createdAt => dateTime()();
   BoolColumn get isTeacherResponse =>
       boolean().withDefault(const Constant(false))();
+  IntColumn get upvotes => integer().withDefault(const Constant(0))();
+  IntColumn get downvotes => integer().withDefault(const Constant(0))();
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
+  BoolColumn get isAnswered => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get editedAt => dateTime().nullable()();
+  IntColumn get depth => integer().withDefault(const Constant(0))();
+  TextColumn get path => text().nullable()();
 }
 
 class Roadmaps extends Table {
@@ -448,6 +455,41 @@ class ScheduledLessons extends Table {
   BoolColumn get isSkipped => boolean().withDefault(const Constant(false))();
 }
 
+class LearningActivities extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('learningActivitiesUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  IntColumn get courseId => integer().nullable().references(Courses, #id)();
+  IntColumn get lessonId => integer().nullable().references(Lessons, #id)();
+  TextColumn get activityType => text()();
+  IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
+  TextColumn get metadata => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class CommentVotes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get commentId => integer().references(Comments, #id)();
+  @ReferenceName('commentVotesUser')
+  IntColumn get userId => integer().references(Users, #id)();
+  TextColumn get voteType => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {commentId, userId},
+      ];
+}
+
+class CommentMentions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get commentId => integer().references(Comments, #id)();
+  @ReferenceName('commentMentionsUser')
+  IntColumn get mentionedUserId => integer().references(Users, #id)();
+  BoolColumn get isRead => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 @DriftDatabase(tables: [
   Users,
   StudentProfiles,
@@ -486,6 +528,9 @@ class ScheduledLessons extends Table {
   Majors,
   StudyPlans,
   ScheduledLessons,
+  LearningActivities,
+  CommentVotes,
+  CommentMentions,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -506,7 +551,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -596,6 +641,19 @@ class AppDatabase extends _$AppDatabase {
         if (from < 14) {
           await m.createTable(studyPlans);
           await m.createTable(scheduledLessons);
+        }
+
+        if (from < 15) {
+          await m.createTable(learningActivities);
+          await m.addColumn(comments, comments.upvotes);
+          await m.addColumn(comments, comments.downvotes);
+          await m.addColumn(comments, comments.isPinned);
+          await m.addColumn(comments, comments.isAnswered);
+          await m.addColumn(comments, comments.editedAt);
+          await m.addColumn(comments, comments.depth);
+          await m.addColumn(comments, comments.path);
+          await m.createTable(commentVotes);
+          await m.createTable(commentMentions);
         }
       },
     );
