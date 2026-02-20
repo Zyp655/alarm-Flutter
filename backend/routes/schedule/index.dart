@@ -1,4 +1,4 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
 import 'package:backend/utils/grade_calculator.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
@@ -47,7 +47,6 @@ Future<Response> onRequest(RequestContext context) async {
       };
     }).toList();
 
-    // Fetch self-paced lessons
     final selfPacedQuery = db.select(db.scheduledLessons).join([
       innerJoin(db.studyPlans,
           db.studyPlans.id.equalsExp(db.scheduledLessons.studyPlanId)),
@@ -64,7 +63,6 @@ Future<Response> onRequest(RequestContext context) async {
       final lesson = row.readTable(db.lessons);
       final course = row.readTable(db.courses);
 
-      // Parse time
       final date = scheduled.scheduledDate;
       final timeParts = scheduled.scheduledTime.split(':');
       final startDateTime = DateTime(date.year, date.month, date.day,
@@ -73,7 +71,7 @@ Future<Response> onRequest(RequestContext context) async {
           minutes: lesson.durationMinutes > 0 ? lesson.durationMinutes : 45));
 
       return {
-        'id': -scheduled.id, // Negative ID to distinguish
+        'id': -scheduled.id,
         'userId': userId,
         'subject': '${course.title} - ${lesson.title}',
         'room': 'Online',
@@ -94,7 +92,6 @@ Future<Response> onRequest(RequestContext context) async {
     }).toList();
 
     final allSchedules = [...jsonList, ...selfPacedJson];
-    // Sort by start time
     allSchedules
         .sort((a, b) => (a['start'] as String).compareTo(b['start'] as String));
 
