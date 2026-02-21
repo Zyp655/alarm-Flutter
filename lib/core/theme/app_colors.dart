@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
 
-
 abstract class AppColors {
- 
+  static const Color secondary = Color(0xFF6C63FF);
+
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static Color textPrimary(BuildContext context) =>
+      isDark(context) ? textPrimaryDark : textPrimaryLight;
+
+  static Color textSecondary(BuildContext context) =>
+      isDark(context) ? textSecondaryDark : textSecondaryLight;
+
+  static Color cardColor(BuildContext context) =>
+      isDark(context) ? darkCard : lightSurface;
+
+  static Color background(BuildContext context) =>
+      isDark(context) ? darkBackground : lightBackground;
+
   static const Color primary = Color(0xFFFF6636);
   static const Color primaryLight = Color(0xFFFF8A65);
   static const Color primaryDark = Color(0xFFE64A19);
 
- 
   static const Color darkBackground = Color(0xFF1A1A2E);
   static const Color darkSurface = Color(0xFF16213E);
   static const Color darkSurfaceVariant = Color(0xFF0F3460);

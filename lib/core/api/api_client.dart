@@ -57,6 +57,16 @@ class ApiClient {
     return _processResponse(response);
   }
 
+  Future<dynamic> patch(String path, dynamic body) async {
+    final headers = await _getHeaders();
+    final response = await client.patch(
+      Uri.parse('${ApiConstants.baseUrl}$path'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    return _processResponse(response);
+  }
+
   dynamic _processResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};

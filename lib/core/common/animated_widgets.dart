@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/animation_config.dart';
 
-/// Animated card with press animation and elevation change
 class AnimatedCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
