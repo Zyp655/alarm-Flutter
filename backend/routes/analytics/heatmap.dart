@@ -23,25 +23,29 @@ Future<Response> onRequest(RequestContext context) async {
 
     final startDate = DateTime.now().subtract(Duration(days: months * 30));
 
+    final dateCast = CustomExpression<String>(
+      "CAST(TO_TIMESTAMP(learning_activities.created_at / 1000000.0) AS DATE)",
+    );
+
     final query = db.selectOnly(db.learningActivities)
       ..addColumns([
-        db.learningActivities.createdAt,
+        dateCast,
         db.learningActivities.id.count(),
         db.learningActivities.durationMinutes.sum(),
       ])
       ..where(db.learningActivities.userId.equals(userId))
       ..where(db.learningActivities.createdAt.isBiggerOrEqualValue(startDate))
-      ..groupBy([db.learningActivities.createdAt.date])
-      ..orderBy([OrderingTerm.asc(db.learningActivities.createdAt)]);
+      ..groupBy([dateCast])
+      ..orderBy([OrderingTerm.asc(dateCast)]);
 
     final results = await query.get();
 
     final heatmapData = results.map((row) {
-      final date = row.read(db.learningActivities.createdAt);
+      final date = row.read(dateCast);
       final count = row.read(db.learningActivities.id.count());
       final minutes = row.read(db.learningActivities.durationMinutes.sum());
       return {
-        'date': date?.toIso8601String().substring(0, 10),
+        'date': date,
         'activityCount': count ?? 0,
         'totalMinutes': minutes ?? 0,
       };

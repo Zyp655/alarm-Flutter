@@ -119,6 +119,9 @@ class Submissions extends Table {
   IntColumn get version => integer().withDefault(const Constant(1))();
   IntColumn get previousVersionId =>
       integer().nullable().references(Submissions, #id)();
+  RealColumn get autoGrade => real().nullable()();
+  RealColumn get autoGradeConfidence => real().nullable()();
+  TextColumn get rubricJson => text().nullable()();
 }
 
 class Attendances extends Table {
@@ -427,6 +430,9 @@ class CourseReviews extends Table {
   TextColumn get comment => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
+  TextColumn get teacherResponse => text().nullable()();
+  DateTimeColumn get responseDate => dateTime().nullable()();
+  IntColumn get helpfulCount => integer().withDefault(const Constant(0))();
 }
 
 class StudyPlans extends Table {
@@ -464,6 +470,28 @@ class LearningActivities extends Table {
   TextColumn get activityType => text()();
   IntColumn get durationMinutes => integer().withDefault(const Constant(0))();
   TextColumn get metadata => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class ChatConversations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('chatConvUser1')
+  IntColumn get user1Id => integer().references(Users, #id)();
+  @ReferenceName('chatConvUser2')
+  IntColumn get user2Id => integer().references(Users, #id)();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+class ChatMessages extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get conversationId =>
+      integer().references(ChatConversations, #id)();
+  @ReferenceName('chatMsgSender')
+  IntColumn get senderId => integer().references(Users, #id)();
+  TextColumn get content => text()();
+  TextColumn get messageType => text().withDefault(const Constant('text'))();
+  BoolColumn get isRead => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
 }
 
@@ -531,6 +559,8 @@ class CommentMentions extends Table {
   LearningActivities,
   CommentVotes,
   CommentMentions,
+  ChatConversations,
+  ChatMessages,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -551,7 +581,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -654,6 +684,17 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(comments, comments.path);
           await m.createTable(commentVotes);
           await m.createTable(commentMentions);
+        }
+
+        if (from < 16) {
+          await m.createTable(chatConversations);
+          await m.createTable(chatMessages);
+          await m.addColumn(submissions, submissions.autoGrade);
+          await m.addColumn(submissions, submissions.autoGradeConfidence);
+          await m.addColumn(submissions, submissions.rubricJson);
+          await m.addColumn(courseReviews, courseReviews.teacherResponse);
+          await m.addColumn(courseReviews, courseReviews.responseDate);
+          await m.addColumn(courseReviews, courseReviews.helpfulCount);
         }
       },
     );

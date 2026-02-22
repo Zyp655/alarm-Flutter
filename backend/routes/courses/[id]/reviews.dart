@@ -2,6 +2,7 @@
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context, String id) async {
   final courseId = int.tryParse(id);
   if (courseId == null) {
@@ -18,6 +19,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _getReviews(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();
@@ -30,9 +32,10 @@ Future<Response> _getReviews(RequestContext context, int courseId) async {
       final total = reviews.fold<int>(0, (sum, r) => sum + r.rating);
       avgRating = total / reviews.length;
     }
-    final distribution = <int, int>{1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+    final distribution = <String, int>{'1': 0, '2': 0, '3': 0, '4': 0, '5': 0};
     for (final review in reviews) {
-      distribution[review.rating] = (distribution[review.rating] ?? 0) + 1;
+      final key = review.rating.toString();
+      distribution[key] = (distribution[key] ?? 0) + 1;
     }
     final List<Map<String, dynamic>> reviewsWithUser = [];
     for (final review in reviews) {
@@ -64,6 +67,7 @@ Future<Response> _getReviews(RequestContext context, int courseId) async {
     );
   }
 }
+
 Future<Response> _createReview(RequestContext context, int courseId) async {
   try {
     final db = context.read<AppDatabase>();

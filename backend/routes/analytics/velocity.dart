@@ -23,9 +23,13 @@ Future<Response> onRequest(RequestContext context) async {
 
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
 
+    final dateCast = CustomExpression<String>(
+      "CAST(TO_TIMESTAMP(learning_activities.created_at / 1000000.0) AS DATE)",
+    );
+
     final dailyQuery = db.selectOnly(db.learningActivities)
       ..addColumns([
-        db.learningActivities.createdAt,
+        dateCast,
         db.learningActivities.id.count(),
       ])
       ..where(db.learningActivities.userId.equals(userId))
@@ -33,16 +37,16 @@ Future<Response> onRequest(RequestContext context) async {
       ..where(db.learningActivities.activityType.equals('lesson_complete'))
       ..where(
           db.learningActivities.createdAt.isBiggerOrEqualValue(thirtyDaysAgo))
-      ..groupBy([db.learningActivities.createdAt.date])
-      ..orderBy([OrderingTerm.asc(db.learningActivities.createdAt)]);
+      ..groupBy([dateCast])
+      ..orderBy([OrderingTerm.asc(dateCast)]);
 
     final dailyResults = await dailyQuery.get();
 
     final dailyProgress = dailyResults.map((row) {
-      final date = row.read(db.learningActivities.createdAt);
+      final date = row.read(dateCast);
       final count = row.read(db.learningActivities.id.count());
       return {
-        'date': date?.toIso8601String().substring(0, 10),
+        'date': date,
         'lessonsCompleted': count ?? 0,
       };
     }).toList();

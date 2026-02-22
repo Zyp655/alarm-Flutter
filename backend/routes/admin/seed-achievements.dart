@@ -2,7 +2,8 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-import '../../lib/database/database.dart';
+import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(
