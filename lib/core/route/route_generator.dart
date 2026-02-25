@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/quiz/domain/entities/quiz_entity.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/auth/presentation/pages/signup_page.dart';
+import '../../features/admin/presentation/pages/admin_home_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/home/presentation/pages/main_wrapper_page.dart';
 import '../../features/teaching/presentation/pages/teacher_home_page.dart';
@@ -42,15 +42,18 @@ import '../../features/profile/presentation/pages/achievements_page.dart';
 import '../../features/profile/presentation/bloc/achievement_bloc.dart';
 import '../../features/offline/presentation/pages/offline_management_page.dart';
 import '../../features/offline/presentation/bloc/offline_bloc.dart';
+import '../../features/user/presentation/pages/teacher_applications_admin_page.dart';
+import '../../features/admin/presentation/pages/academic_structure_page.dart';
 import '../../injection_container.dart';
 import 'app_route.dart';
+
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => LoginPage());
-      case AppRoutes.signUp:
-        return MaterialPageRoute(builder: (_) => SignUpPage());
+      case AppRoutes.adminHome:
+        return MaterialPageRoute(builder: (_) => const AdminHomePage());
       case AppRoutes.forgotPassword:
         return MaterialPageRoute(builder: (_) => ForgotPasswordPage());
       case AppRoutes.schedule:
@@ -253,6 +256,14 @@ class RouteGenerator {
             child: const OfflineManagementPage(),
           ),
         );
+
+      case AppRoutes.teacherApplications:
+        return MaterialPageRoute(
+          builder: (_) => const TeacherApplicationsAdminPage(),
+        );
+
+      case AppRoutes.academicStructure:
+        return MaterialPageRoute(builder: (_) => const AcademicStructurePage());
 
       default:
         return _errorRoute();

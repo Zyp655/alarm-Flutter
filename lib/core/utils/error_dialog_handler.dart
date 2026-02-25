@@ -31,12 +31,12 @@ class ErrorDialogHandler {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withOpacity(0.95), 
+            color: const Color(0xFF1E293B).withValues(alpha: 0.95), 
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -48,7 +48,7 @@ class ErrorDialogHandler {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: iconColor, size: 32),

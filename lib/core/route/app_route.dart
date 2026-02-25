@@ -1,7 +1,7 @@
 class AppRoutes {
   static const String login = '/';
-  static const String signUp = '/sign_up';
   static const String forgotPassword = '/forgot_password';
+  static const String adminHome = '/admin_home';
   static const String schedule = '/schedule';
   static const String teacherHome = '/teacher_home';
   static const String studentHome = '/student_home';
@@ -28,4 +28,6 @@ class AppRoutes {
   static const String discussionThread = '/discussions/thread';
   static const String achievements = '/achievements';
   static const String offlineManagement = '/offline';
+  static const String teacherApplications = '/admin/teacher-applications';
+  static const String academicStructure = '/admin/academic-structure';
 }
