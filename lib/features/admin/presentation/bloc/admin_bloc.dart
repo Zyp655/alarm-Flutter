@@ -1,0 +1,237 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../domain/usecases/admin_usecases.dart';
+import 'admin_event.dart';
+import 'admin_state.dart';
+
+export 'admin_event.dart';
+export 'admin_state.dart';
+
+class AdminBloc extends Bloc<AdminEvent, AdminState> {
+  final GetUsersUseCase getUsers;
+  final UpdateUserUseCase updateUser;
+  final DeleteUserUseCase deleteUser;
+  final ToggleBanUseCase toggleBan;
+  final GetAdminCoursesUseCase getAdminCourses;
+  final TogglePublishUseCase togglePublish;
+  final DeleteCourseUseCase deleteCourse;
+  final GetAnalyticsUseCase getAnalytics;
+  final GetAcademicDataUseCase getAcademicData;
+  final SeedUsersUseCase seedUsers;
+  final SeedAchievementsUseCase seedAchievements;
+  final SeedRoadmapUseCase seedRoadmap;
+  final AssignRoadmapTeacherUseCase assignRoadmapTeacher;
+  final ImportStudentsUseCase importStudents;
+  final ImportTeachersUseCase importTeachers;
+
+  AdminBloc({
+    required this.getUsers,
+    required this.updateUser,
+    required this.deleteUser,
+    required this.toggleBan,
+    required this.getAdminCourses,
+    required this.togglePublish,
+    required this.deleteCourse,
+    required this.getAnalytics,
+    required this.getAcademicData,
+    required this.seedUsers,
+    required this.seedAchievements,
+    required this.seedRoadmap,
+    required this.assignRoadmapTeacher,
+    required this.importStudents,
+    required this.importTeachers,
+  }) : super(AdminInitial()) {
+    on<LoadUsers>(_onLoadUsers);
+    on<EditUser>(_onEditUser);
+    on<DeleteUser>(_onDeleteUser);
+    on<ToggleBan>(_onToggleBan);
+    on<LoadAdminCourses>(_onLoadCourses);
+    on<TogglePublish>(_onTogglePublish);
+    on<DeleteCourse>(_onDeleteCourse);
+    on<LoadAnalytics>(_onLoadAnalytics);
+    on<LoadAcademicData>(_onLoadAcademicData);
+    on<SeedUsers>(_onSeedUsers);
+    on<SeedAchievements>(_onSeedAchievements);
+    on<SeedRoadmap>(_onSeedRoadmap);
+    on<AssignRoadmapTeacher>(_onAssignRoadmapTeacher);
+    on<ImportStudents>(_onImportStudents);
+    on<ImportTeachers>(_onImportTeachers);
+  }
+
+  Future<void> _onLoadUsers(LoadUsers event, Emitter<AdminState> emit) async {
+    emit(AdminLoading());
+    final result = await getUsers(
+      role: event.role,
+      search: event.search,
+      departmentId: event.departmentId,
+      studentClass: event.studentClass,
+    );
+    result.fold((failure) => emit(AdminError(failure.message)), (data) {
+      final users = List<Map<String, dynamic>>.from(data['users'] ?? []);
+      emit(UsersLoaded(users));
+    });
+  }
+
+  Future<void> _onEditUser(EditUser event, Emitter<AdminState> emit) async {
+    final result = await updateUser(event.userId, event.data);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onDeleteUser(DeleteUser event, Emitter<AdminState> emit) async {
+    final result = await deleteUser(event.userId);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onToggleBan(ToggleBan event, Emitter<AdminState> emit) async {
+    final result = await toggleBan(event.userId);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onLoadCourses(
+    LoadAdminCourses event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await getAdminCourses(search: event.search);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (courses) => emit(AdminCoursesLoaded(courses)),
+    );
+  }
+
+  Future<void> _onTogglePublish(
+    TogglePublish event,
+    Emitter<AdminState> emit,
+  ) async {
+    final result = await togglePublish(
+      event.courseId,
+      event.currentlyPublished,
+    );
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onDeleteCourse(
+    DeleteCourse event,
+    Emitter<AdminState> emit,
+  ) async {
+    final result = await deleteCourse(event.courseId);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onLoadAnalytics(
+    LoadAnalytics event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await getAnalytics();
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (data) => emit(AnalyticsLoaded(data)),
+    );
+  }
+
+  Future<void> _onLoadAcademicData(
+    LoadAcademicData event,
+    Emitter<AdminState> emit,
+  ) async {
+    final result = await getAcademicData();
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (data) => emit(
+        AcademicDataLoaded(
+          departments: List<Map<String, dynamic>>.from(
+            data['departments'] ?? [],
+          ),
+          semesters: List<Map<String, dynamic>>.from(data['semesters'] ?? []),
+          academicCourses: List<Map<String, dynamic>>.from(
+            data['courses'] ?? [],
+          ),
+          courseClasses: List<Map<String, dynamic>>.from(data['classes'] ?? []),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onSeedUsers(SeedUsers event, Emitter<AdminState> emit) async {
+    emit(AdminLoading());
+    final result = await seedUsers();
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onSeedAchievements(
+    SeedAchievements event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await seedAchievements();
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onSeedRoadmap(
+    SeedRoadmap event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await seedRoadmap();
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onAssignRoadmapTeacher(
+    AssignRoadmapTeacher event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await assignRoadmapTeacher(event.email);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onImportStudents(
+    ImportStudents event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await importStudents(event.payload);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onImportTeachers(
+    ImportTeachers event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await importTeachers(event.payload);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+}

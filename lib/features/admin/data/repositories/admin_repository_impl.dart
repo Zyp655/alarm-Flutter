@@ -78,7 +78,7 @@ class AdminRepositoryImpl implements AdminRepository {
       );
       return Right(courses);
     } catch (e) {
-      return Left(ServerFailure('Lỗi tải khoá học: $e'));
+      return Left(ServerFailure('Lỗi tải môn học: $e'));
     }
   }
 
@@ -89,7 +89,7 @@ class AdminRepositoryImpl implements AdminRepository {
   ) async {
     try {
       await apiClient.put('/courses/$courseId', {'isPublished': !current});
-      return Right(current ? 'Đã ẩn khoá học' : 'Đã xuất bản khoá học');
+      return Right(current ? 'Đã ẩn môn học' : 'Đã xuất bản môn học');
     } catch (e) {
       return Left(ServerFailure('Lỗi: $e'));
     }
@@ -99,7 +99,7 @@ class AdminRepositoryImpl implements AdminRepository {
   Future<Either<Failure, String>> deleteCourse(int courseId) async {
     try {
       await apiClient.delete('/courses/$courseId');
-      return const Right('Đã xoá khoá học');
+      return const Right('Đã xoá môn học');
     } catch (e) {
       return Left(ServerFailure('Lỗi: $e'));
     }
@@ -202,7 +202,7 @@ class AdminRepositoryImpl implements AdminRepository {
       });
       final count = response['updatedCoursesCount'] ?? 0;
       final name = response['teacherName'] ?? '';
-      return Right('Đã gán $count khóa học cho $name');
+      return Right('Đã gán $count môn học cho $name');
     } catch (e) {
       return Left(ServerFailure('Lỗi: $e'));
     }

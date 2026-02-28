@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../injection_container.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AcademicStructurePage extends StatefulWidget {
   const AcademicStructurePage({super.key});
@@ -102,20 +103,17 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm…',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      filled: true,
-                      fillColor: cs.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  child: SearchBar(
+                    hintText: 'Tìm kiếm…',
+                    leading: const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.search_rounded, size: 20),
+                    ),
+                    elevation: const WidgetStatePropertyAll(0),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     onChanged: (v) => setState(() => _search = v.toLowerCase()),
@@ -136,8 +134,13 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onFabTap,
-        icon: const Icon(Icons.add),
-        label: const Text('Thêm mới'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Thêm mới',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 3,
       ),
     );
   }
@@ -247,7 +250,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
           badge: isActive ? 'Active' : null,
           badgeColor: isActive ? Colors.green : null,
           icon: Icons.date_range_rounded,
-          color: Colors.teal,
+          color: AppColors.primary,
           onEdit: () => _showSemesterSheet(cs, existing: item),
           onDelete: () => _confirmDelete(
             cs: cs,
@@ -391,9 +394,12 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
     return Card(
       elevation: 0,
       color: cs.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2)),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         onTap: onEdit,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -496,8 +502,14 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                   const PopupMenuItem(
                     value: 'delete',
                     child: ListTile(
-                      leading: Icon(Icons.delete_outline, color: Colors.red),
-                      title: Text('Xóa', style: TextStyle(color: Colors.red)),
+                      leading: Icon(
+                        Icons.delete_outline,
+                        color: AppColors.error,
+                      ),
+                      title: Text(
+                        'Xóa',
+                        style: TextStyle(color: AppColors.error),
+                      ),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -620,7 +632,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                   Navigator.pop(ctx);
                   await onSave();
                 },
-                icon: const Icon(Icons.save_rounded),
+                icon: Icon(Icons.save_rounded),
                 label: const Text('Lưu'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -737,7 +749,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                 initialValue: selectedDeptId,
                 decoration: InputDecoration(
                   labelText: 'Khoa',
-                  prefixIcon: const Icon(Icons.business),
+                  prefixIcon: Icon(Icons.business),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -817,7 +829,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                   initialValue: selectedCourseId,
                   decoration: InputDecoration(
                     labelText: 'Học phần',
-                    prefixIcon: const Icon(Icons.menu_book),
+                    prefixIcon: Icon(Icons.menu_book),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -842,7 +854,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                   initialValue: selectedSemId,
                   decoration: InputDecoration(
                     labelText: 'Học kỳ',
-                    prefixIcon: const Icon(Icons.calendar_month),
+                    prefixIcon: Icon(Icons.calendar_month),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -865,7 +877,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                 initialValue: selectedTeacherId,
                 decoration: InputDecoration(
                   labelText: 'Giảng viên',
-                  prefixIcon: const Icon(Icons.person),
+                  prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
