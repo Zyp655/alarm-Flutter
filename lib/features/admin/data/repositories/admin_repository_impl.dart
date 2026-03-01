@@ -235,4 +235,73 @@ class AdminRepositoryImpl implements AdminRepository {
       return Left(ServerFailure('Lỗi: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>>
+  getAcademicCoursesWithTeachers() async {
+    try {
+      final response = await apiClient.get('/admin/academic-courses');
+      final courses = List<Map<String, dynamic>>.from(
+        response['courses'] ?? [],
+      );
+      return Right(courses);
+    } catch (e) {
+      return Left(ServerFailure('Lỗi tải danh sách môn học: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> createCourseClass(
+    int academicCourseId,
+    String classCode, {
+    String? room,
+    String? schedule,
+    int? maxStudents,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'academicCourseId': academicCourseId,
+        'classCode': classCode,
+      };
+      if (room != null) body['room'] = room;
+      if (schedule != null) body['schedule'] = schedule;
+      if (maxStudents != null) body['maxStudents'] = maxStudents;
+      final response = await apiClient.post('/admin/create-course-class', body);
+      return Right(response['message'] as String? ?? 'Tạo lớp thành công');
+    } catch (e) {
+      return Left(ServerFailure('Lỗi: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> assignCourseTeacher(
+    int courseClassId,
+    int teacherId, {
+    bool force = false,
+  }) async {
+    try {
+      final response = await apiClient.post('/admin/assign-course-teacher', {
+        'courseClassId': courseClassId,
+        'teacherId': teacherId,
+        'force': force,
+      });
+      return Right(response);
+    } catch (e) {
+      return Left(ServerFailure('Lỗi: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> unassignCourseTeacher(
+    int courseClassId,
+  ) async {
+    try {
+      final response = await apiClient.post('/admin/unassign-course-teacher', {
+        'courseClassId': courseClassId,
+      });
+      return Right(response['message'] as String? ?? 'Đã bỏ phân công');
+    } catch (e) {
+      return Left(ServerFailure('Lỗi: $e'));
+    }
+  }
 }

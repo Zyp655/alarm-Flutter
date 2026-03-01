@@ -41,4 +41,23 @@ abstract class AdminRepository {
   Future<Either<Failure, String>> importStudents(Map<String, dynamic> payload);
 
   Future<Either<Failure, String>> importTeachers(Map<String, dynamic> payload);
+
+  Future<Either<Failure, List<Map<String, dynamic>>>>
+  getAcademicCoursesWithTeachers();
+
+  Future<Either<Failure, String>> createCourseClass(
+    int academicCourseId,
+    String classCode, {
+    String? room,
+    String? schedule,
+    int? maxStudents,
+  });
+
+  Future<Either<Failure, Map<String, dynamic>>> assignCourseTeacher(
+    int courseClassId,
+    int teacherId, {
+    bool force,
+  });
+
+  Future<Either<Failure, String>> unassignCourseTeacher(int courseClassId);
 }

@@ -140,3 +140,59 @@ class ImportTeachersUseCase {
     return repository.importTeachers(payload);
   }
 }
+
+class GetAcademicCoursesWithTeachersUseCase {
+  final AdminRepository repository;
+  GetAcademicCoursesWithTeachersUseCase(this.repository);
+
+  Future<Either<Failure, List<Map<String, dynamic>>>> call() {
+    return repository.getAcademicCoursesWithTeachers();
+  }
+}
+
+class CreateCourseClassUseCase {
+  final AdminRepository repository;
+  CreateCourseClassUseCase(this.repository);
+
+  Future<Either<Failure, String>> call(
+    int academicCourseId,
+    String classCode, {
+    String? room,
+    String? schedule,
+    int? maxStudents,
+  }) {
+    return repository.createCourseClass(
+      academicCourseId,
+      classCode,
+      room: room,
+      schedule: schedule,
+      maxStudents: maxStudents,
+    );
+  }
+}
+
+class AssignCourseTeacherUseCase {
+  final AdminRepository repository;
+  AssignCourseTeacherUseCase(this.repository);
+
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    int courseClassId,
+    int teacherId, {
+    bool force = false,
+  }) {
+    return repository.assignCourseTeacher(
+      courseClassId,
+      teacherId,
+      force: force,
+    );
+  }
+}
+
+class UnassignCourseTeacherUseCase {
+  final AdminRepository repository;
+  UnassignCourseTeacherUseCase(this.repository);
+
+  Future<Either<Failure, String>> call(int courseClassId) {
+    return repository.unassignCourseTeacher(courseClassId);
+  }
+}
