@@ -6,6 +6,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> login(String email, String password);
   Future<void> signUp(String email, String password);
   Future<void> forgotPassword(String email);
+  Future<void> resetPassword(String email, String otp, String newPassword);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -25,7 +26,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (user.token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', user.token!);
-      await prefs.setInt('userId', user.id!);
+      await prefs.setInt('userId', user.id);
+      if (user.departmentId != null) {
+        await prefs.setInt('departmentId', user.departmentId!);
+      } else {
+        await prefs.remove('departmentId');
+      }
     }
 
     return user;
@@ -41,8 +47,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> forgotPassword(String email) async {
-    await apiClient.post('/auth/forgot_password', {
+    await apiClient.post('/auth/forgot_password', {'email': email});
+  }
+
+  @override
+  Future<void> resetPassword(
+    String email,
+    String otp,
+    String newPassword,
+  ) async {
+    await apiClient.post('/auth/reset_password', {
       'email': email,
+      'otp': otp,
+      'newPassword': newPassword,
     });
   }
 }

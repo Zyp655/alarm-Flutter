@@ -48,4 +48,20 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure('Đã xảy ra lỗi không xác định'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> resetPassword(
+    String email,
+    String otp,
+    String newPassword,
+  ) async {
+    try {
+      await remoteDataSource.resetPassword(email, otp, newPassword);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure('Đã xảy ra lỗi không xác định'));
+    }
+  }
 }

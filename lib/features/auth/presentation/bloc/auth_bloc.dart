@@ -7,6 +7,7 @@ import '../../../../features/schedule/presentation/bloc/schedule_event.dart';
 import '../../domain/usecases/login_usercase.dart';
 import '../../domain/usecases/signup_usecase.dart';
 import '../../domain/usecases/forgot_password_usecase.dart';
+import '../../domain/usecases/reset_password_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -14,15 +15,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
   final SignUpUseCase signUpUseCase;
   final ForgotPasswordUseCase forgotPasswordUseCase;
+  final ResetPasswordUseCase resetPasswordUseCase;
 
   AuthBloc({
     required this.loginUseCase,
     required this.signUpUseCase,
     required this.forgotPasswordUseCase,
+    required this.resetPasswordUseCase,
   }) : super(AuthInitial()) {
     on<LoginRequested>(_onLogin);
     on<SignUpRequested>(_onSignUp);
     on<ForgotPasswordRequested>(_onForgotPassword);
+    on<ResetPasswordRequested>(_onResetPassword);
     on<LogoutRequested>(_onLogout);
   }
 
@@ -33,9 +37,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold((failure) async => emit(AuthFailure(failure)), (
       user,
     ) async {
-      if (user.id != null) {
-        await sl<SharedPreferences>().setInt('current_user_id', user.id!);
-      }
+      await sl<SharedPreferences>().setInt('current_user_id', user.id);
       emit(AuthSuccess(user));
     });
   }
@@ -57,7 +59,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await forgotPasswordUseCase(event.email);
     result.fold(
       (failure) => emit(AuthFailure(failure)),
-      (_) => emit(AuthSuccess(null)),
+      (_) => emit(OtpSentSuccess()),
+    );
+  }
+
+  Future<void> _onResetPassword(
+    ResetPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await resetPasswordUseCase(
+      event.email,
+      event.otp,
+      event.newPassword,
+    );
+    result.fold(
+      (failure) => emit(AuthFailure(failure)),
+      (_) => emit(PasswordResetSuccess()),
     );
   }
 
@@ -67,8 +85,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (sl.isRegistered<ScheduleBloc>()) {
         sl<ScheduleBloc>().add(ResetSchedule());
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     emit(AuthInitial());
   }
 }

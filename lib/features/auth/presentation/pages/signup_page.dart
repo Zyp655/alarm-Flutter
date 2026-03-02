@@ -79,7 +79,7 @@ class _SignUpPageState extends State<SignUpPage> {
             TextField(
               controller: emailController,
               focusNode: _emailFocusNode,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Email",
                 border: OutlineInputBorder(),
               ),
@@ -120,7 +120,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 } else if (state is AuthSuccess) {
                   _riveKey.currentState?.success();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text("Đăng ký thành công! Hãy đăng nhập."),
                     ),
                   );

@@ -17,3 +17,7 @@ class AuthFailure extends AuthState {
   final Failure failure;
   AuthFailure(this.failure);
 }
+
+class OtpSentSuccess extends AuthState {}
+
+class PasswordResetSuccess extends AuthState {}
