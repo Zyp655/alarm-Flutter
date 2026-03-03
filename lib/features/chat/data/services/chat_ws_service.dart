@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../../core/api/api_constants.dart';
 import '../../domain/entities/chat_message_entity.dart';
@@ -58,7 +59,7 @@ class ChatWsService {
       _pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _channel?.sink.add(jsonEncode({'type': 'ping'}));
       });
-    } catch (_) {
+    } catch (e) {
       _scheduleReconnect();
     }
 
@@ -92,7 +93,9 @@ class ChatWsService {
         final notifData = data['data'] as Map<String, dynamic>;
         _notificationController.add(notifData);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[ChatWS.dispose] $e');
+    }
   }
 
   void sendMessage({

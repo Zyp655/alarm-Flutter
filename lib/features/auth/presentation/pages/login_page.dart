@@ -92,11 +92,9 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // ── Rive Character ──
                   RiveLoginCharacter(key: _riveKey, height: 180),
                   const SizedBox(height: 8),
 
-                  // ── Title ──
                   Text(
                     'Chào mừng trở lại!',
                     style: theme.textTheme.headlineLarge?.copyWith(
@@ -112,7 +110,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ── Login Card ──
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
