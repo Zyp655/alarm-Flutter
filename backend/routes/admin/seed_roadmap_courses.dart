@@ -21,7 +21,7 @@ Future<Response> onRequest(RequestContext context) async {
               email: 'admin@roadmap.system',
               passwordHash: 'system_user_not_for_login',
               fullName: const Value('Hệ thống Roadmap'),
-              role: const Value(2), 
+              role: const Value(2),
             ),
           );
       instructor = await (db.select(db.users)..where((u) => u.id.equals(id)))
@@ -376,7 +376,7 @@ Future<Response> onRequest(RequestContext context) async {
 
       final moduleId = await db.into(db.modules).insert(
             ModulesCompanion.insert(
-              courseId: courseId,
+              courseId: Value(courseId),
               title: 'Nội dung chính',
               description: const Value('Các bài học trong khóa'),
               orderIndex: 0,
@@ -415,7 +415,7 @@ Future<Response> onRequest(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to seed courses: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
