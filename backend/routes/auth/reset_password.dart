@@ -53,7 +53,6 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     if (DateTime.now().isAfter(user.resetTokenExpiry!)) {
-      // Clear expired token
       await (db.update(db.users)..where((t) => t.id.equals(user.id))).write(
         const UsersCompanion(
           resetToken: Value(null),
@@ -73,7 +72,6 @@ Future<Response> onRequest(RequestContext context) async {
       );
     }
 
-    // OTP valid — update password and clear token
     final hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
     await (db.update(db.users)..where((t) => t.id.equals(user.id))).write(
       UsersCompanion(
@@ -86,9 +84,7 @@ Future<Response> onRequest(RequestContext context) async {
     return Response.json(
       body: {'message': 'Đặt lại mật khẩu thành công!'},
     );
-  } catch (e, stackTrace) {
-    print('RESET PASSWORD ERROR: $e');
-    print('STACK TRACE: $stackTrace');
+  } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({

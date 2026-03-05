@@ -16,7 +16,6 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   try {
-
     final authHeader = context.request.headers['authorization'];
     if (authHeader == null || !authHeader.startsWith('Bearer ')) {
       return Response.json(
@@ -92,9 +91,7 @@ Future<Response> onRequest(RequestContext context) async {
         'message': 'Đổi mật khẩu thành công',
       },
     );
-  } catch (e, stackTrace) {
-    print('CHANGE PASSWORD ERROR: $e');
-    print('STACK TRACE: $stackTrace');
+  } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({

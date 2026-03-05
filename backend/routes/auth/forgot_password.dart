@@ -51,8 +51,5 @@ Future<void> _sendEmail(String recipient, String otp) async {
     ''';
   try {
     await send(message, smtpServer);
-    print('✅ Đã gửi email OTP thành công đến $recipient');
-  } catch (e) {
-    print('❌ Lỗi gửi mail: $e');
-  }
+  } catch (_) {}
 }

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
+import 'package:backend/services/logger_service.dart';
 import 'package:drift/drift.dart';
-
 
 Future<Response> onRequest(RequestContext context) async {
   final db = context.read<AppDatabase>();
@@ -55,7 +55,7 @@ Future<Response> _getConversations(
       final unreadQuery = db.selectOnly(db.chatMessages)
         ..addColumns([db.chatMessages.id.count()])
         ..where(db.chatMessages.conversationId.equals(conv.id))
-        ..where(db.chatMessages.senderId.isNotValue(userId))
+        ..where(db.chatMessages.senderId.equals(userId).not())
         ..where(db.chatMessages.isRead.equals(false));
       final unreadResult = await unreadQuery.getSingle();
       final unreadCount = unreadResult.read(db.chatMessages.id.count()) ?? 0;
@@ -79,10 +79,11 @@ Future<Response> _getConversations(
     }
 
     return Response.json(body: {'conversations': result});
-  } catch (e) {
+  } catch (e, st) {
+    logger.error('GET /chat error', error: e, stackTrace: st, context: 'Chat');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to load conversations: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống'},
     );
   }
 }
@@ -100,6 +101,53 @@ Future<Response> _createConversation(
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'error': 'user1Id and user2Id are required'},
+      );
+    }
+
+    int relationCount = 0;
+
+    try {
+      final oldEnrollment = await db.customSelect(
+        '''
+        SELECT COUNT(*) AS cnt FROM enrollments e
+        JOIN courses c ON c.id = e.course_id
+        WHERE (e.user_id = \$1 AND c.instructor_id = \$2)
+           OR (e.user_id = \$3 AND c.instructor_id = \$4)
+        ''',
+        variables: [
+          Variable.withInt(user1Id),
+          Variable.withInt(user2Id),
+          Variable.withInt(user2Id),
+          Variable.withInt(user1Id),
+        ],
+      ).getSingle();
+      relationCount += (oldEnrollment.data['cnt'] as int? ?? 0);
+    } catch (_) {}
+
+    try {
+      final academyEnrollment = await db.customSelect(
+        '''
+        SELECT COUNT(*) AS cnt FROM course_class_enrollments cce
+        JOIN course_classes cc ON cc.id = cce.course_class_id
+        WHERE (cce.student_id = \$1 AND cc.teacher_id = \$2)
+           OR (cce.student_id = \$3 AND cc.teacher_id = \$4)
+        ''',
+        variables: [
+          Variable.withInt(user1Id),
+          Variable.withInt(user2Id),
+          Variable.withInt(user2Id),
+          Variable.withInt(user1Id),
+        ],
+      ).getSingle();
+      relationCount += (academyEnrollment.data['cnt'] as int? ?? 0);
+    } catch (_) {}
+
+    if (relationCount == 0) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {
+          'error': 'Bạn chỉ có thể nhắn tin với giảng viên khóa học đã đăng ký',
+        },
       );
     }
 
@@ -132,10 +180,11 @@ Future<Response> _createConversation(
       statusCode: HttpStatus.created,
       body: {'id': id, 'isNew': true},
     );
-  } catch (e) {
+  } catch (e, st) {
+    logger.error('POST /chat error', error: e, stackTrace: st, context: 'Chat');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to create conversation: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống'},
     );
   }
 }

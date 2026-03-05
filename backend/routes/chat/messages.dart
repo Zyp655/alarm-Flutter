@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
+import 'package:backend/services/chat_broadcaster.dart';
 import 'package:drift/drift.dart';
-
 
 Future<Response> onRequest(RequestContext context) async {
   final db = context.read<AppDatabase>();
@@ -66,7 +66,7 @@ Future<Response> _getMessages(RequestContext context, AppDatabase db) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to load messages: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
@@ -102,6 +102,33 @@ Future<Response> _sendMessage(RequestContext context, AppDatabase db) async {
           ..where((c) => c.id.equals(conversationId)))
         .write(ChatConversationsCompanion(updatedAt: Value(now)));
 
+    final conv = await (db.select(db.chatConversations)
+          ..where((c) => c.id.equals(conversationId)))
+        .getSingleOrNull();
+
+    if (conv != null) {
+      final recipientId =
+          conv.user1Id == senderId ? conv.user2Id : conv.user1Id;
+
+      final sender = await (db.select(db.users)
+            ..where((u) => u.id.equals(senderId)))
+          .getSingleOrNull();
+
+      ChatBroadcaster().onNewMessage(
+        recipientId: recipientId,
+        messageData: {
+          'id': id,
+          'conversationId': conversationId,
+          'senderId': senderId,
+          'senderName': sender?.fullName ?? sender?.email ?? '',
+          'content': content,
+          'messageType': messageType,
+          'isRead': false,
+          'createdAt': now.toIso8601String(),
+        },
+      );
+    }
+
     return Response.json(
       statusCode: HttpStatus.created,
       body: {'id': id, 'createdAt': now.toIso8601String()},
@@ -109,7 +136,7 @@ Future<Response> _sendMessage(RequestContext context, AppDatabase db) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to send message: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
@@ -131,10 +158,22 @@ Future<Response> _markAsRead(RequestContext context, AppDatabase db) async {
           ..where(
             (m) =>
                 m.conversationId.equals(conversationId) &
-                m.senderId.isNotValue(readerId) &
+                m.senderId.equals(readerId).not() &
                 m.isRead.equals(false),
           ))
         .write(const ChatMessagesCompanion(isRead: Value(true)));
+
+    final conv = await (db.select(db.chatConversations)
+          ..where((c) => c.id.equals(conversationId)))
+        .getSingleOrNull();
+
+    if (conv != null) {
+      final senderId = conv.user1Id == readerId ? conv.user2Id : conv.user1Id;
+      ChatBroadcaster().onMessagesRead(
+        senderId: senderId,
+        conversationId: conversationId,
+      );
+    }
 
     return Response.json(body: {
       'message': 'Marked $count messages as read',
@@ -142,7 +181,7 @@ Future<Response> _markAsRead(RequestContext context, AppDatabase db) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to mark as read: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
