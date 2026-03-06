@@ -1,10 +1,11 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/database/database.dart';
 import 'package:backend/services/game_manager.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(
@@ -79,16 +80,10 @@ Future<Response> onRequest(RequestContext context) async {
         };
       }).toList();
     }
-    print(
-        'DEBUG create.dart: quizId=$quizId, questions fetched: ${questionsList.length}');
-    if (questionsList.isNotEmpty) {
-      print('DEBUG create.dart: First question: ${questionsList[0]}');
-    }
     GameManager().createRoom(roomCode, {
       'id': quizId,
       'questions': questionsList,
     });
-    print('DEBUG create.dart: GameManager.createRoom called for $roomCode');
     return Response.json(
       body: {
         'success': true,
@@ -98,16 +93,16 @@ Future<Response> onRequest(RequestContext context) async {
       },
     );
   } catch (e) {
-    print('Create Room Error: $e');
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({
         'success': false,
-        'error': e.toString(),
+        'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
       }),
     );
   }
 }
+
 String _generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   final random = Random();

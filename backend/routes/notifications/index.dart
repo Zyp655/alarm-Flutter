@@ -1,6 +1,8 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
+import 'package:backend/helpers/pagination.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
@@ -14,10 +16,17 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
   final userId = int.parse(params['userId']!);
-  final limit = int.tryParse(params['limit'] ?? '50') ?? 50;
-  final offset = int.tryParse(params['offset'] ?? '0') ?? 0;
+  final pg = Pagination.fromQuery(params);
   final unreadOnly = params['unreadOnly'] == 'true';
   try {
+
+    var countQ = db.select(db.notifications)
+      ..where((n) => n.userId.equals(userId));
+    if (unreadOnly) {
+      countQ = countQ..where((n) => n.isRead.equals(false));
+    }
+    final total = (await countQ.get()).length;
+
     var query = db.select(db.notifications)
       ..where((n) => n.userId.equals(userId));
     if (unreadOnly) {
@@ -25,8 +34,15 @@ Future<Response> onRequest(RequestContext context) async {
     }
     query = query
       ..orderBy([(n) => OrderingTerm.desc(n.createdAt)])
-      ..limit(limit, offset: offset);
+      ..limit(pg.limit, offset: pg.offset);
     final notifications = await query.get();
+
+    final unreadCount = await (db.select(db.notifications)
+          ..where((n) => n.userId.equals(userId))
+          ..where((n) => n.isRead.equals(false)))
+        .get()
+        .then((rows) => rows.length);
+
     final result = notifications.map((n) {
       return {
         'id': n.id,
@@ -41,11 +57,14 @@ Future<Response> onRequest(RequestContext context) async {
         'createdAt': n.createdAt.toIso8601String(),
       };
     }).toList();
-    return Response.json(body: result);
+
+    final body = pg.wrap(result, total: total, key: 'notifications');
+    body['unreadCount'] = unreadCount;
+    return Response.json(body: body);
   } catch (e) {
     return Response.json(
       statusCode: 500,
-      body: {'error': e.toString()},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

@@ -112,7 +112,7 @@ Lưu ý:
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({
         'success': false,
-        'error': e.toString(),
+        'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
       }),
     );
   }

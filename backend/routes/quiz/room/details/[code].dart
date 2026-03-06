@@ -1,7 +1,8 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import '../../../../lib/database/database.dart';
+import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context, String code) async {
   final db = context.read<AppDatabase>();
   switch (context.request.method) {
@@ -16,6 +17,7 @@ Future<Response> onRequest(RequestContext context, String code) async {
       );
   }
 }
+
 Future<Response> _getRoom(AppDatabase db, String code) async {
   try {
     final room = await (db.select(db.quizRooms)
@@ -63,10 +65,11 @@ Future<Response> _getRoom(AppDatabase db, String code) async {
   } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
-      body: jsonEncode({'success': false, 'error': e.toString()}),
+      body: jsonEncode({'success': false, 'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'}),
     );
   }
 }
+
 Future<Response> _deleteRoom(AppDatabase db, String code) async {
   try {
     final room = await (db.select(db.quizRooms)
@@ -90,7 +93,7 @@ Future<Response> _deleteRoom(AppDatabase db, String code) async {
   } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
-      body: jsonEncode({'success': false, 'error': e.toString()}),
+      body: jsonEncode({'success': false, 'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'}),
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.delete) {
@@ -22,7 +22,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
   } catch (e) {
     return Response.json(
       statusCode: 500,
-      body: {'error': e.toString()},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

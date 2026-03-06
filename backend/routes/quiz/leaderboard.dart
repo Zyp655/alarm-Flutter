@@ -1,8 +1,9 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(
@@ -59,12 +60,11 @@ Future<Response> onRequest(RequestContext context) async {
       },
     );
   } catch (e) {
-    print('Leaderboard Check Error: $e');
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({
         'success': false,
-        'error': e.toString(),
+        'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
       }),
     );
   }

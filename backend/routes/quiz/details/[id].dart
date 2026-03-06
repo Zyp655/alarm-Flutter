@@ -1,8 +1,9 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-import '../../../lib/database/database.dart';
+import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context, String id) async {
   final db = context.read<AppDatabase>();
   final quizId = int.tryParse(id);
@@ -24,6 +25,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
       );
   }
 }
+
 Future<Response> _getQuiz(AppDatabase db, int quizId) async {
   try {
     final quiz = await (db.select(db.quizzes)
@@ -69,10 +71,11 @@ Future<Response> _getQuiz(AppDatabase db, int quizId) async {
   } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
-      body: jsonEncode({'success': false, 'error': e.toString()}),
+      body: jsonEncode({'success': false, 'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'}),
     );
   }
 }
+
 Future<Response> _deleteQuiz(AppDatabase db, int quizId) async {
   try {
     await (db.delete(db.quizQuestions)..where((t) => t.quizId.equals(quizId)))
@@ -94,7 +97,7 @@ Future<Response> _deleteQuiz(AppDatabase db, int quizId) async {
   } catch (e) {
     return Response(
       statusCode: HttpStatus.internalServerError,
-      body: jsonEncode({'success': false, 'error': e.toString()}),
+      body: jsonEncode({'success': false, 'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'}),
     );
   }
 }

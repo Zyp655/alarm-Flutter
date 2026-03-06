@@ -1,8 +1,9 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(
@@ -76,11 +77,7 @@ Future<Response> onRequest(RequestContext context) async {
         totalQuestions,
         scorePercentage,
       );
-      await _updateLeaderboard(
-          db,
-          userId,
-          (correctCount * 10)
-              .toInt());
+      await _updateLeaderboard(db, userId, (correctCount * 10).toInt());
     }
     return Response.json(
       body: {
@@ -93,16 +90,16 @@ Future<Response> onRequest(RequestContext context) async {
       },
     );
   } catch (e) {
-    print('Submit Quiz Error: $e');
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({
         'success': false,
-        'error': e.toString(),
+        'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
       }),
     );
   }
 }
+
 Future<void> _updateStatistics(
   AppDatabase db,
   int userId,
@@ -147,10 +144,12 @@ Future<void> _updateStatistics(
     ));
   }
 }
+
 double _calculateSkillLevel(double currentScore, double previousSkill) {
   final normalizedScore = currentScore / 100;
   return (previousSkill * 0.7) + (normalizedScore * 0.3);
 }
+
 Future<void> _updateLeaderboard(
   AppDatabase db,
   int userId,

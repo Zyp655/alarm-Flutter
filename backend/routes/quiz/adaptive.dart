@@ -4,7 +4,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dotenv/dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:drift/drift.dart';
-import '../../lib/database/database.dart';
+import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(
@@ -120,7 +121,7 @@ Lưu ý:
       statusCode: HttpStatus.internalServerError,
       body: jsonEncode({
         'success': false,
-        'error': e.toString(),
+        'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.',
       }),
     );
   }
