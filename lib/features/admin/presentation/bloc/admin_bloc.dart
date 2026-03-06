@@ -27,6 +27,7 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
   final CreateCourseClassUseCase createCourseClassUseCase;
   final AssignCourseTeacherUseCase assignCourseTeacherUseCase;
   final UnassignCourseTeacherUseCase unassignCourseTeacherUseCase;
+  final DeleteCourseClassUseCase deleteCourseClassUseCase;
 
   AdminBloc({
     required this.getUsers,
@@ -49,6 +50,7 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     required this.createCourseClassUseCase,
     required this.assignCourseTeacherUseCase,
     required this.unassignCourseTeacherUseCase,
+    required this.deleteCourseClassUseCase,
   }) : super(AdminInitial()) {
     on<LoadUsers>(_onLoadUsers);
     on<EditUser>(_onEditUser);
@@ -70,6 +72,7 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     on<CreateCourseClassEvent>(_onCreateCourseClass);
     on<AssignCourseTeacherEvent>(_onAssignCourseTeacher);
     on<UnassignCourseTeacherEvent>(_onUnassignCourseTeacher);
+    on<DeleteCourseClassEvent>(_onDeleteCourseClass);
   }
 
   Future<void> _onLoadUsers(LoadUsers event, Emitter<AdminState> emit) async {
@@ -330,6 +333,18 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
   ) async {
     emit(AdminLoading());
     final result = await unassignCourseTeacherUseCase(event.courseClassId);
+    result.fold(
+      (failure) => emit(AdminError(failure.message)),
+      (message) => emit(AdminActionSuccess(message)),
+    );
+  }
+
+  Future<void> _onDeleteCourseClass(
+    DeleteCourseClassEvent event,
+    Emitter<AdminState> emit,
+  ) async {
+    emit(AdminLoading());
+    final result = await deleteCourseClassUseCase(event.courseClassId);
     result.fold(
       (failure) => emit(AdminError(failure.message)),
       (message) => emit(AdminActionSuccess(message)),

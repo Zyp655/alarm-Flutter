@@ -82,7 +82,9 @@ class ApiClient {
           errorMap['error'] ?? errorMap['message'] ?? 'Unknown Error',
           statusCode: response.statusCode,
         );
-      } catch (e) {
+      } on ServerException {
+        rethrow;
+      } catch (_) {
         throw ServerException(
           'Lỗi máy chủ: ${response.statusCode}',
           statusCode: response.statusCode,

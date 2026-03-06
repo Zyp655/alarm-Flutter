@@ -150,3 +150,10 @@ class UnassignCourseTeacherEvent extends AdminEvent {
   @override
   List<Object?> get props => [courseClassId];
 }
+
+class DeleteCourseClassEvent extends AdminEvent {
+  final int courseClassId;
+  const DeleteCourseClassEvent({required this.courseClassId});
+  @override
+  List<Object?> get props => [courseClassId];
+}

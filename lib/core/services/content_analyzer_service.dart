@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_constants.dart';
@@ -61,12 +61,14 @@ class ContentAnalyzerService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        print('Error generating quiz: ${response.body}');
-        return null;
+        try {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (_) {
+          return {'error': 'Lỗi server: ${response.statusCode}'};
+        }
       }
     } catch (e) {
-      print('Error: $e');
-      return null;
+      return {'error': 'Lỗi kết nối: $e'};
     }
   }
 
@@ -97,11 +99,9 @@ class ContentAnalyzerService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        print('Error saving quiz: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error: $e');
       return null;
     }
   }
@@ -123,11 +123,9 @@ class ContentAnalyzerService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        print('Error getting quiz: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error: $e');
       return null;
     }
   }

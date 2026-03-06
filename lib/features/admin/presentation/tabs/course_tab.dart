@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/admin_bloc.dart';
 import '../widgets/course_class_card.dart';
@@ -16,6 +17,9 @@ class _CourseTabState extends State<CourseTab> {
   List<Map<String, dynamic>> _courses = [];
   bool _isLoading = false;
   int? _expandedCourseId;
+  String _activeFilter = 'Tất cả';
+
+  static const _filters = ['Tất cả', 'CNTT', 'Kinh tế', 'Ngoại ngữ'];
 
   @override
   void initState() {
@@ -35,7 +39,8 @@ class _CourseTabState extends State<CourseTab> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BlocListener<AdminBloc, AdminState>(
       listener: (context, state) {
@@ -69,7 +74,7 @@ class _CourseTabState extends State<CourseTab> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
                 Expanded(
@@ -77,9 +82,22 @@ class _CourseTabState extends State<CourseTab> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Tìm môn học...',
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: GoogleFonts.inter(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? cs.surfaceContainerHigh
+                          : const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
@@ -87,15 +105,159 @@ class _CourseTabState extends State<CourseTab> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _loadCourses,
-                  icon: const Icon(Icons.refresh),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? cs.surfaceContainerHigh
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: _loadCourses,
+                    icon: Icon(
+                      Icons.refresh_rounded,
+                      color: cs.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          Expanded(child: _buildBody(theme)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _filters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final f = _filters[i];
+                final active = f == _activeFilter;
+                return GestureDetector(
+                  onTap: () => setState(() => _activeFilter = f),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? const Color(0xFF2563EB)
+                          : (isDark
+                                ? cs.surfaceContainerHigh
+                                : const Color(0xFFF1F5F9)),
+                      borderRadius: BorderRadius.circular(20),
+                      border: active
+                          ? null
+                          : Border.all(
+                              color: const Color(
+                                0xFFE2E8F0,
+                              ).withValues(alpha: isDark ? 0.2 : 0.5),
+                            ),
+                    ),
+                    child: Text(
+                      f,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: active ? Colors.white : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildStatsSummary(cs, isDark),
+          const SizedBox(height: 8),
+          Expanded(child: _buildBody(cs, isDark)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSummary(ColorScheme cs, bool isDark) {
+    final total = _courses.length;
+    final withTeacher = _courses.where((c) {
+      final teachers = c['assignedTeachers'] as List?;
+      return teachers != null && teachers.isNotEmpty;
+    }).length;
+    final without = total - withTeacher;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _summaryChip(
+            cs,
+            isDark,
+            '$total',
+            'Tổng môn',
+            const Color(0xFF2563EB),
+          ),
+          const SizedBox(width: 8),
+          _summaryChip(
+            cs,
+            isDark,
+            '$withTeacher',
+            'Đã có GV',
+            const Color(0xFF10B981),
+          ),
+          const SizedBox(width: 8),
+          _summaryChip(
+            cs,
+            isDark,
+            '$without',
+            'Chưa phân',
+            const Color(0xFFF59E0B),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryChip(
+    ColorScheme cs,
+    bool isDark,
+    String count,
+    String label,
+    Color color,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? cs.surfaceContainerHigh : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(
+              0xFFE2E8F0,
+            ).withValues(alpha: isDark ? 0.15 : 0.4),
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: GoogleFonts.montserrat(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -132,7 +294,7 @@ class _CourseTabState extends State<CourseTab> {
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ColorScheme cs, bool isDark) {
     if (_isLoading && _courses.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -155,12 +317,12 @@ class _CourseTabState extends State<CourseTab> {
             Icon(
               Icons.school,
               size: 48,
-              color: AppColors.textSecondary(context),
+              color: cs.onSurfaceVariant.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 8),
             Text(
               'Nhấn refresh để tải danh sách',
-              style: theme.textTheme.bodyMedium,
+              style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ],
         ),

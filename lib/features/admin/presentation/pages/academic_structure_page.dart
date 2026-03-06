@@ -132,16 +132,29 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _onFabTap,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Thêm mới',
-          style: TextStyle(fontWeight: FontWeight.w600),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: SizedBox(
+          width: double.infinity,
+          child: FloatingActionButton.extended(
+            onPressed: _onFabTap,
+            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            label: const Text(
+              'Thêm mới',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: const Color(0xFF2563EB),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            elevation: 4,
+          ),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 3,
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -194,6 +207,45 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
     }
   }
 
+  ({IconData icon, Color color}) _getDepartmentIcon(String code, String name) {
+    final c = code.toLowerCase();
+    final n = name.toLowerCase();
+    if (c.contains('cntt') ||
+        n.contains('công nghệ thông tin') ||
+        n.contains('information')) {
+      return (icon: Icons.computer_rounded, color: const Color(0xFF0984E3));
+    }
+    if (c.contains('kt') || n.contains('kinh tế') || n.contains('economics')) {
+      return (icon: Icons.bar_chart_rounded, color: const Color(0xFF00B894));
+    }
+    if (c.contains('nng') ||
+        n.contains('ngoại ngữ') ||
+        n.contains('language')) {
+      return (icon: Icons.language_rounded, color: const Color(0xFF6C5CE7));
+    }
+    if (c.contains('mtcn') ||
+        n.contains('mỹ thuật') ||
+        n.contains('design') ||
+        n.contains('art')) {
+      return (icon: Icons.palette_rounded, color: const Color(0xFFE17055));
+    }
+    if (c.contains('xd') ||
+        n.contains('xây dựng') ||
+        n.contains('construction')) {
+      return (icon: Icons.architecture_rounded, color: const Color(0xFFFDAA5E));
+    }
+    if (c.contains('luat') || n.contains('luật') || n.contains('law')) {
+      return (icon: Icons.gavel_rounded, color: const Color(0xFF636E72));
+    }
+    if (c.contains('y') || n.contains('y khoa') || n.contains('medical')) {
+      return (
+        icon: Icons.local_hospital_rounded,
+        color: const Color(0xFFE84393),
+      );
+    }
+    return (icon: Icons.business_rounded, color: const Color(0xFF0984E3));
+  }
+
   Widget _buildDepartmentsTab(ColorScheme cs) {
     final filtered = _departments
         .where(
@@ -209,21 +261,27 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
       items: filtered,
       emptyLabel: 'Chưa có khoa nào',
       emptyIcon: Icons.business_outlined,
-      builder: (item) => _itemCard(
-        cs: cs,
-        title: item['name'] ?? '',
-        subtitle: 'Mã: ${item['code'] ?? ''}',
-        description: item['description'],
-        icon: Icons.apartment_rounded,
-        color: cs.primary,
-        onEdit: () => _showDepartmentSheet(cs, existing: item),
-        onDelete: () => _confirmDelete(
+      builder: (item) {
+        final deptIcon = _getDepartmentIcon(
+          item['code'] as String? ?? '',
+          item['name'] as String? ?? '',
+        );
+        return _itemCard(
           cs: cs,
-          label: item['name'] ?? '',
-          endpoint: '/academic/departments',
-          id: item['id'],
-        ),
-      ),
+          title: item['name'] ?? '',
+          subtitle: 'Mã: ${item['code'] ?? ''}',
+          description: item['description'],
+          icon: deptIcon.icon,
+          color: deptIcon.color,
+          onEdit: () => _showDepartmentSheet(cs, existing: item),
+          onDelete: () => _confirmDelete(
+            cs: cs,
+            label: item['name'] ?? '',
+            endpoint: '/academic/departments',
+            id: item['id'],
+          ),
+        );
+      },
     );
   }
 
@@ -390,12 +448,17 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
     required VoidCallback onEdit,
     required VoidCallback onDelete,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 0,
-      color: cs.surfaceContainerLow,
+      color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2)),
+        side: BorderSide(
+          color: isDark
+              ? cs.outlineVariant.withValues(alpha: 0.3)
+              : cs.outlineVariant.withValues(alpha: 0.15),
+        ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -436,21 +499,22 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: 10,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
                               color: (badgeColor ?? cs.primary).withValues(
                                 alpha: 0.15,
                               ),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               badge,
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
                                 color: badgeColor ?? cs.primary,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),

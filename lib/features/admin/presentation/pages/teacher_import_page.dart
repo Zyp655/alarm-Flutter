@@ -11,7 +11,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/admin_bloc.dart';
-
+import '../widgets/import_shared_widgets.dart';
+import '../widgets/import_step_indicator.dart';
 
 enum ImportRowStatus { valid, error }
 
@@ -38,7 +39,6 @@ class _ImportRow {
 }
 
 enum _FilterMode { all, valid, error }
-
 
 class TeacherImportPage extends StatefulWidget {
   const TeacherImportPage({super.key});
@@ -98,7 +98,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         horizontalAlign: HorizontalAlign.Center,
       );
 
-      final headers = ['MÃ£ GV (*)', 'Há» tÃªn (*)', 'Email (*)', 'Khoa'];
+      final headers = ['Mã GV (*)', 'Họ tên (*)', 'Email (*)', 'Khoa'];
       for (var i = 0; i < headers.length; i++) {
         final cell = sheet.cell(
           CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
@@ -110,11 +110,11 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       final samples = [
         [
           'GV001',
-          'Nguyá»…n VÄƒn A',
+          'Nguyễn Văn A',
           'nguyenvana@lms.edu.vn',
-          'CÃ´ng nghá»‡ thÃ´ng tin',
+          'Công nghệ thông tin',
         ],
-        ['GV002', 'Tráº§n Thá»‹ B', 'tranthib@lms.edu.vn', 'Kinh táº¿'],
+        ['GV002', 'Trần Thị B', 'tranthib@lms.edu.vn', 'Kinh tế'],
       ];
       for (var r = 0; r < samples.length; r++) {
         for (var c = 0; c < samples[r].length; c++) {
@@ -132,7 +132,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       sheet.setColumnWidth(3, 25);
 
       final bytes = excel.save();
-      if (bytes == null) throw Exception('KhÃ´ng thá»ƒ táº¡o tá»‡p');
+      if (bytes == null) throw Exception('Không thể tạo tệp');
 
       final dir = Directory('/storage/emulated/0/Download');
       final savePath = dir.existsSync()
@@ -143,15 +143,15 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       await file.writeAsBytes(bytes);
 
       if (!mounted) return;
-      _snack('ÄÃ£ táº¡o tá»‡p máº«u thÃ nh cÃ´ng!');
+      _snack('Đã tạo tệp mẫu thành công!');
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(filePath)],
-          title: 'Tá»‡p máº«u Import Giáº£ng ViÃªn',
+          title: 'Tệp mẫu Import Giảng Viên',
         ),
       );
     } catch (e) {
-      _snack('Lá»—i táº¡o tá»‡p máº«u: $e', isError: true);
+      _snack('Lỗi tạo tệp mẫu: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -176,14 +176,14 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       if (bytes == null && file.path != null) {
         bytes = await File(file.path!).readAsBytes();
       }
-      if (bytes == null) throw Exception('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c tá»‡p');
+      if (bytes == null) throw Exception('Không đọc được tệp');
 
       final excel = Excel.decodeBytes(bytes);
       final sheetName = excel.tables.keys.first;
       final sheet = excel.tables[sheetName]!;
 
       if (sheet.maxRows < 2) {
-        throw Exception('Tá»‡p khÃ´ng cÃ³ dá»¯ liá»‡u (chá»‰ cÃ³ header hoáº·c trá»‘ng)');
+        throw Exception('Tệp không có dữ liệu (chỉ có header hoặc trống)');
       }
 
       final rows = <_ImportRow>[];
@@ -201,14 +201,14 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         if (teacherId.isEmpty && fullName.isEmpty && email.isEmpty) continue;
 
         final errors = <String>[];
-        if (teacherId.isEmpty) errors.add('Thiáº¿u mÃ£ GV');
-        if (fullName.isEmpty) errors.add('Thiáº¿u há» tÃªn');
+        if (teacherId.isEmpty) errors.add('Thiếu mã GV');
+        if (fullName.isEmpty) errors.add('Thiếu họ tên');
         if (email.isEmpty) {
-          errors.add('Thiáº¿u email');
+          errors.add('Thiếu email');
         } else if (!_emailRegex.hasMatch(email)) {
-          errors.add('Email khÃ´ng há»£p lá»‡');
+          errors.add('Email không hợp lệ');
         } else if (seenEmails.contains(email)) {
-          errors.add('Email trÃ¹ng láº·p trong file');
+          errors.add('Email trùng lặp trong file');
         }
 
         if (email.isNotEmpty) seenEmails.add(email);
@@ -228,7 +228,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         );
       }
 
-      if (rows.isEmpty) throw Exception('KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u há»£p lá»‡');
+      if (rows.isEmpty) throw Exception('Không tìm thấy dữ liệu hợp lệ');
 
       setState(() {
         _rows = rows;
@@ -236,26 +236,20 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         _filterMode = _FilterMode.all;
       });
     } catch (e) {
-      _snack('Lá»—i Ä‘á»c tá»‡p: $e', isError: true);
+      _snack('Lỗi đọc tệp: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  String _cellToString(Data? cell) {
-    if (cell == null || cell.value == null) return '';
-    final v = cell.value;
-    if (v is IntCellValue) return v.value.toString();
-    if (v is DoubleCellValue) return v.value.toString();
-    return v.toString();
-  }
+  String _cellToString(Data? cell) => cellToString(cell);
 
   Future<void> _confirmAndCreate() async {
     final validRows = _rows
         .where((r) => r.status == ImportRowStatus.valid)
         .toList();
     if (validRows.isEmpty) {
-      _snack('KhÃ´ng cÃ³ báº£n ghi há»£p lá»‡ Ä‘á»ƒ táº¡o tÃ i khoáº£n', isError: true);
+      _snack('Không có bản ghi hợp lệ để tạo tài khoản', isError: true);
       return;
     }
 
@@ -299,12 +293,12 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       );
 
       final headers = [
-        'MÃ£ GV',
-        'Há» tÃªn',
+        'Mã GV',
+        'Họ tên',
         'Email',
-        'Máº­t kháº©u',
+        'Mật khẩu',
         'Khoa',
-        'Tráº¡ng thÃ¡i',
+        'Trạng thái',
       ];
       for (var i = 0; i < headers.length; i++) {
         final cell = sheet.cell(
@@ -322,7 +316,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
           row.email,
           row.generatedPassword ?? '',
           row.department,
-          'ÄÃ£ táº¡o',
+          'Đã tạo',
         ];
         for (var c = 0; c < values.length; c++) {
           sheet
@@ -341,7 +335,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
       sheet.setColumnWidth(5, 12);
 
       final bytes = excel.save();
-      if (bytes == null) throw Exception('KhÃ´ng thá»ƒ táº¡o tá»‡p');
+      if (bytes == null) throw Exception('Không thể tạo tệp');
 
       final dir = Directory('/storage/emulated/0/Download');
       final savePath = dir.existsSync()
@@ -356,15 +350,15 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         _exportedFilePath = filePath;
       });
 
-      _snack('ÄÃ£ xuáº¥t tá»‡p káº¿t quáº£ thÃ nh cÃ´ng!');
+      _snack('Đã xuất tệp kết quả thành công!');
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(filePath)],
-          title: 'Káº¿t quáº£ Import Giáº£ng ViÃªn',
+          title: 'Kết quả Import Giảng Viên',
         ),
       );
     } catch (e) {
-      _snack('Lá»—i xuáº¥t tá»‡p: $e', isError: true);
+      _snack('Lỗi xuất tệp: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -381,30 +375,8 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
     });
   }
 
-  void _snack(String message, {bool isError = false}) {
-    if (!mounted) return;
-    final cs = Theme.of(context).colorScheme;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: isError ? cs.onError : cs.onInverseSurface,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: isError ? cs.error : null,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
+  void _snack(String message, {bool isError = false}) =>
+      importSnack(context, message, isError: isError);
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +400,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
             ? AppColors.darkBackground
             : AppColors.lightBackground,
         appBar: AppBar(
-          title: const Text('Import Giáº£ng ViÃªn'),
+          title: const Text('Import Giảng Viên'),
           centerTitle: true,
           elevation: 0,
         ),
@@ -441,8 +413,8 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                     const SizedBox(height: 16),
                     Text(
                       _currentStep == 2
-                          ? 'Äang táº¡o tÃ i khoáº£n...'
-                          : 'Äang xá»­ lÃ½...',
+                          ? 'Đang tạo tài khoản...'
+                          : 'Đang xử lý...',
                       style: TextStyle(
                         color: isDark ? Colors.white70 : Colors.black54,
                       ),
@@ -468,72 +440,6 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
     );
   }
 
-  Widget _buildStepIndicator(bool isDark) {
-    const labels = ['Tá»‡p máº«u', 'Táº£i lÃªn', 'Kiá»ƒm tra', 'Káº¿t quáº£'];
-    const icons = [
-      Icons.description_outlined,
-      Icons.upload_file_rounded,
-      Icons.fact_check_outlined,
-      Icons.download_done_rounded,
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Row(
-        children: List.generate(labels.length, (i) {
-          final isActive = i == _currentStep;
-          final isDone = i < _currentStep;
-          final color = isActive
-              ? const Color(0xFF6366F1)
-              : isDone
-              ? AppColors.success
-              : (isDark ? Colors.white24 : Colors.grey.shade300);
-
-          return Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color.withValues(alpha: isActive ? 0.15 : 0.08),
-                    border: Border.all(color: color, width: isActive ? 2 : 1),
-                  ),
-                  child: Icon(
-                    isDone ? Icons.check_rounded : icons[i],
-                    size: 18,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  labels[i],
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                    color: isActive
-                        ? const Color(0xFF6366F1)
-                        : (isDark ? Colors.white54 : Colors.grey),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
   Widget _buildUploadSection(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -542,14 +448,14 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
           isDark: isDark,
           icon: Icons.description_outlined,
           iconColor: AppColors.info,
-          title: '1. Táº£i Tá»‡p Máº«u Chuáº©n',
+          title: '1. Tải Tệp Mẫu Chuẩn',
           subtitle:
-              'Tá»‡p Excel vá»›i cÃ¡c cá»™t: MÃ£ GV, Há» tÃªn, Email, Khoa.\n'
-              'Äiá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin rá»“i táº£i lÃªn á»Ÿ bÆ°á»›c 2.',
+              'Tệp Excel với các cột: Mã GV, Họ tên, Email, Khoa.\n'
+              'Điền đầy đủ thông tin rồi tải lên ở bước 2.',
           action: FilledButton.icon(
             onPressed: _downloadTemplate,
             icon: const Icon(Icons.download_rounded, size: 18),
-            label: const Text('Táº£i Tá»‡p Máº«u'),
+            label: const Text('Tải Tệp Mẫu'),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.info,
               foregroundColor: Colors.white,
@@ -565,15 +471,15 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
           isDark: isDark,
           icon: Icons.upload_file_rounded,
           iconColor: const Color(0xFF6366F1),
-          title: '2. Táº£i Tá»‡p Dá»¯ Liá»‡u',
+          title: '2. Tải Tệp Dữ Liệu',
           subtitle: _selectedFileName != null
-              ? 'ÄÃ£ chá»n: $_selectedFileName'
-              : 'Chá»n tá»‡p Excel (.xlsx) chá»©a danh sÃ¡ch giáº£ng viÃªn.',
+              ? 'Đã chọn: $_selectedFileName'
+              : 'Chọn tệp Excel (.xlsx) chứa danh sách giảng viên.',
           action: FilledButton.icon(
             onPressed: _pickAndParseFile,
             icon: const Icon(Icons.folder_open_rounded, size: 18),
             label: Text(
-              _selectedFileName != null ? 'Chá»n Tá»‡p KhÃ¡c' : 'Chá»n Tá»‡p',
+              _selectedFileName != null ? 'Chọn Tệp Khác' : 'Chọn Tệp',
             ),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
@@ -597,7 +503,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
           children: [
             _summaryCard(
               isDark,
-              'Tá»•ng',
+              'Tổng',
               _rows.length,
               AppColors.info,
               Icons.list_alt_rounded,
@@ -605,7 +511,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
             const SizedBox(width: 10),
             _summaryCard(
               isDark,
-              'Há»£p lá»‡',
+              'Hợp lệ',
               _validCount,
               AppColors.success,
               Icons.check_circle_rounded,
@@ -613,7 +519,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
             const SizedBox(width: 10),
             _summaryCard(
               isDark,
-              'Lá»—i',
+              'Lỗi',
               _errorCount,
               AppColors.error,
               Icons.error_rounded,
@@ -629,9 +535,9 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
           ),
           child: Row(
             children: [
-              _filterTab('Táº¥t cáº£ (${_rows.length})', _FilterMode.all, isDark),
-              _filterTab('Há»£p lá»‡ ($_validCount)', _FilterMode.valid, isDark),
-              _filterTab('Lá»—i ($_errorCount)', _FilterMode.error, isDark),
+              _filterTab('Tất cả (${_rows.length})', _FilterMode.all, isDark),
+              _filterTab('Hợp lệ ($_validCount)', _FilterMode.valid, isDark),
+              _filterTab('Lỗi ($_errorCount)', _FilterMode.error, isDark),
             ],
           ),
         ),
@@ -668,13 +574,13 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                     ),
                     DataColumn(
                       label: Text(
-                        'MÃ£ GV',
+                        'Mã GV',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     DataColumn(
                       label: Text(
-                        'Há» tÃªn',
+                        'Họ tên',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -692,7 +598,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                     ),
                     DataColumn(
                       label: Text(
-                        'Tráº¡ng thÃ¡i',
+                        'Trạng thái',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -709,7 +615,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                         DataCell(Text('${row.rowIndex}')),
                         DataCell(
                           Text(
-                            row.teacherId.isEmpty ? 'â€”' : row.teacherId,
+                            row.teacherId.isEmpty ? '—' : row.teacherId,
                             style: TextStyle(
                               color: row.teacherId.isEmpty
                                   ? AppColors.error
@@ -719,7 +625,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                         ),
                         DataCell(
                           Text(
-                            row.fullName.isEmpty ? 'â€”' : row.fullName,
+                            row.fullName.isEmpty ? '—' : row.fullName,
                             style: TextStyle(
                               color: row.fullName.isEmpty
                                   ? AppColors.error
@@ -729,7 +635,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                         ),
                         DataCell(
                           Text(
-                            row.email.isEmpty ? 'â€”' : row.email,
+                            row.email.isEmpty ? '—' : row.email,
                             style: TextStyle(
                               color:
                                   row.email.isEmpty ||
@@ -743,7 +649,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                           ),
                         ),
                         DataCell(
-                          Text(row.department.isEmpty ? 'â€”' : row.department),
+                          Text(row.department.isEmpty ? '—' : row.department),
                         ),
                         DataCell(
                           isError
@@ -761,7 +667,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      row.errorReason ?? 'Lá»—i',
+                                      row.errorReason ?? 'Lỗi',
                                       style: const TextStyle(
                                         color: AppColors.error,
                                         fontSize: 12,
@@ -782,7 +688,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
-                                    'Há»£p lá»‡',
+                                    'Hợp lệ',
                                     style: TextStyle(
                                       color: AppColors.successDark,
                                       fontSize: 12,
@@ -812,7 +718,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
                   });
                 },
                 icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                label: const Text('Quay láº¡i'),
+                label: const Text('Quay lại'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -827,7 +733,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
               child: FilledButton.icon(
                 onPressed: _validCount > 0 ? _confirmAndCreate : null,
                 icon: const Icon(Icons.person_add_rounded, size: 18),
-                label: Text('Táº¡o TÃ i Khoáº£n ($_validCount GV)'),
+                label: Text('Tạo Tài Khoản ($_validCount GV)'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   foregroundColor: Colors.white,
@@ -842,6 +748,10 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildStepIndicator(bool isDark) {
+    return ImportStepIndicator(currentStep: _currentStep, isDark: isDark);
   }
 
   Widget _buildResultSection(bool isDark) {
@@ -874,7 +784,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Import ThÃ nh CÃ´ng!',
+                'Import Thành Công!',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -883,7 +793,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                _resultMessage ?? 'ÄÃ£ táº¡o tÃ i khoáº£n thÃ nh cÃ´ng',
+                _resultMessage ?? 'Đã tạo tài khoản thành công',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isDark ? Colors.white70 : Colors.black54,
@@ -896,7 +806,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         FilledButton.icon(
           onPressed: _exportResults,
           icon: const Icon(Icons.download_rounded, size: 18),
-          label: const Text('Xuáº¥t Káº¿t Quáº£ (Excel)'),
+          label: const Text('Xuất Kết Quả (Excel)'),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF6366F1),
             foregroundColor: Colors.white,
@@ -909,7 +819,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         if (_exportedFilePath != null) ...[
           const SizedBox(height: 8),
           Text(
-            'ÄÃ£ lÆ°u: $_exportedFilePath',
+            'Đã lưu: $_exportedFilePath',
             style: TextStyle(
               fontSize: 12,
               color: isDark ? Colors.white38 : Colors.black38,
@@ -921,7 +831,7 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
         OutlinedButton.icon(
           onPressed: _resetFlow,
           icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text('Import Má»›i'),
+          label: const Text('Import Mới'),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
@@ -941,53 +851,14 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
     required String subtitle,
     required Widget action,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white60 : Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(width: double.infinity, child: action),
-        ],
-      ),
+    return ImportSectionCard(
+      isDark: isDark,
+      icon: icon,
+      iconColor: iconColor,
+      title: title,
+      subtitle: subtitle,
+      action: action,
+      fullWidthAction: true,
     );
   }
 
@@ -998,63 +869,21 @@ class _TeacherImportPageState extends State<TeacherImportPage> {
     Color color,
     IconData icon,
   ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: isDark ? 0.15 : 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: color.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ImportSummaryCard(
+      isDark: isDark,
+      label: label,
+      count: count,
+      color: color,
+      icon: icon,
     );
   }
 
   Widget _filterTab(String label, _FilterMode mode, bool isDark) {
-    final isActive = _filterMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _filterMode = mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF6366F1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-              color: isActive
-                  ? Colors.white
-                  : (isDark ? Colors.white54 : Colors.black54),
-            ),
-          ),
-        ),
-      ),
+    return ImportFilterTab(
+      label: label,
+      isActive: _filterMode == mode,
+      isDark: isDark,
+      onTap: () => setState(() => _filterMode = mode),
     );
   }
 }

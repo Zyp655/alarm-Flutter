@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/route/app_route.dart';
 import '../bloc/admin_bloc.dart';
@@ -39,6 +41,7 @@ class _AdminHomePageState extends State<AdminHomePage>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
+    setState(() {});
     switch (_tabController.index) {
       case 1:
         break;
@@ -103,6 +106,9 @@ class _AdminHomePageState extends State<AdminHomePage>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return BlocListener<AdminBloc, AdminState>(
       listener: (context, state) {
         if (state is AcademicDataLoaded) {
@@ -130,63 +136,176 @@ class _AdminHomePageState extends State<AdminHomePage>
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Quản Trị Hệ Thống',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              tooltip: 'Đăng xuất',
-              onPressed: _logout,
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverAppBar(
+              expandedHeight: 140,
+              floating: false,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              backgroundColor: const Color(0xFF1E293B),
+              surfaceTintColor: Colors.transparent,
+              systemOverlayStyle: SystemUiOverlayStyle.light,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'AD',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Quản Trị Hệ Thống',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Xin chào, Admin',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _logout,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.logout_rounded,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(52),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? cs.surface : Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorWeight: 3,
+                    indicatorColor: const Color(0xFF2563EB),
+                    dividerColor: Colors.transparent,
+                    isScrollable: false,
+                    labelColor: const Color(0xFF2563EB),
+                    unselectedLabelColor: cs.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                    labelStyle: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelStyle: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.school_rounded, size: 20),
+                        text: 'Học thuật',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.menu_book_rounded, size: 20),
+                        text: 'Môn học',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.analytics_rounded, size: 20),
+                        text: 'Thống kê',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.build_circle_rounded, size: 20),
+                        text: 'Công cụ',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
-          bottom: TabBar(
+          body: TabBarView(
             controller: _tabController,
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            isScrollable: false,
-            tabs: const [
-              Tab(
-                icon: Icon(Icons.school_rounded, size: 20),
-                text: 'Học thuật',
+            children: [
+              AcademicTab(
+                departments: _departments,
+                semesters: _semesters,
+                academicCourses: _academicCourses,
+                courseClasses: _courseClasses,
+                onRefresh: () async => _loadAcademicData(),
               ),
-              Tab(
-                icon: Icon(Icons.menu_book_rounded, size: 20),
-                text: 'Môn học',
+              const CourseTab(),
+              AnalyticsTab(
+                analytics: _analytics,
+                isLoading: _isLoadingAnalytics,
+                onRefresh: () async => _loadAnalytics(),
               ),
-              Tab(
-                icon: Icon(Icons.analytics_rounded, size: 20),
-                text: 'Thống kê',
-              ),
-              Tab(
-                icon: Icon(Icons.build_circle_rounded, size: 20),
-                text: 'Công cụ',
-              ),
+              ToolsTab(isLoading: _isLoading, onSeedRoadmap: _seedRoadmap),
             ],
           ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            AcademicTab(
-              departments: _departments,
-              semesters: _semesters,
-              academicCourses: _academicCourses,
-              courseClasses: _courseClasses,
-              onRefresh: () async => _loadAcademicData(),
-            ),
-            const CourseTab(),
-            AnalyticsTab(
-              analytics: _analytics,
-              isLoading: _isLoadingAnalytics,
-              onRefresh: () async => _loadAnalytics(),
-            ),
-            ToolsTab(isLoading: _isLoading, onSeedRoadmap: _seedRoadmap),
-          ],
         ),
       ),
     );

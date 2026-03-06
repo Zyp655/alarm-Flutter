@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-
+﻿import 'package:flutter/material.dart';
 
 abstract class AppSpacing {
 
@@ -11,7 +10,6 @@ abstract class AppSpacing {
   static const double xxl = 24.0;
   static const double xxxl = 32.0;
   static const double huge = 48.0;
-
 
   static const EdgeInsets paddingXs = EdgeInsets.all(xs);
   static const EdgeInsets paddingSm = EdgeInsets.all(sm);
@@ -30,8 +28,6 @@ abstract class AppSpacing {
   static const EdgeInsets paddingCard = EdgeInsets.all(lg);
   static const EdgeInsets paddingPage = EdgeInsets.all(lg);
   static const EdgeInsets paddingDialog = EdgeInsets.all(xxl);
-
-
 
   static const double radiusSm = 8.0;
   static const double radiusMd = 12.0;
@@ -52,16 +48,12 @@ abstract class AppSpacing {
     Radius.circular(radiusXl),
   );
 
- 
-
   static const double iconSm = 16.0;
   static const double iconMd = 20.0;
   static const double iconLg = 24.0;
   static const double iconXl = 32.0;
   static const double iconXxl = 48.0;
   static const double iconHuge = 64.0;
-
-
 
   static const SizedBox gapXs = SizedBox(width: xs, height: xs);
   static const SizedBox gapSm = SizedBox(width: sm, height: sm);

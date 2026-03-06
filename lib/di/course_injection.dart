@@ -1,4 +1,4 @@
-import 'package:get_it/get_it.dart';
+﻿import 'package:get_it/get_it.dart';
 import '../features/course/data/datasources/course_remote_datasource.dart';
 import '../features/course/data/repositories/course_repository_impl.dart';
 import '../features/course/domain/repositories/course_repository.dart';
@@ -29,7 +29,6 @@ void initCourseModule(GetIt sl) {
     () => CourseRepositoryImpl(remoteDataSource: sl()),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => GetCoursesUseCase(sl()));
   sl.registerLazySingleton(() => CreateCourseUseCase(sl()));
   sl.registerLazySingleton(() => DeleteCourseUseCase(sl()));
@@ -43,7 +42,6 @@ void initCourseModule(GetIt sl) {
   sl.registerLazySingleton(() => DeleteLessonUseCase(sl()));
   sl.registerLazySingleton(() => UpdateLessonProgressUseCase(sl()));
 
-  // BLoCs
   sl.registerFactory(
     () => CourseListBloc(
       getCoursesUseCase: sl(),

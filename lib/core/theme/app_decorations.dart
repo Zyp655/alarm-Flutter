@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import 'app_spacing.dart';
 
@@ -36,15 +36,11 @@ abstract class AppDecorations {
     shape: BoxShape.circle,
   );
 
-
-
   static BoxDecoration statusBadge(Color color) =>
       BoxDecoration(color: color, borderRadius: BorderRadius.circular(10));
 
   static BoxDecoration get publishedBadge => statusBadge(AppColors.success);
   static BoxDecoration get draftBadge => statusBadge(AppColors.warning);
-
- 
 
   static InputDecoration darkInputDecoration({
     required String labelText,
@@ -74,8 +70,6 @@ abstract class AppDecorations {
     ),
   );
 
-  
-
   static BoxShadow get darkShadow => BoxShadow(
     color: Colors.black.withValues(alpha: 0.3),
     blurRadius: 10,
@@ -94,12 +88,9 @@ abstract class AppDecorations {
     offset: const Offset(0, 6),
   );
 
-
   static const ShapeBorder bottomSheetShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
   );
-
- 
 
   static ShapeBorder get dialogShape =>
       RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusLg);

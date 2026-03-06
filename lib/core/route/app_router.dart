@@ -12,7 +12,7 @@ import '../../features/course/presentation/pages/course_catalog_page.dart';
 import '../../features/course/presentation/pages/course_detail_page.dart';
 import '../../features/course/presentation/pages/lesson_player_page.dart';
 import '../../features/course/presentation/pages/my_courses_page.dart';
-import '../../features/course/presentation/bloc/course_list_bloc.dart';
+import '../../features/course/presentation/bloc/my_courses_bloc.dart';
 import '../../features/course/domain/entities/lesson_entity.dart';
 import '../../features/course/domain/entities/module_entity.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
@@ -132,7 +132,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.courseCatalog,
       builder: (context, state) => BlocProvider(
-        create: (_) => sl<CourseListBloc>(),
+        create: (_) => sl<MyCoursesBloc>(),
         child: const CourseCatalogPage(),
       ),
     ),

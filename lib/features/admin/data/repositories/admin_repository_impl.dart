@@ -333,4 +333,16 @@ class AdminRepositoryImpl implements AdminRepository {
       return Left(ServerFailure('Lỗi: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, String>> deleteCourseClass(int courseClassId) async {
+    try {
+      final response = await apiClient.delete(
+        '/admin/delete-course-class?id=$courseClassId',
+      );
+      return Right(response['message'] as String? ?? 'Đã xóa lớp');
+    } catch (e) {
+      return Left(ServerFailure('Lỗi: $e'));
+    }
+  }
 }

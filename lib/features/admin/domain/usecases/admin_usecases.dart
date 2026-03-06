@@ -18,3 +18,4 @@ export 'get_academic_courses_with_teachers.dart';
 export 'create_course_class.dart';
 export 'assign_course_teacher.dart';
 export 'unassign_course_teacher.dart';
+export 'delete_course_class.dart';

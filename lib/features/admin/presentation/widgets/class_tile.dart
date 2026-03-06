@@ -125,8 +125,42 @@ class ClassTile extends StatelessWidget {
               tooltip: hasTeacher ? 'Đổi GV' : 'Phân công GV',
               visualDensity: VisualDensity.compact,
             ),
+            IconButton(
+              onPressed: () => _confirmDelete(context, ccId, classCode),
+              icon: Icon(Icons.delete_outline, color: AppColors.error),
+              tooltip: 'Xóa lớp',
+              visualDensity: VisualDensity.compact,
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, int ccId, String classCode) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa lớp'),
+        content: Text(
+          'Bạn có chắc muốn xóa lớp "$classCode"?\nTất cả ghi danh của lớp này sẽ bị xóa.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AdminBloc>().add(
+                DeleteCourseClassEvent(courseClassId: ccId),
+              );
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Xóa lớp'),
+          ),
+        ],
       ),
     );
   }

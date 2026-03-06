@@ -1,4 +1,4 @@
-import 'package:get_it/get_it.dart';
+﻿import 'package:get_it/get_it.dart';
 
 import 'core_injection.dart';
 import 'auth_injection.dart';
@@ -22,10 +22,8 @@ import 'admin_injection.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // Core (async — SharedPreferences)
   await initCoreModule(sl);
 
-  // Feature modules (order matters for cross-module dependencies)
   initAuthModule(sl);
   initScheduleModule(sl);
   initTeachingModule(sl);
