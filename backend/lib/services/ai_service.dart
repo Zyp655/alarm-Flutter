@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class AIService {
   final String openaiApiKey;
   AIService({required this.openaiApiKey});
+
   Future<Map<String, dynamic>> generateQuiz({
     required String topic,
     required int numQuestions,
@@ -506,6 +508,81 @@ Yêu cầu:
     } else {
       throw Exception(
           'OpenAI API Error: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<String> chatWithAssistant({
+    required List<Map<String, String>> history,
+    required String question,
+  }) async {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+
+    const systemPrompt = '''
+Bạn là một Trợ lý Học thuật Cao cấp chuyên hỗ trợ sinh viên.
+
+Nhiệm vụ:
+- Với câu hỏi cơ bản: Trả lời ngắn gọn, súc tích, dễ hiểu.
+- Với câu hỏi nâng cao/chuyên sâu: Sử dụng tư duy logic đa bước (Chain of Thought), giải thích cặn kẽ lý thuyết và đưa ra ví dụ thực tiễn.
+
+Kiểm soát phạm vi:
+- Chỉ trả lời các câu hỏi liên quan đến kiến thức học thuật, kỹ năng sinh viên và định hướng nghề nghiệp.
+- Từ chối khéo léo các câu hỏi ngoài lề (đời tư, giải trí không lành mạnh, chính trị, tán gẫu vô bổ).
+
+Phản hồi: Luôn giữ thái độ chuyên nghiệp, khích lệ tinh thần học tập và dùng ngôn ngữ học thuật chuẩn mực.
+Luôn trả lời bằng tiếng Việt.
+
+Câu lệnh từ chối mẫu: "Rất tiếc, tôi được thiết kế để hỗ trợ bạn trong các vấn đề học tập và phát triển kỹ năng. Hãy đặt câu hỏi liên quan đến bài học để tôi có thể giúp bạn tốt nhất nhé!"
+''';
+
+    final messages = <Map<String, String>>[
+      {'role': 'system', 'content': systemPrompt},
+      ...history,
+      {'role': 'user', 'content': question},
+    ];
+
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $openaiApiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o-mini',
+        'messages': messages,
+        'temperature': 0.7,
+        'max_tokens': 2048,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['choices'][0]['message']['content'] as String;
+    } else {
+      throw Exception(
+          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<String> speechToText(File audioFile) async {
+    const baseUrl = 'https://api.openai.com/v1/audio/transcriptions';
+
+    final request = http.MultipartRequest('POST', Uri.parse(baseUrl));
+    request.headers['Authorization'] = 'Bearer $openaiApiKey';
+    request.fields['model'] = 'whisper-1';
+    request.fields['language'] = 'vi';
+    request.files.add(
+      await http.MultipartFile.fromPath('file', audioFile.path),
+    );
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['text'] as String;
+    } else {
+      throw Exception(
+          'Whisper API Error: ${response.statusCode} - ${response.body}');
     }
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "369669263306",
+    "project_id": "lmsforacademy",
+    "storage_bucket": "lmsforacademy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:369669263306:android:439a78b2f072da976b8933",
+        "android_client_info": {
+          "package_name": "com.example.alarmm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4rjYT1ElE54fE804k5fcTZVdxO_BrB0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

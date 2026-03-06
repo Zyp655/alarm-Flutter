@@ -14,6 +14,7 @@ class Users extends Table {
   IntColumn get role => integer().withDefault(const Constant(0))();
   BoolColumn get isBanned => boolean().withDefault(const Constant(false))();
   DateTimeColumn get resetTokenExpiry => dateTime().nullable()();
+  TextColumn get fcmToken => text().nullable()();
   @ReferenceName('userDepartment')
   IntColumn get departmentId =>
       integer().nullable().references(Departments, #id)();
@@ -717,12 +718,24 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
+      beforeOpen: (details) async {
+        print(
+            '[Drift] DB opening: version ${details.versionBefore} -> ${details.versionNow}, wasCreated=${details.wasCreated}');
+      },
       onCreate: (Migrator m) async {
+        print(
+            '[Drift] onCreate called — creating all tables with IF NOT EXISTS');
         for (final table in allTables) {
-          await m.createTable(table);
+          try {
+            await m.createTable(table);
+          } catch (e) {
+            print(
+                '[Drift] Table ${table.actualTableName} may already exist: $e');
+          }
         }
       },
       onUpgrade: (Migrator m, int from, int to) async {
+        print('[Drift] onUpgrade called: $from -> $to');
         if (from < 3) {
           await m.drop(submissions);
           await m.drop(studentAssignments);

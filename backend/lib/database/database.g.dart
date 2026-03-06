@@ -366,6 +366,12 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   late final GeneratedColumn<DateTime> resetTokenExpiry =
       GeneratedColumn<DateTime>('reset_token_expiry', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _fcmTokenMeta =
+      const VerificationMeta('fcmToken');
+  @override
+  late final GeneratedColumn<String> fcmToken = GeneratedColumn<String>(
+      'fcm_token', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _departmentIdMeta =
       const VerificationMeta('departmentId');
   @override
@@ -385,6 +391,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         role,
         isBanned,
         resetTokenExpiry,
+        fcmToken,
         departmentId
       ];
   @override
@@ -438,6 +445,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           resetTokenExpiry.isAcceptableOrUnknown(
               data['reset_token_expiry']!, _resetTokenExpiryMeta));
     }
+    if (data.containsKey('fcm_token')) {
+      context.handle(_fcmTokenMeta,
+          fcmToken.isAcceptableOrUnknown(data['fcm_token']!, _fcmTokenMeta));
+    }
     if (data.containsKey('department_id')) {
       context.handle(
           _departmentIdMeta,
@@ -469,6 +480,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           .read(DriftSqlType.bool, data['${effectivePrefix}is_banned'])!,
       resetTokenExpiry: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}reset_token_expiry']),
+      fcmToken: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}fcm_token']),
       departmentId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}department_id']),
     );
@@ -489,6 +502,7 @@ class User extends DataClass implements Insertable<User> {
   final int role;
   final bool isBanned;
   final DateTime? resetTokenExpiry;
+  final String? fcmToken;
   final int? departmentId;
   const User(
       {required this.id,
@@ -499,6 +513,7 @@ class User extends DataClass implements Insertable<User> {
       required this.role,
       required this.isBanned,
       this.resetTokenExpiry,
+      this.fcmToken,
       this.departmentId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -516,6 +531,9 @@ class User extends DataClass implements Insertable<User> {
     map['is_banned'] = Variable<bool>(isBanned);
     if (!nullToAbsent || resetTokenExpiry != null) {
       map['reset_token_expiry'] = Variable<DateTime>(resetTokenExpiry);
+    }
+    if (!nullToAbsent || fcmToken != null) {
+      map['fcm_token'] = Variable<String>(fcmToken);
     }
     if (!nullToAbsent || departmentId != null) {
       map['department_id'] = Variable<int>(departmentId);
@@ -539,6 +557,9 @@ class User extends DataClass implements Insertable<User> {
       resetTokenExpiry: resetTokenExpiry == null && nullToAbsent
           ? const Value.absent()
           : Value(resetTokenExpiry),
+      fcmToken: fcmToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fcmToken),
       departmentId: departmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(departmentId),
@@ -558,6 +579,7 @@ class User extends DataClass implements Insertable<User> {
       isBanned: serializer.fromJson<bool>(json['isBanned']),
       resetTokenExpiry:
           serializer.fromJson<DateTime?>(json['resetTokenExpiry']),
+      fcmToken: serializer.fromJson<String?>(json['fcmToken']),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
     );
   }
@@ -573,6 +595,7 @@ class User extends DataClass implements Insertable<User> {
       'role': serializer.toJson<int>(role),
       'isBanned': serializer.toJson<bool>(isBanned),
       'resetTokenExpiry': serializer.toJson<DateTime?>(resetTokenExpiry),
+      'fcmToken': serializer.toJson<String?>(fcmToken),
       'departmentId': serializer.toJson<int?>(departmentId),
     };
   }
@@ -586,6 +609,7 @@ class User extends DataClass implements Insertable<User> {
           int? role,
           bool? isBanned,
           Value<DateTime?> resetTokenExpiry = const Value.absent(),
+          Value<String?> fcmToken = const Value.absent(),
           Value<int?> departmentId = const Value.absent()}) =>
       User(
         id: id ?? this.id,
@@ -598,6 +622,7 @@ class User extends DataClass implements Insertable<User> {
         resetTokenExpiry: resetTokenExpiry.present
             ? resetTokenExpiry.value
             : this.resetTokenExpiry,
+        fcmToken: fcmToken.present ? fcmToken.value : this.fcmToken,
         departmentId:
             departmentId.present ? departmentId.value : this.departmentId,
       );
@@ -616,6 +641,7 @@ class User extends DataClass implements Insertable<User> {
       resetTokenExpiry: data.resetTokenExpiry.present
           ? data.resetTokenExpiry.value
           : this.resetTokenExpiry,
+      fcmToken: data.fcmToken.present ? data.fcmToken.value : this.fcmToken,
       departmentId: data.departmentId.present
           ? data.departmentId.value
           : this.departmentId,
@@ -633,6 +659,7 @@ class User extends DataClass implements Insertable<User> {
           ..write('role: $role, ')
           ..write('isBanned: $isBanned, ')
           ..write('resetTokenExpiry: $resetTokenExpiry, ')
+          ..write('fcmToken: $fcmToken, ')
           ..write('departmentId: $departmentId')
           ..write(')'))
         .toString();
@@ -640,7 +667,7 @@ class User extends DataClass implements Insertable<User> {
 
   @override
   int get hashCode => Object.hash(id, email, passwordHash, fullName, resetToken,
-      role, isBanned, resetTokenExpiry, departmentId);
+      role, isBanned, resetTokenExpiry, fcmToken, departmentId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -653,6 +680,7 @@ class User extends DataClass implements Insertable<User> {
           other.role == this.role &&
           other.isBanned == this.isBanned &&
           other.resetTokenExpiry == this.resetTokenExpiry &&
+          other.fcmToken == this.fcmToken &&
           other.departmentId == this.departmentId);
 }
 
@@ -665,6 +693,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<int> role;
   final Value<bool> isBanned;
   final Value<DateTime?> resetTokenExpiry;
+  final Value<String?> fcmToken;
   final Value<int?> departmentId;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -675,6 +704,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.isBanned = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
+    this.fcmToken = const Value.absent(),
     this.departmentId = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -686,6 +716,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.isBanned = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
+    this.fcmToken = const Value.absent(),
     this.departmentId = const Value.absent(),
   })  : email = Value(email),
         passwordHash = Value(passwordHash);
@@ -698,6 +729,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<int>? role,
     Expression<bool>? isBanned,
     Expression<DateTime>? resetTokenExpiry,
+    Expression<String>? fcmToken,
     Expression<int>? departmentId,
   }) {
     return RawValuesInsertable({
@@ -709,6 +741,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (role != null) 'role': role,
       if (isBanned != null) 'is_banned': isBanned,
       if (resetTokenExpiry != null) 'reset_token_expiry': resetTokenExpiry,
+      if (fcmToken != null) 'fcm_token': fcmToken,
       if (departmentId != null) 'department_id': departmentId,
     });
   }
@@ -722,6 +755,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       Value<int>? role,
       Value<bool>? isBanned,
       Value<DateTime?>? resetTokenExpiry,
+      Value<String?>? fcmToken,
       Value<int?>? departmentId}) {
     return UsersCompanion(
       id: id ?? this.id,
@@ -732,6 +766,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       role: role ?? this.role,
       isBanned: isBanned ?? this.isBanned,
       resetTokenExpiry: resetTokenExpiry ?? this.resetTokenExpiry,
+      fcmToken: fcmToken ?? this.fcmToken,
       departmentId: departmentId ?? this.departmentId,
     );
   }
@@ -763,6 +798,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (resetTokenExpiry.present) {
       map['reset_token_expiry'] = Variable<DateTime>(resetTokenExpiry.value);
     }
+    if (fcmToken.present) {
+      map['fcm_token'] = Variable<String>(fcmToken.value);
+    }
     if (departmentId.present) {
       map['department_id'] = Variable<int>(departmentId.value);
     }
@@ -780,6 +818,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('role: $role, ')
           ..write('isBanned: $isBanned, ')
           ..write('resetTokenExpiry: $resetTokenExpiry, ')
+          ..write('fcmToken: $fcmToken, ')
           ..write('departmentId: $departmentId')
           ..write(')'))
         .toString();
@@ -23575,6 +23614,7 @@ typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({
   Value<int> role,
   Value<bool> isBanned,
   Value<DateTime?> resetTokenExpiry,
+  Value<String?> fcmToken,
   Value<int?> departmentId,
 });
 typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
@@ -23586,6 +23626,7 @@ typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
   Value<int> role,
   Value<bool> isBanned,
   Value<DateTime?> resetTokenExpiry,
+  Value<String?> fcmToken,
   Value<int?> departmentId,
 });
 
@@ -24249,6 +24290,9 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
   ColumnFilters<DateTime> get resetTokenExpiry => $composableBuilder(
       column: $table.resetTokenExpiry,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get fcmToken => $composableBuilder(
+      column: $table.fcmToken, builder: (column) => ColumnFilters(column));
 
   $$DepartmentsTableFilterComposer get departmentId {
     final $$DepartmentsTableFilterComposer composer = $composerBuilder(
@@ -25148,6 +25192,9 @@ class $$UsersTableOrderingComposer
       column: $table.resetTokenExpiry,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get fcmToken => $composableBuilder(
+      column: $table.fcmToken, builder: (column) => ColumnOrderings(column));
+
   $$DepartmentsTableOrderingComposer get departmentId {
     final $$DepartmentsTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -25201,6 +25248,9 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<DateTime> get resetTokenExpiry => $composableBuilder(
       column: $table.resetTokenExpiry, builder: (column) => column);
+
+  GeneratedColumn<String> get fcmToken =>
+      $composableBuilder(column: $table.fcmToken, builder: (column) => column);
 
   $$DepartmentsTableAnnotationComposer get departmentId {
     final $$DepartmentsTableAnnotationComposer composer = $composerBuilder(
@@ -26146,6 +26196,7 @@ class $$UsersTableTableManager extends RootTableManager<
             Value<int> role = const Value.absent(),
             Value<bool> isBanned = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
+            Value<String?> fcmToken = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
           }) =>
               UsersCompanion(
@@ -26157,6 +26208,7 @@ class $$UsersTableTableManager extends RootTableManager<
             role: role,
             isBanned: isBanned,
             resetTokenExpiry: resetTokenExpiry,
+            fcmToken: fcmToken,
             departmentId: departmentId,
           ),
           createCompanionCallback: ({
@@ -26168,6 +26220,7 @@ class $$UsersTableTableManager extends RootTableManager<
             Value<int> role = const Value.absent(),
             Value<bool> isBanned = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
+            Value<String?> fcmToken = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
           }) =>
               UsersCompanion.insert(
@@ -26179,6 +26232,7 @@ class $$UsersTableTableManager extends RootTableManager<
             role: role,
             isBanned: isBanned,
             resetTokenExpiry: resetTokenExpiry,
+            fcmToken: fcmToken,
             departmentId: departmentId,
           ),
           withReferenceMapper: (p0) => p0
