@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
@@ -68,7 +68,7 @@ Future<Response> _enrollCourse(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to enroll: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
@@ -102,12 +102,18 @@ Future<Response> _getMyEnrollments(RequestContext context) async {
         'completedAt': enrollment.completedAt?.toIso8601String(),
         'lastAccessedAt': enrollment.lastAccessedAt?.toIso8601String(),
         'course': {
+          'id': course.id,
           'title': course.title,
           'description': course.description,
           'thumbnailUrl': course.thumbnailUrl,
           'instructorId': course.instructorId,
+          'price': course.price,
+          'tags': course.tags,
           'level': course.level,
           'durationMinutes': course.durationMinutes,
+          'isPublished': course.isPublished,
+          'createdAt': course.createdAt.toIso8601String(),
+          'updatedAt': course.updatedAt?.toIso8601String(),
         },
       });
     }
@@ -115,7 +121,7 @@ Future<Response> _getMyEnrollments(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to fetch enrollments: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

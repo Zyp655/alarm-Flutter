@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 Future<Response> onRequest(RequestContext context, String id) async {
@@ -49,7 +49,7 @@ Future<Response> _getFile(RequestContext context, int fileId) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to get file: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
@@ -75,7 +75,7 @@ Future<Response> _deleteFile(RequestContext context, int fileId) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to delete file: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

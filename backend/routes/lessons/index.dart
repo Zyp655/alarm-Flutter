@@ -1,7 +1,9 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
+import 'package:backend/helpers/pagination.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
   final method = request.method;
@@ -12,6 +14,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _getLessons(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -30,31 +33,48 @@ Future<Response> _getLessons(RequestContext context) async {
         body: {'error': 'Invalid moduleId'},
       );
     }
+    final pg = Pagination.fromQuery(params);
+
+    final countQuery = db.selectOnly(db.lessons)
+      ..addColumns([db.lessons.id.count()])
+      ..where(db.lessons.moduleId.equals(moduleId));
+    final total =
+        (await countQuery.getSingle()).read(db.lessons.id.count()) ?? 0;
+
     final lessons = await (db.select(db.lessons)
           ..where((tbl) => tbl.moduleId.equals(moduleId))
-          ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
+          ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)])
+          ..limit(pg.limit, offset: pg.offset))
         .get();
     return Response.json(
-      body: lessons
-          .map((l) => {
-                'id': l.id,
-                'moduleId': l.moduleId,
-                'title': l.title,
-                'type': l.type,
-                'contentUrl': l.contentUrl,
-                'durationMinutes': l.durationMinutes,
-                'isFreePreview': l.isFreePreview,
-                'orderIndex': l.orderIndex,
-              })
-          .toList(),
+      body: pg.wrap(
+        lessons
+            .map((l) => {
+                  'id': l.id,
+                  'moduleId': l.moduleId,
+                  'title': l.title,
+                  'type': l.type,
+                  'contentUrl': l.contentUrl,
+                  'textContent': l.textContent,
+                  'quizId': l.quizId,
+                  'assignmentId': l.assignmentId,
+                  'durationMinutes': l.durationMinutes,
+                  'isFreePreview': l.isFreePreview,
+                  'orderIndex': l.orderIndex,
+                  'createdAt': l.createdAt.toIso8601String(),
+                })
+            .toList(),
+        total: total,
+      ),
     );
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to fetch lessons: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
+
 Future<Response> _createLesson(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -95,7 +115,7 @@ Future<Response> _createLesson(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to create lesson: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

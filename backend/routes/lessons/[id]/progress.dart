@@ -1,7 +1,8 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/database/database.dart';
+
 Future<Response> onRequest(RequestContext context, String id) async {
   final request = context.request;
   final method = request.method;
@@ -17,6 +18,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _updateProgress(RequestContext context, int lessonId) async {
   try {
     final db = context.read<AppDatabase>();
@@ -70,10 +72,11 @@ Future<Response> _updateProgress(RequestContext context, int lessonId) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to update progress: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
+
 Future<void> _updateEnrollmentProgress(
     AppDatabase db, int userId, int lessonId) async {
   final lesson = await (db.select(db.lessons)
@@ -83,6 +86,7 @@ Future<void> _updateEnrollmentProgress(
         ..where((tbl) => tbl.id.equals(lesson.moduleId)))
       .getSingle();
   final courseId = module.courseId;
+  if (courseId == null) return;
   final allModules = await (db.select(db.modules)
         ..where((tbl) => tbl.courseId.equals(courseId)))
       .get();
