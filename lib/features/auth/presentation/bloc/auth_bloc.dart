@@ -10,6 +10,7 @@ import '../../domain/usecases/forgot_password_usecase.dart';
 import '../../domain/usecases/reset_password_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
+import '../../../../core/services/fcm_service.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
@@ -38,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       user,
     ) async {
       await sl<SharedPreferences>().setInt('current_user_id', user.id);
+      FcmService().init(userId: user.id);
       emit(AuthSuccess(user));
     });
   }

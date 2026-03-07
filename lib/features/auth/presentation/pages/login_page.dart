@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/route/app_route.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/rive_login_character.dart';
-import '../../../../core/widgets/rive_progress_indicator.dart';
+
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -84,6 +84,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
         ),
         child: SafeArea(
+          top: false,
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -92,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const SizedBox(height: 20),
 
-                  RiveLoginCharacter(key: _riveKey, height: 180),
+                  RiveLoginCharacter(key: _riveKey, height: 220),
                   const SizedBox(height: 8),
 
                   Text(
@@ -222,9 +223,25 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           builder: (context, state) {
                             if (state is AuthLoading) {
-                              return const RiveProgressIndicator(
-                                height: 50,
-                                width: 200,
+                              return SizedBox(
+                                width: double.infinity,
+                                height: 52,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               );
                             }
                             return SizedBox(

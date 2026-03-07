@@ -10,17 +10,13 @@ class GetCoursesUseCase {
 
   Future<Either<Failure, List<CourseEntity>>> call({
     String? search,
-    String? level,
-    int? instructorId,
-    int? majorId,
-    bool showUnpublished = false,
+    int? departmentId,
+    String? courseType,
   }) async {
     return await repository.getCourses(
       search: search,
-      level: level,
-      instructorId: instructorId,
-      majorId: majorId,
-      showUnpublished: showUnpublished,
+      departmentId: departmentId,
+      courseType: courseType,
     );
   }
 }

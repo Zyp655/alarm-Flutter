@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../entities/course_entity.dart';
+import '../entities/course_class_entity.dart';
 import '../entities/enrollment_entity.dart';
 import '../entities/lesson_progress_entity.dart';
 import '../entities/module_entity.dart';
@@ -12,10 +13,14 @@ import '../../../../core/error/failures.dart';
 abstract class CourseRepository {
   Future<Either<Failure, List<CourseEntity>>> getCourses({
     String? search,
-    String? level,
-    int? instructorId,
-    int? majorId,
-    bool showUnpublished = false,
+    int? departmentId,
+    String? courseType,
+  });
+
+  Future<Either<Failure, List<CourseClassEntity>>> getMyAcademicCourses({
+    required int userId,
+    int? semesterId,
+    String? status,
   });
 
   Future<Either<Failure, CourseEntity>> getCourseDetails(
@@ -26,12 +31,12 @@ abstract class CourseRepository {
   Future<Either<Failure, List<ModuleEntity>>> getCourseCurriculum(int courseId);
 
   Future<Either<Failure, CourseEntity>> createCourse({
-    required String title,
-    required int instructorId,
+    required String name,
+    required String code,
+    required int credits,
     String? description,
     String? thumbnailUrl,
-    double price = 0.0,
-    String level = 'beginner',
+    String courseType = 'required',
   });
 
   Future<Either<Failure, void>> updateCourse(

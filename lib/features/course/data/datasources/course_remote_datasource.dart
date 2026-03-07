@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/api/api_constants.dart';
 import '../models/course_model.dart';
+import '../models/course_class_model.dart';
 import '../models/enrollment_model.dart';
 import '../models/module_model.dart';
 import '../models/comment_model.dart';
@@ -21,10 +23,14 @@ class AlreadyEnrolledException implements Exception {
 abstract class CourseRemoteDataSource {
   Future<List<CourseModel>> getCourses({
     String? search,
-    String? level,
-    int? instructorId,
-    int? majorId,
-    bool showUnpublished = false,
+    int? departmentId,
+    String? courseType,
+  });
+
+  Future<List<CourseClassModel>> getMyAcademicCourses({
+    required int userId,
+    int? semesterId,
+    String? status,
   });
 
   Future<CourseModel> getCourseDetails(int courseId, {int? userId});
@@ -57,28 +63,34 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   CourseRemoteDataSourceImpl({required this.client});
 
+  Future<Map<String, String>> _getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   @override
   Future<List<CourseModel>> getCourses({
     String? search,
-    String? level,
-    int? instructorId,
-    int? majorId,
-    bool showUnpublished = false,
+    int? departmentId,
+    String? courseType,
   }) async {
     final queryParams = <String, String>{};
     if (search != null) queryParams['search'] = search;
-    if (level != null) queryParams['level'] = level;
-    if (instructorId != null) {
-      queryParams['instructorId'] = instructorId.toString();
+    if (departmentId != null) {
+      queryParams['departmentId'] = departmentId.toString();
     }
-    if (majorId != null) queryParams['majorId'] = majorId.toString();
-    if (showUnpublished) queryParams['showUnpublished'] = 'true';
+    if (courseType != null) queryParams['courseType'] = courseType;
 
     final uri = Uri.parse(
-      '${ApiConstants.baseUrl}/courses',
+      '${ApiConstants.baseUrl}/academic/courses',
     ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
-    final response = await client.get(uri);
+    final headers = await _getHeaders();
+    final response = await client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as Map<String, dynamic>;
@@ -91,33 +103,69 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
           .toList();
     } else {
       throw Exception(
-        'Không thể tải danh sách khóa học. Vui lòng thử lại sau.',
+        'Không thể tải danh sách học phần. Vui lòng thử lại sau.',
       );
     }
   }
 
   @override
-  Future<CourseModel> getCourseDetails(int courseId, {int? userId}) async {
-    String url = '${ApiConstants.baseUrl}/courses/$courseId';
-    if (userId != null) {
-      url += '?userId=$userId';
+  Future<List<CourseClassModel>> getMyAcademicCourses({
+    required int userId,
+    int? semesterId,
+    String? status,
+  }) async {
+    final queryParams = <String, String>{'userId': userId.toString()};
+    if (semesterId != null) {
+      queryParams['semesterId'] = semesterId.toString();
     }
-    final response = await client.get(Uri.parse(url));
+    if (status != null) queryParams['status'] = status;
+
+    final uri = Uri.parse(
+      '${ApiConstants.baseUrl}/student/my-courses',
+    ).replace(queryParameters: queryParams);
+
+    final headers = await _getHeaders();
+    final response = await client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as Map<String, dynamic>;
-      return CourseModel.fromJson(data);
+      final enrollments = data['enrollments'] as List;
+      return enrollments
+          .map(
+            (e) =>
+                CourseClassModel.fromMyCoursesJson(e as Map<String, dynamic>),
+          )
+          .toList();
+    } else {
+      throw Exception('Không thể tải danh sách môn học. Vui lòng thử lại sau.');
+    }
+  }
+
+  @override
+  Future<CourseModel> getCourseDetails(int courseId, {int? userId}) async {
+    String url = '${ApiConstants.baseUrl}/academic/courses/$courseId';
+    if (userId != null) {
+      url += '?userId=$userId';
+    }
+    final headers = await _getHeaders();
+    final response = await client.get(Uri.parse(url), headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return CourseModel.fromJson(data['course'] as Map<String, dynamic>);
     } else {
       throw Exception(
-        'Không thể tải thông tin khóa học. Vui lòng thử lại sau.',
+        'Không thể tải thông tin học phần. Vui lòng thử lại sau.',
       );
     }
   }
 
   @override
   Future<List<ModuleModel>> getCourseCurriculum(int courseId) async {
+    final headers = await _getHeaders();
     final response = await client.get(
-      Uri.parse('${ApiConstants.baseUrl}/courses/$courseId'),
+      Uri.parse('${ApiConstants.baseUrl}/academic/courses/$courseId'),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -136,9 +184,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<CourseModel> createCourse(Map<String, dynamic> courseData) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/courses'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(courseData),
     );
 
@@ -152,9 +201,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> updateCourse(int courseId, Map<String, dynamic> updates) async {
+    final headers = await _getHeaders();
     final response = await client.put(
       Uri.parse('${ApiConstants.baseUrl}/courses/$courseId'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(updates),
     );
 
@@ -165,8 +215,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> deleteCourse(int courseId) async {
+    final headers = await _getHeaders();
     final response = await client.delete(
       Uri.parse('${ApiConstants.baseUrl}/courses/$courseId'),
+      headers: headers,
     );
 
     if (response.statusCode != 200) {
@@ -176,14 +228,14 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<ModuleModel> createModule(Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/modules'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(data),
     );
 
     if (response.statusCode == 201) {
-     
       final responseData = json.decode(response.body);
       return ModuleModel(
         id: responseData['id'],
@@ -201,9 +253,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<LessonModel> createLesson(Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/lessons'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(data),
     );
 
@@ -227,9 +280,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> updateLesson(int lessonId, Map<String, dynamic> updates) async {
+    final headers = await _getHeaders();
     final response = await client.put(
       Uri.parse('${ApiConstants.baseUrl}/lessons/$lessonId'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(updates),
     );
 
@@ -240,8 +294,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> deleteLesson(int lessonId) async {
+    final headers = await _getHeaders();
     final response = await client.delete(
       Uri.parse('${ApiConstants.baseUrl}/lessons/$lessonId'),
+      headers: headers,
     );
 
     if (response.statusCode != 200) {
@@ -251,7 +307,7 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   LessonType _parseLessonType(String? type) {
     if (type == 'video') return LessonType.video;
-    if (type == 'document') return LessonType.text; 
+    if (type == 'document') return LessonType.text;
     if (type == 'quiz') return LessonType.quiz;
     if (type == 'assignment') return LessonType.assignment;
     return LessonType.video;
@@ -260,9 +316,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
   @override
   Future<EnrollmentModel> enrollCourse(int userId, int courseId) async {
     try {
+      final headers = await _getHeaders();
       final response = await client.post(
         Uri.parse('${ApiConstants.baseUrl}/enrollments'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode({'userId': userId, 'courseId': courseId}),
       );
 
@@ -290,8 +347,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<List<EnrollmentModel>> getMyEnrollments(int userId) async {
+    final headers = await _getHeaders();
     final response = await client.get(
       Uri.parse('${ApiConstants.baseUrl}/enrollments?userId=$userId'),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -316,9 +375,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
     int lastWatchedPosition = 0,
     bool isCompleted = false,
   }) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/lessons/$lessonId/progress'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode({
         'userId': userId,
         'lastWatchedPosition': lastWatchedPosition,
@@ -333,8 +393,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<List<CommentModel>> getComments(int lessonId) async {
+    final headers = await _getHeaders();
     final response = await client.get(
       Uri.parse('${ApiConstants.baseUrl}/comments?lessonId=$lessonId'),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -347,9 +409,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> createComment(Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/comments'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(data),
     );
 
@@ -360,9 +423,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<void> createSubmission(Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('${ApiConstants.baseUrl}/submissions'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(data),
     );
 
@@ -373,10 +437,12 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<List<SubmissionModel>> getSubmissions(int assignmentId) async {
+    final headers = await _getHeaders();
     final response = await client.get(
       Uri.parse(
         '${ApiConstants.baseUrl}/submissions?assignmentId=$assignmentId',
       ),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -389,8 +455,10 @@ class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
 
   @override
   Future<List<CourseStudentModel>> getCourseStudents(int courseId) async {
+    final headers = await _getHeaders();
     final response = await client.get(
       Uri.parse('${ApiConstants.baseUrl}/courses/$courseId/students'),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {

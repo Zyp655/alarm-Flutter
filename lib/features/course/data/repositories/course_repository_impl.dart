@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/course_entity.dart';
+import '../../domain/entities/course_class_entity.dart';
 import '../../domain/entities/enrollment_entity.dart';
 import '../../domain/entities/lesson_progress_entity.dart';
 import '../../domain/entities/module_entity.dart';
@@ -19,18 +20,32 @@ class CourseRepositoryImpl implements CourseRepository {
   @override
   Future<Either<Failure, List<CourseEntity>>> getCourses({
     String? search,
-    String? level,
-    int? instructorId,
-    int? majorId,
-    bool showUnpublished = false,
+    int? departmentId,
+    String? courseType,
   }) async {
     try {
       final courses = await remoteDataSource.getCourses(
         search: search,
-        level: level,
-        instructorId: instructorId,
-        majorId: majorId,
-        showUnpublished: showUnpublished,
+        departmentId: departmentId,
+        courseType: courseType,
+      );
+      return Right(courses);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<CourseClassEntity>>> getMyAcademicCourses({
+    required int userId,
+    int? semesterId,
+    String? status,
+  }) async {
+    try {
+      final courses = await remoteDataSource.getMyAcademicCourses(
+        userId: userId,
+        semesterId: semesterId,
+        status: status,
       );
       return Right(courses);
     } catch (e) {
@@ -68,21 +83,21 @@ class CourseRepositoryImpl implements CourseRepository {
 
   @override
   Future<Either<Failure, CourseEntity>> createCourse({
-    required String title,
-    required int instructorId,
+    required String name,
+    required String code,
+    required int credits,
     String? description,
     String? thumbnailUrl,
-    double price = 0.0,
-    String level = 'beginner',
+    String courseType = 'required',
   }) async {
     try {
       final courseData = {
-        'title': title,
-        'instructorId': instructorId,
+        'name': name,
+        'code': code,
+        'credits': credits,
         if (description != null) 'description': description,
         if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
-        'price': price,
-        'level': level,
+        'courseType': courseType,
       };
       final course = await remoteDataSource.createCourse(courseData);
       return Right(course);

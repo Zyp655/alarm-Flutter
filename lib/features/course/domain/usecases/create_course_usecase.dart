@@ -9,16 +9,18 @@ class CreateCourseUseCase {
   CreateCourseUseCase(this.repository);
 
   Future<Either<Failure, CourseEntity>> call({
-    required String title,
-    required int instructorId,
+    required String name,
+    required String code,
+    required int credits,
     String? description,
-    String? level,
+    String courseType = 'required',
   }) async {
     return await repository.createCourse(
-      title: title,
-      instructorId: instructorId,
+      name: name,
+      code: code,
+      credits: credits,
       description: description,
-      level: level ?? 'beginner',
+      courseType: courseType,
     );
   }
 }

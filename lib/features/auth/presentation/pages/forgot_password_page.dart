@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
@@ -14,7 +14,7 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  int _step = 0; // 0=email, 1=otp, 2=newPassword
+  int _step = 0;
   final _emailCtrl = TextEditingController();
   final _otpCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -122,11 +122,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Step indicator ──
                   _buildStepIndicator(isDark),
                   const SizedBox(height: 32),
 
-                  // ── Icon ──
                   Center(
                     child: Container(
                       width: 80,
@@ -148,7 +146,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Title ──
                   Text(
                     _step == 0
                         ? 'Nhập Email'
@@ -177,7 +174,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Error message ──
                   if (_errorText != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -211,7 +207,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     const SizedBox(height: 16),
                   ],
 
-                  // ── Step 0: Email ──
                   if (_step == 0) ...[
                     _inputField(
                       controller: _emailCtrl,
@@ -231,7 +226,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     ),
                   ],
 
-                  // ── Step 1: OTP + New Password ──
                   if (_step == 1) ...[
                     _inputField(
                       controller: _otpCtrl,
