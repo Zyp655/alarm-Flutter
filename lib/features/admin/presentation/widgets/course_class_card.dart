@@ -198,9 +198,7 @@ class CourseClassCard extends StatelessWidget {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Chưa có lớp nào. Bấm "Thêm lớp" để tạo.',
-                      ),
+                      const Text('Chưa có lớp nào. Bấm "Thêm lớp" để tạo.'),
                     ],
                   ),
                 ),
@@ -279,8 +277,6 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
   bool _showStudentList = false;
   Timer? _debounce;
   DateTime? _selectedDate;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
   String? _errorMessage;
   bool _hasCodeError = false;
   bool _isDuplicate = false;
@@ -320,7 +316,7 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
     try {
       final api = sl<ApiClient>();
       final res = await api.get(
-        '/admin/check-class-code?classCode=${Uri.encodeComponent(classCode)}',
+        '/admin/check-class-code?classCode=${Uri.encodeComponent(classCode)}&academicCourseId=${widget.courseId}',
       );
       if (!mounted) return;
       final exists = (res as Map<String, dynamic>)['exists'] as bool? ?? false;
@@ -328,8 +324,7 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
         _isDuplicate = exists;
         _hasCodeError = exists;
         if (exists) {
-          _errorMessage =
-              'Mã lớp "$classCode" đã tồn tại trên hệ thống.';
+          _errorMessage = 'Mã lớp "$classCode" đã tồn tại cho môn học này.';
         } else if (_errorMessage != null &&
             _errorMessage!.contains('đã tồn tại')) {
           _errorMessage = null;
@@ -366,17 +361,11 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
   void _createClass() {
     if (widget.codeCtrl.text.trim().isEmpty) return;
     String? schedule;
-    if (_selectedDate != null && _startTime != null && _endTime != null) {
-      final date =
-          '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
-      final start =
-          '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}';
-      final end =
-          '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}';
-      schedule = '$date ($start-$end)';
-    } else if (_selectedDate != null) {
+    if (_selectedDate != null) {
+      final d = _selectedDate!;
+      final weekday = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][d.weekday];
       schedule =
-          '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
+          '$weekday (${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year})';
     }
     setState(() => _isCreating = true);
     context.read<AdminBloc>().add(
@@ -475,11 +464,21 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
                   if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Ngày học',
-                    prefixIcon: Icon(Icons.calendar_today_rounded, size: 20),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 20,
+                    ),
+                    border: const OutlineInputBorder(),
                     isDense: true,
+                    suffixIcon: _selectedDate != null
+                        ? IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () =>
+                                setState(() => _selectedDate = null),
+                          )
+                        : null,
                   ),
                   child: Text(
                     _selectedDate != null
@@ -490,80 +489,6 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime:
-                              _startTime ?? const TimeOfDay(hour: 7, minute: 0),
-                        );
-                        if (picked != null) setState(() => _startTime = picked);
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Bắt đầu',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
-                          ),
-                        ),
-                        child: Text(
-                          _startTime != null
-                              ? '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}'
-                              : '--:--',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(
-                      Icons.arrow_forward,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                  ),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime:
-                              _endTime ??
-                              _startTime ??
-                              const TimeOfDay(hour: 9, minute: 30),
-                        );
-                        if (picked != null) setState(() => _endTime = picked);
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Kết thúc',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
-                          ),
-                        ),
-                        child: Text(
-                          _endTime != null
-                              ? '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}'
-                              : '--:--',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 16),
 

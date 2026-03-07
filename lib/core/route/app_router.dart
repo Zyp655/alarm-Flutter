@@ -52,6 +52,8 @@ import '../../features/admin/presentation/pages/teacher_import_page.dart';
 import '../../features/admin/presentation/pages/subject_import_page.dart';
 import '../../features/roadmap/presentation/pages/path_detail_page.dart';
 import '../../features/roadmap/data/learning_paths_data.dart';
+import '../../features/teaching/presentation/pages/attendance_dashboard_page.dart';
+import '../../features/teaching/presentation/pages/teacher_attendance_report_page.dart';
 
 import 'app_route.dart';
 
@@ -341,6 +343,21 @@ final GoRouter appRouter = GoRouter(
         create: (_) => sl<OfflineBloc>(),
         child: const OfflineManagementPage(),
       ),
+    ),
+
+    GoRoute(
+      path: AppRoutes.attendanceDashboard,
+      builder: (context, state) => const AttendanceDashboardPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.teacherAttendanceReport,
+      builder: (context, state) {
+        final args = state.extra as Map<String, dynamic>;
+        return TeacherAttendanceReportPage(
+          classId: args['classId'] as int,
+          className: args['className'] as String,
+        );
+      },
     ),
   ],
 );

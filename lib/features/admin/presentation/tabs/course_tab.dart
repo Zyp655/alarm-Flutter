@@ -19,7 +19,16 @@ class _CourseTabState extends State<CourseTab> {
   int? _expandedCourseId;
   String _activeFilter = 'Tất cả';
 
-  static const _filters = ['Tất cả', 'CNTT', 'Kinh tế', 'Ngoại ngữ'];
+  List<String> get _filters {
+    final depts =
+        _courses
+            .map((c) => c['departmentName'] as String? ?? '')
+            .where((d) => d.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return ['Tất cả', ...depts];
+  }
 
   @override
   void initState() {
@@ -180,8 +189,9 @@ class _CourseTabState extends State<CourseTab> {
   }
 
   Widget _buildStatsSummary(ColorScheme cs, bool isDark) {
-    final total = _courses.length;
-    final withTeacher = _courses.where((c) {
+    final courses = _filteredCourses;
+    final total = courses.length;
+    final withTeacher = courses.where((c) {
       final teachers = c['assignedTeachers'] as List?;
       return teachers != null && teachers.isNotEmpty;
     }).length;
@@ -294,12 +304,17 @@ class _CourseTabState extends State<CourseTab> {
     );
   }
 
-  Widget _buildBody(ColorScheme cs, bool isDark) {
-    if (_isLoading && _courses.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+  List<Map<String, dynamic>> get _filteredCourses {
+    var courses = _courses;
+
+    if (_activeFilter != 'Tất cả') {
+      courses = courses.where((c) {
+        final dept = (c['departmentName'] as String? ?? '').toLowerCase();
+        final filter = _activeFilter.toLowerCase();
+        return dept.contains(filter);
+      }).toList();
     }
 
-    var courses = _courses;
     final query = _searchController.text.toLowerCase();
     if (query.isNotEmpty) {
       courses = courses.where((c) {
@@ -308,6 +323,16 @@ class _CourseTabState extends State<CourseTab> {
         return name.contains(query) || code.contains(query);
       }).toList();
     }
+
+    return courses;
+  }
+
+  Widget _buildBody(ColorScheme cs, bool isDark) {
+    if (_isLoading && _courses.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final courses = _filteredCourses;
 
     if (courses.isEmpty && _courses.isEmpty) {
       return Center(
@@ -322,6 +347,26 @@ class _CourseTabState extends State<CourseTab> {
             const SizedBox(height: 8),
             Text(
               'Nhấn refresh để tải danh sách',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (courses.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.filter_list_off_rounded,
+              size: 48,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Không có môn học phù hợp',
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ],

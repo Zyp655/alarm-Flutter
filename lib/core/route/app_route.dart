@@ -34,4 +34,6 @@ class AppRoutes {
   static const String studentImport = '/admin/student-import';
   static const String teacherImport = '/admin/teacher-import';
   static const String subjectImport = '/admin/subject-import';
+  static const String attendanceDashboard = '/attendance';
+  static const String teacherAttendanceReport = '/teacher/attendance-report';
 }

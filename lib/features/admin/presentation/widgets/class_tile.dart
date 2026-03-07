@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../injection_container.dart';
 import '../bloc/admin_bloc.dart';
 import 'assign_teacher_dialog.dart';
 
@@ -117,6 +119,13 @@ class ClassTile extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             IconButton(
+              onPressed: () =>
+                  _showEditDialog(context, ccId, classCode, schedule),
+              icon: Icon(Icons.edit_outlined, color: AppColors.info),
+              tooltip: 'Sửa lớp',
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
               onPressed: () => _showAssignDialog(context, ccId, classCode),
               icon: Icon(
                 hasTeacher ? Icons.swap_horiz : Icons.person_add,
@@ -132,6 +141,29 @@ class ClassTile extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditDialog(
+    BuildContext context,
+    int ccId,
+    String currentCode,
+    String? currentSchedule,
+  ) {
+    final codeCtrl = TextEditingController(text: currentCode);
+    final bloc = context.read<AdminBloc>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => BlocProvider.value(
+        value: bloc,
+        child: _EditClassDialog(
+          courseClassId: ccId,
+          courseId: courseId,
+          codeCtrl: codeCtrl,
+          currentSchedule: currentSchedule,
         ),
       ),
     );
@@ -208,5 +240,118 @@ class ClassTile extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _EditClassDialog extends StatefulWidget {
+  final int courseClassId;
+  final int courseId;
+  final TextEditingController codeCtrl;
+  final String? currentSchedule;
+
+  const _EditClassDialog({
+    required this.courseClassId,
+    required this.courseId,
+    required this.codeCtrl,
+    this.currentSchedule,
+  });
+
+  @override
+  State<_EditClassDialog> createState() => _EditClassDialogState();
+}
+
+class _EditClassDialogState extends State<_EditClassDialog> {
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AdminBloc, AdminState>(
+      listener: (context, state) {
+        if (state is AdminActionSuccess) {
+          Navigator.pop(context);
+        } else if (state is AdminError) {
+          setState(() {
+            _isSaving = false;
+            _errorMessage = state.message;
+          });
+        }
+      },
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sửa lớp'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: widget.codeCtrl,
+              decoration: InputDecoration(
+                labelText: 'Tên lớp *',
+                prefixIcon: const Icon(Icons.class_rounded, size: 20),
+                errorText: _errorMessage,
+                errorMaxLines: 2,
+              ),
+              onChanged: (_) {
+                if (_errorMessage != null) {
+                  setState(() => _errorMessage = null);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          FilledButton.icon(
+            onPressed: _isSaving ? null : _save,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_outlined, size: 18),
+            label: Text(_isSaving ? 'Đang lưu...' : 'Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final newCode = widget.codeCtrl.text.trim();
+    if (newCode.isEmpty) {
+      setState(() => _errorMessage = 'Tên lớp không được trống');
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      final api = sl<ApiClient>();
+      await api.put('/academic/classes', {
+        'id': widget.courseClassId,
+        'classCode': newCode,
+      });
+      if (!mounted) return;
+      context.read<AdminBloc>().add(LoadAcademicCoursesWithTeachers());
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Cập nhật lớp thành công'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _errorMessage = 'Lỗi: $e';
+      });
+    }
   }
 }
