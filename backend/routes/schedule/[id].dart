@@ -3,7 +3,7 @@ import 'package:backend/utils/grade_calculator.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 
-Future<Response> onRequest(RequestContext context) async {
+Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.get &&
       context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
@@ -145,7 +145,7 @@ Future<Response> onRequest(RequestContext context) async {
         body: {'error': 'Dữ liệu không hợp lệ'},
       );
     } catch (e) {
-      return Response.json(statusCode: 500, body: {'error': e.toString()});
+      return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
     }
   }
   return Response(statusCode: 405);

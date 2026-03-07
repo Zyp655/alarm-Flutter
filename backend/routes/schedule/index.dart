@@ -145,7 +145,7 @@ Future<Response> onRequest(RequestContext context) async {
         body: {'error': 'Dữ liệu không hợp lệ'},
       );
     } catch (e) {
-      return Response.json(statusCode: 500, body: {'error': e.toString()});
+      return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
     }
   }
   return Response(statusCode: 405);

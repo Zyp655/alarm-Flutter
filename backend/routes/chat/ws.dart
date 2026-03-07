@@ -3,6 +3,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
 import 'package:backend/database/database.dart';
 import 'package:backend/services/chat_broadcaster.dart';
+import 'package:backend/services/fcm_push_service.dart';
 import 'package:drift/drift.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -82,6 +83,16 @@ Future<Response> onRequest(RequestContext context) async {
                 recipientId: recipientId,
                 messageData: msgData,
               );
+
+              if (!broadcaster.isUserOnline(recipientId)) {
+                await FcmPushService.sendChatNotification(
+                  db: db,
+                  recipientId: recipientId,
+                  senderName: sender?.fullName ?? sender?.email ?? '',
+                  content: content,
+                  conversationId: conversationId,
+                );
+              }
 
               channel.sink.add(jsonEncode({
                 'type': 'message_sent',
