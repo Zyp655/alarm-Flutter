@@ -1,4 +1,4 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 class BenchmarkData extends Equatable {
   final double myProgress;
@@ -19,7 +19,6 @@ class BenchmarkData extends Equatable {
     required this.avgStudyMinutes,
   });
 
-  
   String get myStudyTimeFormatted => _formatMinutes(myStudyMinutes);
   String get avgStudyTimeFormatted => _formatMinutes(avgStudyMinutes);
 
