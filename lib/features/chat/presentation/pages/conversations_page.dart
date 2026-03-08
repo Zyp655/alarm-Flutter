@@ -68,16 +68,22 @@ class _ConversationsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Tin nhắn'),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'Tin nhắn',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.edit_square),
+            icon: Icon(Icons.edit_square, color: AppColors.primary),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('Tạo cuộc trò chuyện mới')),
+                SnackBar(content: Text('Tạo cuộc trò chuyện mới')),
               );
             },
           ),

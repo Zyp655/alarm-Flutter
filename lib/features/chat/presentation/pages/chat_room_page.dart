@@ -9,6 +9,7 @@ import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/fcm_service.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final int conversationId;
@@ -38,6 +39,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     super.initState();
     _chatBloc = GetIt.instance<ChatBloc>();
     _loadUserIdAndFetch();
+    FcmService().setActiveConversation(widget.conversationId);
   }
 
   void _loadUserIdAndFetch() {
@@ -58,6 +60,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
   @override
   void dispose() {
+    FcmService().setActiveConversation(null);
     _typingDebounce?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
