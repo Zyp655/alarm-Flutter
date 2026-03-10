@@ -1,31 +1,25 @@
 import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
   final db = context.read<AppDatabase>();
-
   final params = context.request.uri.queryParameters;
   if (!params.containsKey('userId')) {
     return Response(statusCode: 400, body: 'Missing userId');
   }
   final userId = int.parse(params['userId']!);
-
   try {
     final query = db.select(db.schedules).join([
       leftOuterJoin(db.classes, db.classes.id.equalsExp(db.schedules.classId)),
     ])
       ..where(db.schedules.userId.equals(userId));
-
     final result = await query.get();
-
     final list = result.map((row) {
       final schedule = row.readTable(db.schedules);
       final classInfo = row.readTableOrNull(db.classes);
-
       return {
         'id': schedule.id,
         'userId': schedule.userId,
@@ -43,9 +37,8 @@ Future<Response> onRequest(RequestContext context) async {
         'createdAt': classInfo?.createdAt.toIso8601String(),
       };
     }).toList();
-
     return Response.json(body: list);
   } catch (e) {
-    return Response.json(statusCode: 500, body: {'error': e.toString()});
+    return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
   }
 }

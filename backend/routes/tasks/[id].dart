@@ -1,4 +1,4 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 Future<Response> onRequest(RequestContext context, String id) async {
@@ -43,7 +43,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
         'userId': updatedTask.userId,
       });
     } catch (e) {
-      return Response.json(statusCode: 400, body: {'error': e.toString()});
+      return Response.json(statusCode: 400, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
     }
   }
   return Response(statusCode: 405);

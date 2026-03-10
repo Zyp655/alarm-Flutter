@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
@@ -47,7 +47,7 @@ Future<Response> _createEdge(RequestContext context, int roadmapId) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to create edge: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
@@ -76,7 +76,7 @@ Future<Response> _deleteEdge(RequestContext context, int roadmapId) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to delete edge: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

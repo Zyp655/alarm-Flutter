@@ -1,7 +1,9 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
+import 'package:backend/helpers/pagination.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
   final method = request.method;
@@ -12,6 +14,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _getRoadmaps(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -31,27 +34,36 @@ Future<Response> _getRoadmaps(RequestContext context) async {
         query = query..where((r) => r.createdBy.equals(createdBy));
       }
     }
-    final roadmaps = await query.get();
+    final pg = Pagination.fromQuery(params);
+
+    final allItems = await query.get();
+    final total = allItems.length;
+
+    final roadmaps = allItems.skip(pg.offset).take(pg.limit).toList();
     return Response.json(
-      body: roadmaps
-          .map((r) => {
-                'id': r.id,
-                'title': r.title,
-                'description': r.description,
-                'courseId': r.courseId,
-                'createdBy': r.createdBy,
-                'isPublished': r.isPublished,
-                'createdAt': r.createdAt.toIso8601String(),
-              })
-          .toList(),
+      body: pg.wrap(
+        roadmaps
+            .map((r) => {
+                  'id': r.id,
+                  'title': r.title,
+                  'description': r.description,
+                  'courseId': r.courseId,
+                  'createdBy': r.createdBy,
+                  'isPublished': r.isPublished,
+                  'createdAt': r.createdAt.toIso8601String(),
+                })
+            .toList(),
+        total: total,
+      ),
     );
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to fetch roadmaps: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
+
 Future<Response> _createRoadmap(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -82,7 +94,7 @@ Future<Response> _createRoadmap(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to create roadmap: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

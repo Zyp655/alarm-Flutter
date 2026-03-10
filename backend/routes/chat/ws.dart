@@ -84,15 +84,13 @@ Future<Response> onRequest(RequestContext context) async {
                 messageData: msgData,
               );
 
-              if (!broadcaster.isUserOnline(recipientId)) {
-                await FcmPushService.sendChatNotification(
-                  db: db,
-                  recipientId: recipientId,
-                  senderName: sender?.fullName ?? sender?.email ?? '',
-                  content: content,
-                  conversationId: conversationId,
-                );
-              }
+              await FcmPushService.sendChatNotification(
+                db: db,
+                recipientId: recipientId,
+                senderName: sender?.fullName ?? sender?.email ?? '',
+                content: content,
+                conversationId: conversationId,
+              );
 
               channel.sink.add(jsonEncode({
                 'type': 'message_sent',

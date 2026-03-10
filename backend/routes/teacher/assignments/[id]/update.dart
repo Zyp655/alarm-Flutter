@@ -1,19 +1,15 @@
 import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.put) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final assignmentId = int.tryParse(id);
-
   if (assignmentId == null) {
     return Response(statusCode: 400, body: 'Invalid assignment ID');
   }
-
   try {
     final body = await context.request.json() as Map<String, dynamic>;
     final teacherId = body['teacherId'] as int?;
@@ -21,24 +17,19 @@ Future<Response> onRequest(RequestContext context, String id) async {
     final description = body['description'] as String?;
     final dueDateStr = body['dueDate'] as String?;
     final rewardPoints = body['rewardPoints'] as int?;
-
     if (teacherId == null) {
       return Response(statusCode: 400, body: 'Missing teacherId');
     }
-
-   
     final existingAssignment = await (db.select(db.assignments)
           ..where((a) => a.id.equals(assignmentId))
           ..where((a) => a.teacherId.equals(teacherId)))
         .getSingleOrNull();
-
     if (existingAssignment == null) {
       return Response(
         statusCode: 404,
         body: 'Assignment not found or unauthorized',
       );
     }
-
     DateTime? dueDate;
     if (dueDateStr != null) {
       try {
@@ -47,7 +38,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
         return Response(statusCode: 400, body: 'Invalid dueDate format');
       }
     }
-
     await (db.update(db.assignments)..where((a) => a.id.equals(assignmentId)))
         .write(
       AssignmentsCompanion(
@@ -59,11 +49,9 @@ Future<Response> onRequest(RequestContext context, String id) async {
             rewardPoints != null ? Value(rewardPoints) : const Value.absent(),
       ),
     );
-
     final updatedAssignment = await (db.select(db.assignments)
           ..where((a) => a.id.equals(assignmentId)))
         .getSingle();
-
     return Response.json(body: {
       'message': 'Assignment updated successfully',
       'assignment': {
@@ -77,6 +65,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
       },
     });
   } catch (e) {
-    return Response.json(statusCode: 500, body: {'error': e.toString()});
+    return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
   }
 }

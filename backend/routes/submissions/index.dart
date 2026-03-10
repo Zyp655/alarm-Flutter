@@ -1,7 +1,8 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
   final method = request.method;
@@ -14,6 +15,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
   return Response(statusCode: HttpStatus.methodNotAllowed);
 }
+
 Future<Response> _createSubmission(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -68,27 +70,37 @@ Future<Response> _createSubmission(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to save submission: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
+
 Future<Response> _gradeSubmission(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
     final body = await context.request.json() as Map<String, dynamic>;
     final submissionId = body['id'] as int?;
-    final grade = body['grade'] as double?;
+    final grade = (body['grade'] as num?)?.toDouble();
     if (submissionId == null || grade == null) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'error': 'submissionId and grade are required'},
       );
     }
+    final feedback = body['feedback'] as String?;
+    final rubricJson = body['rubricJson'] as String?;
+    final maxGrade = (body['maxGrade'] as num?)?.toDouble();
+    final gradedBy = body['gradedBy'] as int?;
     await (db.update(db.submissions)
           ..where((tbl) => tbl.id.equals(submissionId)))
         .write(
       SubmissionsCompanion(
         grade: Value(grade),
+        maxGrade: Value(maxGrade),
+        feedback: Value(feedback),
+        rubricJson: Value(rubricJson),
+        gradedBy: Value(gradedBy),
+        gradedAt: Value(DateTime.now()),
         status: const Value('graded'),
       ),
     );
@@ -96,10 +108,11 @@ Future<Response> _gradeSubmission(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to grade: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
+
 Future<Response> _getSubmissions(RequestContext context) async {
   try {
     final db = context.read<AppDatabase>();
@@ -142,7 +155,7 @@ Future<Response> _getSubmissions(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Failed to fetch submissions: $e'},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

@@ -7,32 +7,25 @@ Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final classId = int.tryParse(id);
-
   if (classId == null) {
     return Response(statusCode: 400, body: 'Invalid Class ID');
   }
-
   try {
     final classExists = await (db.select(db.classes)
           ..where((t) => t.id.equals(classId)))
         .getSingleOrNull();
-
     if (classExists == null) {
       return Response(statusCode: 404, body: 'Class not found');
     }
-
     final query = db.select(db.schedules).join([
       innerJoin(db.users, db.users.id.equalsExp(db.schedules.userId)),
       leftOuterJoin(
           db.studentProfiles, db.studentProfiles.userId.equalsExp(db.users.id)),
     ])
       ..where(db.schedules.classId.equals(classId));
-
     final result = await query.get();
-
     final students = result
         .where((row) =>
             row.readTable(db.schedules).userId != classExists.teacherId)
@@ -40,7 +33,6 @@ Future<Response> onRequest(RequestContext context, String id) async {
       final schedule = row.readTable(db.schedules);
       final user = row.readTable(db.users);
       final profile = row.readTableOrNull(db.studentProfiles);
-
       return {
         'id': schedule.id,
         'userId': user.id,
@@ -63,10 +55,10 @@ Future<Response> onRequest(RequestContext context, String id) async {
         ),
       };
     }).toList();
-
     return Response.json(body: students);
   } catch (e) {
-    print('Error in get students: $e');
-    return Response.json(statusCode: 500, body: {'error': e.toString()});
+    return Response.json(
+        statusCode: 500,
+        body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
   }
 }

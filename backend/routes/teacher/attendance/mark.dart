@@ -1,15 +1,12 @@
 import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final body = await context.request.json() as Map<String, dynamic>;
-
   if (!body.containsKey('classId') ||
       !body.containsKey('date') ||
       !body.containsKey('teacherId') ||
@@ -19,27 +16,22 @@ Future<Response> onRequest(RequestContext context) async {
       body: {'error': 'Missing required fields'},
     );
   }
-
   final classId = body['classId'] as int;
   final date = DateTime.parse(body['date'] as String);
   final teacherId = body['teacherId'] as int;
   final attendances = body['attendances'] as List;
-
   try {
     final now = DateTime.now();
-
     await db.transaction(() async {
       for (final attendance in attendances) {
         final studentId = attendance['studentId'] as int;
         final status = attendance['status'] as String;
         final note = attendance['note'] as String?;
-
         final existing = await (db.select(db.attendances)
               ..where((t) => t.classId.equals(classId))
               ..where((t) => t.studentId.equals(studentId))
               ..where((t) => t.date.equals(date)))
             .getSingleOrNull();
-
         if (existing != null) {
           await (db.update(db.attendances)
                 ..where((t) => t.id.equals(existing.id)))
@@ -67,7 +59,6 @@ Future<Response> onRequest(RequestContext context) async {
         }
       }
     });
-
     return Response.json(
       statusCode: 201,
       body: {
@@ -79,7 +70,7 @@ Future<Response> onRequest(RequestContext context) async {
   } catch (e) {
     return Response.json(
       statusCode: 500,
-      body: {'error': e.toString()},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

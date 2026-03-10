@@ -1,15 +1,12 @@
 import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-
 Future<Response> onRequest(RequestContext context, String id) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
   }
-
   final db = context.read<AppDatabase>();
   final assignmentId = int.parse(id);
-
   try {
     final submissions = await (db.select(db.submissions).join([
       innerJoin(
@@ -20,12 +17,10 @@ Future<Response> onRequest(RequestContext context, String id) async {
           ..where(db.submissions.assignmentId.equals(assignmentId))
           ..orderBy([OrderingTerm.desc(db.submissions.submittedAt)]))
         .get();
-
     final latestSubmissions = <int, dynamic>{};
     for (final row in submissions) {
       final submission = row.readTable(db.submissions);
       final student = row.readTable(db.users);
-
       if (!latestSubmissions.containsKey(submission.studentId) ||
           submission.version >
               (latestSubmissions[submission.studentId]!['version'] as int)) {
@@ -51,12 +46,11 @@ Future<Response> onRequest(RequestContext context, String id) async {
         };
       }
     }
-
     return Response.json(body: latestSubmissions.values.toList());
   } catch (e) {
     return Response.json(
       statusCode: 500,
-      body: {'error': e.toString()},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }
