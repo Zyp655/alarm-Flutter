@@ -134,7 +134,7 @@ Future<Response> _create(RequestContext context, AppDatabase db) async {
   } catch (e) {
     return Response.json(
       statusCode: 409,
-      body: {'error': 'Mã lớp đã tồn tại hoặc lỗi: $e'},
+      body: {'error': 'Mã lớp đã tồn tại cho môn học này hoặc lỗi: $e'},
     );
   }
 }

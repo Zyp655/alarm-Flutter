@@ -1,4 +1,4 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 Future<Response> onRequest(RequestContext context) async {
@@ -55,6 +55,6 @@ Future<Response> onRequest(RequestContext context) async {
     return Response.json(
         body: {'message': 'Đã tham gia lớp ${classInfo.className} thành công!'});
   } catch (e) {
-    return Response(statusCode: 500, body: 'Lỗi server: $e');
+    return Response(statusCode: 500, body: 'Đã xảy ra lỗi hệ thống.');
   }
 }

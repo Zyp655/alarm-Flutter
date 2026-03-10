@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/services/ai_service.dart';
 import 'package:dotenv/dotenv.dart';
@@ -29,10 +30,11 @@ Future<Response> onRequest(RequestContext context) async {
       );
     }
 
+    final ts = DateTime.now().millisecondsSinceEpoch;
     final tempDir = Directory.systemTemp;
-    final tempFile = File(
-      '${tempDir.path}/video_${DateTime.now().millisecondsSinceEpoch}.mp4',
-    );
+    final videoFile = File('${tempDir.path}/video_$ts.mp4');
+    final audioFile = File('${tempDir.path}/audio_$ts.mp3');
+    final createdFiles = <File>[videoFile, audioFile];
 
     try {
       final videoResponse = await http.get(Uri.parse(videoUrl));
@@ -42,28 +44,110 @@ Future<Response> onRequest(RequestContext context) async {
           body: {'error': 'Cannot download video: ${videoResponse.statusCode}'},
         );
       }
-      await tempFile.writeAsBytes(videoResponse.bodyBytes);
+      await videoFile.writeAsBytes(videoResponse.bodyBytes);
 
-      final fileSizeMB = await tempFile.length() / (1024 * 1024);
-      if (fileSizeMB > 25) {
-        await tempFile.delete();
+      final ffmpegResult = await Process.run('ffmpeg', [
+        '-i',
+        videoFile.path,
+        '-vn',
+        '-acodec',
+        'libmp3lame',
+        '-ab',
+        '64k',
+        '-ar',
+        '16000',
+        '-ac',
+        '1',
+        '-y',
+        audioFile.path,
+      ]);
+
+      if (ffmpegResult.exitCode != 0) {
+        await _cleanupFiles(createdFiles);
         return Response.json(
-          statusCode: HttpStatus.badRequest,
+          statusCode: HttpStatus.internalServerError,
           body: {
             'error':
-                'Video too large (${fileSizeMB.toStringAsFixed(1)}MB). Max 25MB for Whisper API.',
+                'ffmpeg failed to extract audio. Make sure ffmpeg is installed.'
           },
         );
       }
 
+      await videoFile.delete();
+
       final aiService = AIService(openaiApiKey: apiKey);
-      final transcript = await aiService.speechToText(tempFile);
+      final audioSizeMB = await audioFile.length() / (1024 * 1024);
 
-      await tempFile.delete();
+      if (audioSizeMB <= 24) {
+        final transcript = await aiService.speechToText(audioFile);
+        await _cleanupFiles(createdFiles);
+        return Response.json(body: {'transcript': transcript});
+      }
 
-      return Response.json(body: {'transcript': transcript});
+      final durationSec = await _getAudioDuration(audioFile.path);
+      if (durationSec <= 0) {
+        await _cleanupFiles(createdFiles);
+        return Response.json(
+          statusCode: HttpStatus.internalServerError,
+          body: {'error': 'Cannot determine audio duration'},
+        );
+      }
+
+      final bytesPerSec = await audioFile.length() / durationSec;
+      final maxChunkSec = (23 * 1024 * 1024 / bytesPerSec).floor();
+      final chunkDuration = maxChunkSec.clamp(60, 600);
+
+      final chunks = <File>[];
+      var offset = 0;
+      var idx = 0;
+
+      while (offset < durationSec) {
+        final chunkFile = File('${tempDir.path}/chunk_${ts}_$idx.mp3');
+        createdFiles.add(chunkFile);
+        chunks.add(chunkFile);
+
+        final chunkResult = await Process.run('ffmpeg', [
+          '-i',
+          audioFile.path,
+          '-ss',
+          '$offset',
+          '-t',
+          '$chunkDuration',
+          '-acodec',
+          'libmp3lame',
+          '-ab',
+          '64k',
+          '-ar',
+          '16000',
+          '-ac',
+          '1',
+          '-y',
+          chunkFile.path,
+        ]);
+
+        if (chunkResult.exitCode != 0) break;
+
+        offset += chunkDuration;
+        idx++;
+      }
+
+      final transcripts = <String>[];
+      for (final chunk in chunks) {
+        if (!await chunk.exists()) continue;
+        final chunkSize = await chunk.length();
+        if (chunkSize < 1000) continue;
+        try {
+          final text = await aiService.speechToText(chunk);
+          if (text.isNotEmpty) transcripts.add(text);
+        } catch (_) {}
+      }
+
+      await _cleanupFiles(createdFiles);
+
+      final fullTranscript = transcripts.join(' ');
+      return Response.json(body: {'transcript': fullTranscript});
     } catch (e) {
-      if (await tempFile.exists()) await tempFile.delete();
+      await _cleanupFiles(createdFiles);
       rethrow;
     }
   } catch (e) {
@@ -72,4 +156,35 @@ Future<Response> onRequest(RequestContext context) async {
       body: {'error': 'Video transcription failed: $e'},
     );
   }
+}
+
+Future<void> _cleanupFiles(List<File> files) async {
+  for (final f in files) {
+    try {
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
+}
+
+Future<int> _getAudioDuration(String path) async {
+  try {
+    final result = await Process.run('ffprobe', [
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'json',
+      path,
+    ]);
+    if (result.exitCode == 0) {
+      final data = jsonDecode(result.stdout as String);
+      final dur = double.tryParse(
+            data['format']?['duration']?.toString() ?? '',
+          ) ??
+          0;
+      return dur.round();
+    }
+  } catch (_) {}
+  return 0;
 }

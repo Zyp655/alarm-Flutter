@@ -1,4 +1,4 @@
-﻿import 'package:backend/database/database.dart';
+import 'package:backend/database/database.dart';
 import 'package:backend/helpers/notification_helper.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
@@ -81,7 +81,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
   } catch (e) {
     return Response.json(
       statusCode: 500,
-      body: {'error': e.toString()},
+      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
     );
   }
 }

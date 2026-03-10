@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-import 'package:bcrypt/bcrypt.dart';
+import 'package:backend/utils/isolate_utils.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:dotenv/dotenv.dart';
 import 'package:backend/database/database.dart';
@@ -71,14 +71,14 @@ Future<Response> onRequest(RequestContext context) async {
       );
     }
 
-    if (!BCrypt.checkpw(currentPassword, user.passwordHash)) {
+    if (!await IsolateUtils.checkPassword(currentPassword, user.passwordHash)) {
       return Response.json(
         statusCode: 401,
         body: {'error': 'Mật khẩu hiện tại không đúng'},
       );
     }
 
-    final hashedNewPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    final hashedNewPassword = await IsolateUtils.hashPassword(newPassword);
     await (db.update(db.users)..where((t) => t.id.equals(userId))).write(
       UsersCompanion(
         passwordHash: Value(hashedNewPassword),

@@ -123,7 +123,7 @@ Future<Response> onRequest(RequestContext context) async {
 
     if (errorStr.contains('23505') || errorStr.contains('unique constraint')) {
       userMessage =
-          'Mã lớp này đã tồn tại trên hệ thống. Vui lòng kiểm tra lại.';
+          'Mã lớp này đã tồn tại cho môn học này. Vui lòng kiểm tra lại.';
       statusCode = HttpStatus.conflict; // 409
     } else if (errorStr.contains('23503') || errorStr.contains('foreign key')) {
       userMessage = 'Dữ liệu tham chiếu không hợp lệ. Vui lòng kiểm tra lại.';

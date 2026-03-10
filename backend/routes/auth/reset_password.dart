@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import 'package:bcrypt/bcrypt.dart';
+import 'package:backend/utils/isolate_utils.dart';
 import 'package:backend/database/database.dart';
 import 'package:drift/drift.dart';
 
@@ -72,7 +72,7 @@ Future<Response> onRequest(RequestContext context) async {
       );
     }
 
-    final hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    final hashedPassword = await IsolateUtils.hashPassword(newPassword);
     await (db.update(db.users)..where((t) => t.id.equals(user.id))).write(
       UsersCompanion(
         passwordHash: Value(hashedPassword),
