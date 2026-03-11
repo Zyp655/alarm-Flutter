@@ -12,7 +12,4 @@ services:
       POSTGRES_PASSWORD: my_super_secret_password 
       POSTGRES_DB: alarmm_db 
     volumes:
-      - postgres_data:/var/lib/postgresql/data 
-
-volumes:
-  postgres_data:
+      - ./pgdata:/var/lib/postgresql/data

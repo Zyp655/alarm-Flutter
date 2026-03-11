@@ -17,3 +17,6 @@ coverage/
 
 # Environment variables
 .env
+
+# PostgreSQL data (bind mount)
+pgdata/
