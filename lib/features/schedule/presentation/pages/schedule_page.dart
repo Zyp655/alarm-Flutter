@@ -119,59 +119,49 @@ class _SchedulePageState extends State<SchedulePage> {
             backgroundColor: isDark
                 ? AppColors.darkBackground
                 : AppColors.lightBackground,
-            appBar: AppBar(
-              title: Text(
-                'Lịch học',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+            body: SafeArea(
+              top: false,
+              child: BlocConsumer<ScheduleBloc, ScheduleState>(
+                listener: (context, state) {
+                  if (state is ScheduleError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                    context.read<ScheduleBloc>().add(LoadSchedules());
+                  }
+                  if (state is JoinClassSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Vào lớp thành công!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  if (state is ScheduleLoading) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    );
+                  }
+
+                  List<ScheduleEntity> appointments = [];
+                  if (state is ScheduleLoaded) appointments = state.schedules;
+
+                  return ScheduleCalendarView(
+                    appointments: appointments,
+                    calendarController: _calendarController,
+                    onEdit: (item) => _onEdit(context, item),
+                    onDelete: (item) => _onDelete(context, item),
+                  );
+                },
               ),
-              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-              elevation: 0,
-              centerTitle: false,
-              actions: const [],
             ),
-            body: BlocConsumer<ScheduleBloc, ScheduleState>(
-              listener: (context, state) {
-                if (state is ScheduleError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  context.read<ScheduleBloc>().add(LoadSchedules());
-                }
-                if (state is JoinClassSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Vào lớp thành công!'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
-              },
-              builder: (context, state) {
-                if (state is ScheduleLoading) {
-                  return Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                }
-
-                List<ScheduleEntity> appointments = [];
-                if (state is ScheduleLoaded) appointments = state.schedules;
-
-                return ScheduleCalendarView(
-                  appointments: appointments,
-                  calendarController: _calendarController,
-                  onEdit: (item) => _onEdit(context, item),
-                  onDelete: (item) => _onDelete(context, item),
-                );
-              },
-            ),
-            floatingActionButton: null,
           );
         },
       ),

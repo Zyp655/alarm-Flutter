@@ -43,6 +43,25 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
 
     return Column(
       children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            MediaQuery.of(context).padding.top + 12,
+            20,
+            0,
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Lịch học',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: textColor,
+              ),
+            ),
+          ),
+        ),
         Container(
           margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           decoration: BoxDecoration(
@@ -58,66 +77,69 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: 340,
-              child: SfCalendar(
-                controller: widget.calendarController,
-                view: CalendarView.month,
-                firstDayOfWeek: 1,
-                dataSource: ScheduleDataSource(widget.appointments),
-                backgroundColor: cardColor,
-                todayHighlightColor: AppColors.primary,
-                cellBorderColor: Colors.transparent,
-                selectionDecoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                headerStyle: CalendarHeaderStyle(
-                  textAlign: TextAlign.center,
+            child: RepaintBoundary(
+              child: SizedBox(
+                height: 340,
+                child: SfCalendar(
+                  controller: widget.calendarController,
+                  view: CalendarView.month,
+                  firstDayOfWeek: 1,
+                  dataSource: ScheduleDataSource(widget.appointments),
                   backgroundColor: cardColor,
-                  textStyle: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+                  todayHighlightColor: AppColors.primary,
+                  cellBorderColor: Colors.transparent,
+                  selectionDecoration: BoxDecoration(
+                    border: Border.all(color: AppColors.primary, width: 2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-                viewHeaderStyle: ViewHeaderStyle(
-                  backgroundColor: cardColor,
-                  dayTextStyle: TextStyle(
-                    fontSize: 12,
-                    color: subColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                todayTextStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-                monthViewSettings: MonthViewSettings(
-                  showAgenda: false,
-                  appointmentDisplayMode: MonthAppointmentDisplayMode.indicator,
-                  monthCellStyle: MonthCellStyle(
+                  headerStyle: CalendarHeaderStyle(
+                    textAlign: TextAlign.center,
+                    backgroundColor: cardColor,
                     textStyle: TextStyle(
-                      fontSize: 13,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: textColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    trailingDatesTextStyle: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey[700] : Colors.grey[350],
-                    ),
-                    leadingDatesTextStyle: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey[700] : Colors.grey[350],
                     ),
                   ),
+                  viewHeaderStyle: ViewHeaderStyle(
+                    backgroundColor: cardColor,
+                    dayTextStyle: TextStyle(
+                      fontSize: 12,
+                      color: subColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  todayTextStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                  monthViewSettings: MonthViewSettings(
+                    showAgenda: false,
+                    appointmentDisplayMode:
+                        MonthAppointmentDisplayMode.indicator,
+                    monthCellStyle: MonthCellStyle(
+                      textStyle: TextStyle(
+                        fontSize: 13,
+                        color: textColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      trailingDatesTextStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[700] : Colors.grey[350],
+                      ),
+                      leadingDatesTextStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[700] : Colors.grey[350],
+                      ),
+                    ),
+                  ),
+                  onTap: (CalendarTapDetails details) {
+                    if (details.date != null) {
+                      setState(() => _selectedDate = details.date!);
+                    }
+                  },
                 ),
-                onTap: (CalendarTapDetails details) {
-                  if (details.date != null) {
-                    setState(() => _selectedDate = details.date!);
-                  }
-                },
               ),
             ),
           ),
