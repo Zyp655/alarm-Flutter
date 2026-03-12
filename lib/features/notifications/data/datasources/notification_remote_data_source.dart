@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../domain/entities/notification_entity.dart';
 import '../models/notification_model.dart';
+import '../../../../core/api/api_constants.dart';
 
 abstract class NotificationRemoteDataSource {
   Future<List<NotificationModel>> getNotifications({
@@ -25,10 +25,8 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   final http.Client client;
   final String baseUrl;
 
-  NotificationRemoteDataSourceImpl({
-    required this.client,
-    this.baseUrl = 'http://localhost:8080',
-  });
+  NotificationRemoteDataSourceImpl({required this.client, String? baseUrl})
+    : baseUrl = baseUrl ?? ApiConstants.baseUrl;
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -48,8 +46,8 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   }) async {
     final queryParams = {
       'userId': userId.toString(),
+      'page': '1',
       'limit': limit.toString(),
-      'offset': offset.toString(),
       if (unreadOnly) 'unreadOnly': 'true',
     };
 
@@ -61,7 +59,8 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
     final response = await client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = json.decode(response.body);
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final List<dynamic> jsonList = data['notifications'] ?? [];
       return jsonList.map((json) => NotificationModel.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load notifications');
@@ -108,10 +107,20 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
 
   @override
   Future<int> getUnreadCount(int userId) async {
-    final notifications = await getNotifications(
-      userId: userId,
-      unreadOnly: true,
-    );
-    return notifications.length;
+    final queryParams = {
+      'userId': userId.toString(),
+      'page': '1',
+      'limit': '1',
+    };
+    final uri = Uri.parse(
+      '$baseUrl/notifications',
+    ).replace(queryParameters: queryParams);
+    final headers = await _getHeaders();
+    final response = await client.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return data['unreadCount'] as int? ?? 0;
+    }
+    return 0;
   }
 }

@@ -17,10 +17,10 @@ class NotificationModel extends NotificationEntity {
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
       id: json['id'] as int?,
-      userId: json['userId'] as int,
-      type: json['type'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
+      userId: (json['userId'] as int?) ?? 0,
+      type: (json['type'] as String?) ?? 'info',
+      title: (json['title'] as String?) ?? '',
+      message: (json['message'] as String?) ?? '',
       isRead: json['isRead'] as bool? ?? false,
       actionUrl: json['actionUrl'] as String?,
       relatedId: json['relatedId'] as int?,

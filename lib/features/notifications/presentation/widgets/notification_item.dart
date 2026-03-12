@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/notification_entity.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class NotificationItem extends StatelessWidget {
   final NotificationEntity notification;
@@ -73,14 +74,14 @@ class NotificationItem extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
+        color: AppColors.error,
+        child: Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) => onDelete(),
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         elevation: notification.isRead ? 0 : 2,
-        color: notification.isRead ? null : Colors.blue.withOpacity(0.05),
+        color: notification.isRead ? null : Colors.blue.withValues(alpha: 0.05),
         child: InkWell(
           onTap: onTap,
           child: Padding(
@@ -91,7 +92,7 @@ class NotificationItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getIconColor(notification.type).withOpacity(0.1),
+                    color: _getIconColor(notification.type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -123,8 +124,8 @@ class NotificationItem extends StatelessWidget {
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
+                              decoration: BoxDecoration(
+                                color: AppColors.info,
                                 shape: BoxShape.circle,
                               ),
                             ),

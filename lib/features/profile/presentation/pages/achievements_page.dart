@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/achievement_bloc.dart';
 import '../bloc/achievement_state.dart';
 import '../../domain/entities/achievement_entity.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AchievementsPage extends StatelessWidget {
   const AchievementsPage({super.key});
@@ -10,19 +11,21 @@ class AchievementsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final cardColor = isDarkMode ? AppColors.darkSurface : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[100],
+      backgroundColor: isDarkMode ? AppColors.darkBackground : Colors.grey[100],
       appBar: AppBar(
         title: const Text('Thành tích'),
         centerTitle: true,
-        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.teal,
+        backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.teal,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: BlocBuilder<AchievementBloc, AchievementState>(
+        buildWhen: (prev, curr) =>
+            prev.runtimeType != curr.runtimeType || prev != curr,
         builder: (context, state) {
           if (state is AchievementLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -36,7 +39,7 @@ class AchievementsPage extends StatelessWidget {
                   Icon(
                     Icons.error_outline,
                     size: 48,
-                    color: Colors.red.shade300,
+                    color: AppColors.error.withValues(alpha: 0.35),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -93,11 +96,7 @@ class AchievementsPage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                const Icon(
-                  Icons.workspace_premium,
-                  size: 64,
-                  color: Colors.white,
-                ),
+                Icon(Icons.workspace_premium, size: 64, color: Colors.white),
                 const SizedBox(height: 12),
                 Text(
                   '$totalPoints điểm',
@@ -152,7 +151,7 @@ class AchievementsPage extends StatelessWidget {
         color: earned ? cardColor : cardColor.withAlpha(150),
         borderRadius: BorderRadius.circular(16),
         border: earned
-            ? Border.all(color: Colors.teal.withAlpha(100), width: 2)
+            ? Border.all(color: AppColors.primary.withAlpha(100), width: 2)
             : null,
       ),
       child: Row(
@@ -219,7 +218,7 @@ class AchievementsPage extends StatelessWidget {
               ),
               if (earned) ...[
                 const SizedBox(height: 4),
-                const Icon(Icons.check_circle, color: Colors.teal, size: 20),
+                Icon(Icons.check_circle, color: AppColors.primary, size: 20),
               ],
             ],
           ),

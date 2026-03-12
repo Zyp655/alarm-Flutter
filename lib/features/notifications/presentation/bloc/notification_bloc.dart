@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+﻿import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
 import '../../domain/usecases/mark_notification_read_usecase.dart';
 import '../../domain/usecases/mark_all_notifications_read_usecase.dart';
@@ -7,7 +7,6 @@ import '../../domain/usecases/get_unread_count_usecase.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 import '../../domain/entities/notification_entity.dart';
-
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final GetNotificationsUseCase getNotifications;

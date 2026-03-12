@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../injection_container.dart' as di;
 import '../../../../core/utils/grade_calculator.dart';
 import '../../../schedule/domain/enitities/schedule_entity.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TranscriptDialog extends StatefulWidget {
   const TranscriptDialog({super.key});
@@ -41,7 +41,7 @@ class _TranscriptDialogState extends State<TranscriptDialog> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final backgroundColor = isDarkMode ? AppColors.darkSurface : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
 
     return Dialog(
@@ -103,12 +103,12 @@ class _TranscriptDialogState extends State<TranscriptDialog> {
                             maxAbsences: subject.maxAbsences,
                           );
 
-                      Color scoreColor = Colors.green;
+                      Color scoreColor = AppColors.success;
                       if (score != null) {
                         if (score < 4.0)
-                          scoreColor = Colors.red;
+                          scoreColor = AppColors.error;
                         else if (score < 7.0)
-                          scoreColor = Colors.orange;
+                          scoreColor = AppColors.warning;
                       }
 
                       return Card(
@@ -139,7 +139,7 @@ class _TranscriptDialogState extends State<TranscriptDialog> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: scoreColor.withOpacity(0.1),
+                                      color: scoreColor.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: scoreColor),
                                     ),
@@ -170,8 +170,7 @@ class _TranscriptDialogState extends State<TranscriptDialog> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              if (score !=
-                                  null) 
+                              if (score != null)
                                 Text(
                                   "GK: ${subject.midtermScore ?? '-'} | CK: ${subject.finalScore ?? '-'} | Thi: ${subject.examScore ?? '-'}",
                                   style: TextStyle(
@@ -196,7 +195,7 @@ class _TranscriptDialogState extends State<TranscriptDialog> {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: AppColors.info,
                   foregroundColor: Colors.white,
                 ),
                 child: const Text("Đóng"),

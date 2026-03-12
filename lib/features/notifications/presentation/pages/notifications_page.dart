@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../../../core/common/animated_widgets.dart';
 import '../bloc/notification_bloc.dart';
@@ -8,6 +9,7 @@ import '../bloc/notification_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../widgets/notification_item.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -57,7 +59,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
     }
 
-    // Navigation logic
     switch (notification.type) {
       case 'assignment_new':
       case 'assignment_deadline':
@@ -82,22 +83,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case 'course_completed':
       case 'learning_reminder':
         if (notification.relatedId != null) {
-          Navigator.pushNamed(
-            context,
-            '/courses/detail',
-            arguments: notification.relatedId,
-          );
+          context.push('/courses/${notification.relatedId}');
         } else {
-          Navigator.pushNamed(context, '/courses');
+          context.push('/courses');
         }
         break;
       case 'new_lesson':
         if (notification.relatedId != null) {
-          Navigator.pushNamed(
-            context,
-            '/courses/detail',
-            arguments: notification.relatedId,
-          );
+          context.push('/courses/${notification.relatedId}');
         }
         break;
       default:
@@ -112,7 +105,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         title: const Text('Thông Báo'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all),
+            icon: Icon(Icons.done_all),
             tooltip: 'Đánh dấu tất cả đã đọc',
             onPressed: _markAllAsRead,
           ),
@@ -124,7 +117,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.error,
               ),
             );
           } else if (state is NotificationActionSuccess) {
@@ -205,12 +198,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+                  Icon(
+                    Icons.error_outline,
+                    size: 80,
+                    color: AppColors.error.withValues(alpha: 0.35),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Lỗi: ${state.message}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
+                    style: TextStyle(color: AppColors.error),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
