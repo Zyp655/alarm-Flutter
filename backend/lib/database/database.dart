@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
 import 'package:postgres/postgres.dart';
 import 'package:dotenv/dotenv.dart';
+import 'package:backend/helpers/log.dart';
 
 part 'database.g.dart';
 
@@ -91,6 +92,7 @@ class Assignments extends Table {
   TextColumn get description => text().nullable()();
   DateTimeColumn get dueDate => dateTime()();
   IntColumn get rewardPoints => integer().withDefault(const Constant(0))();
+  IntColumn get moduleId => integer().nullable().references(Modules, #id)();
   DateTimeColumn get createdAt => dateTime()();
 }
 
@@ -334,6 +336,7 @@ class Lessons extends Table {
       boolean().withDefault(const Constant(false))();
   IntColumn get orderIndex => integer()();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get cachedTranscript => text().nullable()();
 }
 
 class Enrollments extends Table {
@@ -830,29 +833,29 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       beforeOpen: (details) async {
-        print(
-            '[Drift] DB opening: version ${details.versionBefore} -> ${details.versionNow}, wasCreated=${details.wasCreated}');
+        Log.info('Drift',
+            'DB opening: version ${details.versionBefore} -> ${details.versionNow}, wasCreated=${details.wasCreated}');
       },
       onCreate: (Migrator m) async {
-        print(
-            '[Drift] onCreate called — creating all tables with IF NOT EXISTS');
+        Log.info('Drift',
+            'onCreate called — creating all tables with IF NOT EXISTS');
         for (final table in allTables) {
           try {
             await m.createTable(table);
           } catch (e) {
-            print(
-                '[Drift] Table ${table.actualTableName} may already exist: $e');
+            Log.warning('Drift',
+                'Table ${table.actualTableName} may already exist: $e');
           }
         }
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        print('[Drift] onUpgrade called: $from -> $to');
+        Log.info('Drift', 'onUpgrade called: $from -> $to');
         if (from < 3) {
           await m.drop(submissions);
           await m.drop(studentAssignments);
@@ -1101,6 +1104,18 @@ class AppDatabase extends _$AppDatabase {
           ''');
           await m.issueCustomQuery(
             'CREATE INDEX IF NOT EXISTS idx_video_segments_lesson ON video_segments(lesson_id, segment_index)',
+          );
+        }
+
+        if (from < 30) {
+          await m.issueCustomQuery(
+            'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS cached_transcript TEXT',
+          );
+        }
+
+        if (from < 31) {
+          await m.issueCustomQuery(
+            'ALTER TABLE assignments ADD COLUMN IF NOT EXISTS module_id INTEGER REFERENCES modules(id)',
           );
         }
       },

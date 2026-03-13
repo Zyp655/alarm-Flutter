@@ -2,6 +2,7 @@ import 'package:backend/database/database.dart';
 import 'package:backend/helpers/notification_helper.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
@@ -14,42 +15,94 @@ Future<Response> onRequest(RequestContext context) async {
   final description = body['description'] as String?;
   final dueDateStr = body['dueDate'] as String?;
   final rewardPoints = body['rewardPoints'] as int? ?? 0;
-  if (classId == null ||
-      teacherId == null ||
-      title == null ||
-      dueDateStr == null) {
+  final moduleId = body['moduleId'] as int?;
+
+  if (classId == null || teacherId == null || title == null || dueDateStr == null) {
     return Response(
       statusCode: 400,
       body: 'Missing required fields: classId, teacherId, title, dueDate',
     );
   }
+
   DateTime dueDate;
   try {
     dueDate = DateTime.parse(dueDateStr);
   } catch (e) {
     return Response(statusCode: 400, body: 'Invalid dueDate format');
   }
+
   try {
-    final assignmentId = await db.into(db.assignments).insert(
-          AssignmentsCompanion.insert(
-            classId: classId,
-            teacherId: teacherId,
-            title: title,
-            description: Value(description),
-            dueDate: dueDate,
-            rewardPoints: Value(rewardPoints),
-            createdAt: DateTime.now(),
-          ),
-        );
-    final studentsInClass = await (db.select(db.schedules)
-          ..where((s) => s.classId.equals(classId))
-          ..where((s) => s.userId.isNotNull()))
+    var resolvedClassId = classId;
+
+    final oldClass = await (db.select(db.classes)
+          ..where((c) => c.id.equals(classId)))
+        .getSingleOrNull();
+
+    if (oldClass == null) {
+      final courseClasses = await (db.select(db.courseClasses)
+            ..where((c) => c.academicCourseId.equals(classId)))
+          .get();
+
+      if (courseClasses.isNotEmpty) {
+        final courseClass = courseClasses.first;
+        var scheduleClass = await (db.select(db.classes)
+              ..where((c) => c.classCode.equals(courseClass.classCode)))
+            .getSingleOrNull();
+
+        if (scheduleClass == null) {
+          final course = await (db.select(db.academicCourses)
+                ..where((c) => c.id.equals(classId)))
+              .getSingleOrNull();
+          resolvedClassId = await db.into(db.classes).insert(
+                ClassesCompanion.insert(
+                  className: course?.name ?? 'Lớp học',
+                  classCode: courseClass.classCode,
+                  teacherId: teacherId,
+                  createdAt: DateTime.now(),
+                ),
+              );
+        } else {
+          resolvedClassId = scheduleClass.id;
+        }
+      } else {
+        resolvedClassId = await db.into(db.classes).insert(
+              ClassesCompanion.insert(
+                className: 'Lớp ${classId}',
+                classCode: 'AUTO_${classId}_${DateTime.now().millisecondsSinceEpoch}',
+                teacherId: teacherId,
+                createdAt: DateTime.now(),
+              ),
+            );
+      }
+    }
+
+    final descEscaped = (description ?? '').replaceAll("'", "''");
+    final titleEscaped = title.replaceAll("'", "''");
+    final nowEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final dueDateEpoch = dueDate.millisecondsSinceEpoch ~/ 1000;
+    final moduleIdSql = moduleId != null ? '$moduleId' : 'NULL';
+
+    final result = await db.customSelect(
+      "INSERT INTO assignments (class_id, teacher_id, title, description, due_date, reward_points, module_id, created_at) "
+      "VALUES ($resolvedClassId, $teacherId, '$titleEscaped', '$descEscaped', $dueDateEpoch, $rewardPoints, $moduleIdSql, $nowEpoch) "
+      "RETURNING id",
+    ).getSingle();
+
+    final assignmentId = result.data['id'] as int;
+
+    final courseClasses = await (db.select(db.courseClasses)
+          ..where((c) => c.academicCourseId.equals(classId)))
         .get();
-    final studentIds = studentsInClass
-        .where((s) => s.userId != teacherId)
-        .map((s) => s.userId)
-        .toSet()
-        .toList();
+
+    List<int> studentIds = [];
+    if (courseClasses.isNotEmpty) {
+      final classIds = courseClasses.map((c) => c.id).toList();
+      final enrollments = await (db.select(db.courseClassEnrollments)
+            ..where((e) => e.courseClassId.isIn(classIds)))
+          .get();
+      studentIds = enrollments.map((e) => e.studentId).toSet().toList();
+    }
+
     for (final studentId in studentIds) {
       await db.into(db.studentAssignments).insert(
             StudentAssignmentsCompanion.insert(
@@ -58,6 +111,7 @@ Future<Response> onRequest(RequestContext context) async {
             ),
           );
     }
+
     if (studentIds.isNotEmpty) {
       await NotificationHelper.createBatchNotifications(
         db: db,
@@ -69,12 +123,17 @@ Future<Response> onRequest(RequestContext context) async {
         relatedType: 'assignment',
       );
     }
+
     return Response.json(body: {
       'message': 'Assignment created successfully',
       'assignmentId': assignmentId,
+      'moduleId': moduleId,
       'studentsAssigned': studentIds.length,
     });
   } catch (e) {
-    return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
+    return Response.json(
+      statusCode: 500,
+      body: {'error': '$e'},
+    );
   }
 }

@@ -91,7 +91,111 @@ Future<Response> onRequest(RequestContext context) async {
       };
     }).toList();
 
-    final allSchedules = [...jsonList, ...selfPacedJson];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final List<Map<String, dynamic>> enrolledJson = [];
+
+    final academicQuery = db.select(db.courseClassEnrollments).join([
+      innerJoin(db.courseClasses,
+          db.courseClasses.id.equalsExp(db.courseClassEnrollments.courseClassId)),
+      innerJoin(db.academicCourses,
+          db.academicCourses.id.equalsExp(db.courseClasses.academicCourseId)),
+    ])
+      ..where(db.courseClassEnrollments.studentId.equals(userId))
+      ..where(db.courseClassEnrollments.status.equals('enrolled'));
+
+    final academicResults = await academicQuery.get();
+    final List<Map<String, dynamic>> academicJson = [];
+
+    for (final row in academicResults) {
+      final cc = row.readTable(db.courseClasses);
+      final ac = row.readTable(db.academicCourses);
+      final scheduleText = cc.schedule ?? '';
+
+      if (scheduleText.isEmpty) continue;
+
+      final dayTimeMatch =
+          RegExp(r'T(\d)\s*\((\d{1,2}:\d{2})-(\d{1,2}:\d{2})\)')
+              .firstMatch(scheduleText);
+      final dayDateMatch =
+          RegExp(r'T(\d)\s*\((\d{1,2})/(\d{1,2})/(\d{4})\)')
+              .firstMatch(scheduleText);
+
+      if (dayTimeMatch != null) {
+        final dayOfWeek = int.parse(dayTimeMatch.group(1)!);
+        final startParts = dayTimeMatch.group(2)!.split(':');
+        final endParts = dayTimeMatch.group(3)!.split(':');
+        final startHour = int.parse(startParts[0]);
+        final startMin = int.parse(startParts[1]);
+        final endHour = int.parse(endParts[0]);
+        final endMin = int.parse(endParts[1]);
+
+        final monday = today.subtract(Duration(days: today.weekday - 1));
+        for (var weekOffset = 0; weekOffset <= 1; weekOffset++) {
+          final targetDate = monday
+              .add(Duration(days: (dayOfWeek - 1) + (weekOffset * 7)));
+          final startDt = DateTime(
+              targetDate.year, targetDate.month, targetDate.day,
+              startHour, startMin);
+          final endDt = DateTime(
+              targetDate.year, targetDate.month, targetDate.day,
+              endHour, endMin);
+
+          academicJson.add({
+            'id': -(20000 + cc.id * 100 + weekOffset),
+            'userId': userId,
+            'subject': ac.name,
+            'room': cc.room ?? '',
+            'start': startDt.toIso8601String(),
+            'end': endDt.toIso8601String(),
+            'note': 'Lớp ${cc.classCode}',
+            'classCode': cc.classCode,
+            'credits': ac.credits,
+            'currentAbsences': 0,
+            'maxAbsences': ac.credits * 3,
+            'midtermScore': 0.0,
+            'finalScore': 0.0,
+            'targetScore': 4.0,
+            'type': 'classSession',
+            'format': 'offline',
+            'overallScore': 0.0,
+          });
+        }
+      } else if (dayDateMatch != null) {
+        final day = int.parse(dayDateMatch.group(2)!);
+        final month = int.parse(dayDateMatch.group(3)!);
+        final year = int.parse(dayDateMatch.group(4)!);
+        final targetDate = DateTime(year, month, day, 7, 0);
+        final endDate = DateTime(year, month, day, 9, 30);
+
+        academicJson.add({
+          'id': -(20000 + cc.id),
+          'userId': userId,
+          'subject': ac.name,
+          'room': cc.room ?? '',
+          'start': targetDate.toIso8601String(),
+          'end': endDate.toIso8601String(),
+          'note': 'Lớp ${cc.classCode}',
+          'classCode': cc.classCode,
+          'credits': ac.credits,
+          'currentAbsences': 0,
+          'maxAbsences': ac.credits * 3,
+          'midtermScore': 0.0,
+          'finalScore': 0.0,
+          'targetScore': 4.0,
+          'type': 'classSession',
+          'format': 'offline',
+          'overallScore': 0.0,
+        });
+      }
+    }
+
+    final allSchedules = [
+      ...jsonList,
+      ...selfPacedJson,
+      ...enrolledJson,
+      ...academicJson,
+    ];
     allSchedules
         .sort((a, b) => (a['start'] as String).compareTo(b['start'] as String));
 

@@ -21,14 +21,31 @@ class CourseService {
     final course = await (db.select(db.courses)
           ..where((tbl) => tbl.id.equals(courseId)))
         .getSingleOrNull();
-    if (course == null) {
+
+    final academicCourse = course == null
+        ? await (db.select(db.academicCourses)
+              ..where((tbl) => tbl.id.equals(courseId)))
+            .getSingleOrNull()
+        : null;
+
+    if (course == null && academicCourse == null) {
       return {'error': 'Course not found', 'statusCode': 404};
     }
 
-    final modules = await (db.select(db.modules)
-          ..where((tbl) => tbl.courseId.equals(courseId))
-          ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
-        .get();
+    final isAcademic = course == null && academicCourse != null;
+
+    List<Module> modules;
+    if (isAcademic) {
+      modules = await (db.select(db.modules)
+            ..where((tbl) => tbl.academicCourseId.equals(courseId))
+            ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
+          .get();
+    } else {
+      modules = await (db.select(db.modules)
+            ..where((tbl) => tbl.courseId.equals(courseId))
+            ..orderBy([(tbl) => OrderingTerm(expression: tbl.orderIndex)]))
+          .get();
+    }
 
     final modulesWithLessons = <Map<String, dynamic>>[];
     int totalDuration = 0;
@@ -63,6 +80,26 @@ class CourseService {
       });
     }
 
+    if (isAcademic) {
+      return {
+        'id': academicCourse!.id,
+        'title': academicCourse.name,
+        'description': academicCourse.description,
+        'thumbnailUrl': academicCourse.thumbnailUrl,
+        'instructorId': null,
+        'price': 0,
+        'tags': null,
+        'level': 'beginner',
+        'durationMinutes': totalDuration,
+        'studentCount': 0,
+        'averageRating': 0.0,
+        'reviewsCount': 0,
+        'isPublished': academicCourse.isPublished,
+        'modules': modulesWithLessons,
+        'isAcademic': true,
+      };
+    }
+
     final studentCount = await (db.select(db.enrollments)
           ..where((e) => e.courseId.equals(courseId)))
         .get()
@@ -78,7 +115,7 @@ class CourseService {
     }
 
     return {
-      'id': course.id,
+      'id': course!.id,
       'title': course.title,
       'description': course.description,
       'thumbnailUrl': course.thumbnailUrl,

@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:backend/repositories/user_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dotenv/dotenv.dart';
@@ -50,6 +50,9 @@ Future<void> _sendEmail(String recipient, String otp) async {
       </div>
     ''';
   try {
-    await send(message, smtpServer);
-  } catch (_) {}
+    final result = await send(message, smtpServer);
+    print('[SMTP] Email sent to $recipient: ${result.mail.subject}');
+  } catch (e) {
+    print('[SMTP] Failed to send email to $recipient: $e');
+  }
 }

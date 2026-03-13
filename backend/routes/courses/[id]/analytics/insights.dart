@@ -9,45 +9,66 @@ Future<Response> onRequest(RequestContext context, String id) async {
   final courseId = int.tryParse(id);
   if (courseId == null) {
     return Response(
-        statusCode: HttpStatus.badRequest, body: 'Invalid Course ID');
+      statusCode: HttpStatus.badRequest,
+      body: 'Invalid Course ID',
+    );
   }
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: HttpStatus.methodNotAllowed);
   }
   try {
     final db = context.read<AppDatabase>();
-    final enrollments = await (db.select(db.enrollments)
+    final lmsEnrollments = await (db.select(db.enrollments)
           ..where((e) => e.courseId.equals(courseId)))
         .get();
-    final totalStudents = enrollments.length;
+
+    final isAcademic = lmsEnrollments.isEmpty;
+    List<int> studentUserIds = lmsEnrollments.map((e) => e.userId).toList();
+
+    if (isAcademic) {
+      final classes = await (db.select(db.courseClasses)
+            ..where((c) => c.academicCourseId.equals(courseId)))
+          .get();
+      final classIds = classes.map((c) => c.id).toList();
+      if (classIds.isNotEmpty) {
+        final classEnrollments = await (db.select(db.courseClassEnrollments)
+              ..where((e) => e.courseClassId.isIn(classIds)))
+            .get();
+        studentUserIds = classEnrollments.map((e) => e.studentId).toSet().toList();
+      }
+    }
+
+    final totalStudents = studentUserIds.length;
     if (totalStudents == 0) {
       return Response.json(body: {
-        'summary': 'Chưa có dữ liệu học viên.',
-        'moduleStats': [],
+        'summary': 'Chưa có dữ liệu sinh viên.',
+        'moduleStats': <Map<String, dynamic>>[],
       });
     }
     final modules = await (db.select(db.modules)
-          ..where((m) => m.courseId.equals(courseId))
+          ..where((m) => isAcademic
+              ? m.academicCourseId.equals(courseId)
+              : m.courseId.equals(courseId))
           ..orderBy([(m) => OrderingTerm.asc(m.orderIndex)]))
         .get();
-    final List<Map<String, dynamic>> moduleStats = [];
-    int previousCompleters = totalStudents;
+    final moduleStats = <Map<String, dynamic>>[];
+    var previousCompleters = totalStudents;
     for (final module in modules) {
       final lessons = await (db.select(db.lessons)
             ..where((l) => l.moduleId.equals(module.id)))
           .get();
       final lessonIds = lessons.map((l) => l.id).toList();
       if (lessonIds.isEmpty) continue;
-      int completers = 0;
+      var completers = 0;
       final quizzes = await (db.select(db.quizzes)
             ..where((q) => q.moduleId.equals(module.id)))
           .get();
       final quizIds = quizzes.map((q) => q.id).toList();
-      double totalScore = 0;
-      int scoreCount = 0;
-      for (final enrollment in enrollments) {
+      var totalScore = 0.0;
+      var scoreCount = 0;
+      for (final userId in studentUserIds) {
         final progress = await (db.select(db.lessonProgress)
-              ..where((p) => p.userId.equals(enrollment.userId))
+              ..where((p) => p.userId.equals(userId))
               ..where((p) => p.lessonId.isIn(lessonIds))
               ..where((p) => p.isCompleted.equals(true)))
             .get();
@@ -56,13 +77,16 @@ Future<Response> onRequest(RequestContext context, String id) async {
         }
         if (quizIds.isNotEmpty) {
           final attempts = await (db.select(db.quizAttempts)
-                ..where((a) => a.userId.equals(enrollment.userId))
+                ..where((a) => a.userId.equals(userId))
                 ..where((a) => a.quizId.isIn(quizIds)))
               .get();
           if (attempts.isNotEmpty) {
             final userAvg =
-                attempts.fold<double>(0, (sum, a) => sum + a.scorePercentage) /
-                    attempts.length;
+                attempts.fold<double>(
+                  0,
+                  (sum, a) => sum + a.scorePercentage,
+                ) /
+                attempts.length;
             totalScore += userAvg;
             scoreCount++;
           }
@@ -93,7 +117,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
       final aiService = AIService(openaiApiKey: apiKey);
       try {
         aiInsights = await aiService.generateEngagementReport(
-          courseName: "Analysis",
+          courseName: 'Analysis',
           moduleStats: moduleStats,
           totalStudents: totalStudents,
         );
@@ -101,16 +125,16 @@ Future<Response> onRequest(RequestContext context, String id) async {
         aiInsights = {
           'summary': 'Không thể tạo báo cáo AI lúc này.',
           'top_bottleneck': null,
-          'causes': [],
-          'recommendations': []
+          'causes': <String>[],
+          'recommendations': <String>[],
         };
       }
     } else {
       aiInsights = {
         'summary': 'Chưa cấu hình OpenAI key.',
         'top_bottleneck': null,
-        'causes': [],
-        'recommendations': []
+        'causes': <String>[],
+        'recommendations': <String>[],
       };
     }
     return Response.json(body: {

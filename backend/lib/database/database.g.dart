@@ -12506,6 +12506,12 @@ class $LessonsTable extends Lessons with TableInfo<$LessonsTable, Lesson> {
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _cachedTranscriptMeta =
+      const VerificationMeta('cachedTranscript');
+  @override
+  late final GeneratedColumn<String> cachedTranscript = GeneratedColumn<String>(
+      'cached_transcript', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -12519,7 +12525,8 @@ class $LessonsTable extends Lessons with TableInfo<$LessonsTable, Lesson> {
         durationMinutes,
         isFreePreview,
         orderIndex,
-        createdAt
+        createdAt,
+        cachedTranscript
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -12600,6 +12607,12 @@ class $LessonsTable extends Lessons with TableInfo<$LessonsTable, Lesson> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('cached_transcript')) {
+      context.handle(
+          _cachedTranscriptMeta,
+          cachedTranscript.isAcceptableOrUnknown(
+              data['cached_transcript']!, _cachedTranscriptMeta));
+    }
     return context;
   }
 
@@ -12633,6 +12646,8 @@ class $LessonsTable extends Lessons with TableInfo<$LessonsTable, Lesson> {
           .read(DriftSqlType.int, data['${effectivePrefix}order_index'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      cachedTranscript: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}cached_transcript']),
     );
   }
 
@@ -12655,6 +12670,7 @@ class Lesson extends DataClass implements Insertable<Lesson> {
   final bool isFreePreview;
   final int orderIndex;
   final DateTime createdAt;
+  final String? cachedTranscript;
   const Lesson(
       {required this.id,
       required this.moduleId,
@@ -12667,7 +12683,8 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       required this.durationMinutes,
       required this.isFreePreview,
       required this.orderIndex,
-      required this.createdAt});
+      required this.createdAt,
+      this.cachedTranscript});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -12691,6 +12708,9 @@ class Lesson extends DataClass implements Insertable<Lesson> {
     map['is_free_preview'] = Variable<bool>(isFreePreview);
     map['order_index'] = Variable<int>(orderIndex);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || cachedTranscript != null) {
+      map['cached_transcript'] = Variable<String>(cachedTranscript);
+    }
     return map;
   }
 
@@ -12715,6 +12735,9 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       isFreePreview: Value(isFreePreview),
       orderIndex: Value(orderIndex),
       createdAt: Value(createdAt),
+      cachedTranscript: cachedTranscript == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cachedTranscript),
     );
   }
 
@@ -12734,6 +12757,7 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       isFreePreview: serializer.fromJson<bool>(json['isFreePreview']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      cachedTranscript: serializer.fromJson<String?>(json['cachedTranscript']),
     );
   }
   @override
@@ -12752,6 +12776,7 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       'isFreePreview': serializer.toJson<bool>(isFreePreview),
       'orderIndex': serializer.toJson<int>(orderIndex),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'cachedTranscript': serializer.toJson<String?>(cachedTranscript),
     };
   }
 
@@ -12767,7 +12792,8 @@ class Lesson extends DataClass implements Insertable<Lesson> {
           int? durationMinutes,
           bool? isFreePreview,
           int? orderIndex,
-          DateTime? createdAt}) =>
+          DateTime? createdAt,
+          Value<String?> cachedTranscript = const Value.absent()}) =>
       Lesson(
         id: id ?? this.id,
         moduleId: moduleId ?? this.moduleId,
@@ -12782,6 +12808,9 @@ class Lesson extends DataClass implements Insertable<Lesson> {
         isFreePreview: isFreePreview ?? this.isFreePreview,
         orderIndex: orderIndex ?? this.orderIndex,
         createdAt: createdAt ?? this.createdAt,
+        cachedTranscript: cachedTranscript.present
+            ? cachedTranscript.value
+            : this.cachedTranscript,
       );
   Lesson copyWithCompanion(LessonsCompanion data) {
     return Lesson(
@@ -12806,6 +12835,9 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       orderIndex:
           data.orderIndex.present ? data.orderIndex.value : this.orderIndex,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      cachedTranscript: data.cachedTranscript.present
+          ? data.cachedTranscript.value
+          : this.cachedTranscript,
     );
   }
 
@@ -12823,7 +12855,8 @@ class Lesson extends DataClass implements Insertable<Lesson> {
           ..write('durationMinutes: $durationMinutes, ')
           ..write('isFreePreview: $isFreePreview, ')
           ..write('orderIndex: $orderIndex, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('cachedTranscript: $cachedTranscript')
           ..write(')'))
         .toString();
   }
@@ -12841,7 +12874,8 @@ class Lesson extends DataClass implements Insertable<Lesson> {
       durationMinutes,
       isFreePreview,
       orderIndex,
-      createdAt);
+      createdAt,
+      cachedTranscript);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -12857,7 +12891,8 @@ class Lesson extends DataClass implements Insertable<Lesson> {
           other.durationMinutes == this.durationMinutes &&
           other.isFreePreview == this.isFreePreview &&
           other.orderIndex == this.orderIndex &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.cachedTranscript == this.cachedTranscript);
 }
 
 class LessonsCompanion extends UpdateCompanion<Lesson> {
@@ -12873,6 +12908,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
   final Value<bool> isFreePreview;
   final Value<int> orderIndex;
   final Value<DateTime> createdAt;
+  final Value<String?> cachedTranscript;
   const LessonsCompanion({
     this.id = const Value.absent(),
     this.moduleId = const Value.absent(),
@@ -12886,6 +12922,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
     this.isFreePreview = const Value.absent(),
     this.orderIndex = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.cachedTranscript = const Value.absent(),
   });
   LessonsCompanion.insert({
     this.id = const Value.absent(),
@@ -12900,6 +12937,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
     this.isFreePreview = const Value.absent(),
     required int orderIndex,
     required DateTime createdAt,
+    this.cachedTranscript = const Value.absent(),
   })  : moduleId = Value(moduleId),
         title = Value(title),
         type = Value(type),
@@ -12918,6 +12956,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
     Expression<bool>? isFreePreview,
     Expression<int>? orderIndex,
     Expression<DateTime>? createdAt,
+    Expression<String>? cachedTranscript,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -12932,6 +12971,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
       if (isFreePreview != null) 'is_free_preview': isFreePreview,
       if (orderIndex != null) 'order_index': orderIndex,
       if (createdAt != null) 'created_at': createdAt,
+      if (cachedTranscript != null) 'cached_transcript': cachedTranscript,
     });
   }
 
@@ -12947,7 +12987,8 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
       Value<int>? durationMinutes,
       Value<bool>? isFreePreview,
       Value<int>? orderIndex,
-      Value<DateTime>? createdAt}) {
+      Value<DateTime>? createdAt,
+      Value<String?>? cachedTranscript}) {
     return LessonsCompanion(
       id: id ?? this.id,
       moduleId: moduleId ?? this.moduleId,
@@ -12961,6 +13002,7 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
       isFreePreview: isFreePreview ?? this.isFreePreview,
       orderIndex: orderIndex ?? this.orderIndex,
       createdAt: createdAt ?? this.createdAt,
+      cachedTranscript: cachedTranscript ?? this.cachedTranscript,
     );
   }
 
@@ -13003,6 +13045,9 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (cachedTranscript.present) {
+      map['cached_transcript'] = Variable<String>(cachedTranscript.value);
+    }
     return map;
   }
 
@@ -13020,7 +13065,8 @@ class LessonsCompanion extends UpdateCompanion<Lesson> {
           ..write('durationMinutes: $durationMinutes, ')
           ..write('isFreePreview: $isFreePreview, ')
           ..write('orderIndex: $orderIndex, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('cachedTranscript: $cachedTranscript')
           ..write(')'))
         .toString();
   }
@@ -40672,6 +40718,7 @@ typedef $$LessonsTableCreateCompanionBuilder = LessonsCompanion Function({
   Value<bool> isFreePreview,
   required int orderIndex,
   required DateTime createdAt,
+  Value<String?> cachedTranscript,
 });
 typedef $$LessonsTableUpdateCompanionBuilder = LessonsCompanion Function({
   Value<int> id,
@@ -40686,6 +40733,7 @@ typedef $$LessonsTableUpdateCompanionBuilder = LessonsCompanion Function({
   Value<bool> isFreePreview,
   Value<int> orderIndex,
   Value<DateTime> createdAt,
+  Value<String?> cachedTranscript,
 });
 
 final class $$LessonsTableReferences
@@ -40898,6 +40946,10 @@ class $$LessonsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cachedTranscript => $composableBuilder(
+      column: $table.cachedTranscript,
+      builder: (column) => ColumnFilters(column));
 
   $$ModulesTableFilterComposer get moduleId {
     final $$ModulesTableFilterComposer composer = $composerBuilder(
@@ -41166,6 +41218,10 @@ class $$LessonsTableOrderingComposer
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get cachedTranscript => $composableBuilder(
+      column: $table.cachedTranscript,
+      builder: (column) => ColumnOrderings(column));
+
   $$ModulesTableOrderingComposer get moduleId {
     final $$ModulesTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -41262,6 +41318,9 @@ class $$LessonsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get cachedTranscript => $composableBuilder(
+      column: $table.cachedTranscript, builder: (column) => column);
 
   $$ModulesTableAnnotationComposer get moduleId {
     final $$ModulesTableAnnotationComposer composer = $composerBuilder(
@@ -41541,6 +41600,7 @@ class $$LessonsTableTableManager extends RootTableManager<
             Value<bool> isFreePreview = const Value.absent(),
             Value<int> orderIndex = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<String?> cachedTranscript = const Value.absent(),
           }) =>
               LessonsCompanion(
             id: id,
@@ -41555,6 +41615,7 @@ class $$LessonsTableTableManager extends RootTableManager<
             isFreePreview: isFreePreview,
             orderIndex: orderIndex,
             createdAt: createdAt,
+            cachedTranscript: cachedTranscript,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -41569,6 +41630,7 @@ class $$LessonsTableTableManager extends RootTableManager<
             Value<bool> isFreePreview = const Value.absent(),
             required int orderIndex,
             required DateTime createdAt,
+            Value<String?> cachedTranscript = const Value.absent(),
           }) =>
               LessonsCompanion.insert(
             id: id,
@@ -41583,6 +41645,7 @@ class $$LessonsTableTableManager extends RootTableManager<
             isFreePreview: isFreePreview,
             orderIndex: orderIndex,
             createdAt: createdAt,
+            cachedTranscript: cachedTranscript,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>

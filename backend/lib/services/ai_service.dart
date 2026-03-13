@@ -6,6 +6,14 @@ class AIService {
   final String openaiApiKey;
   AIService({required this.openaiApiKey});
 
+  String _extractChatContent(String responseBody) {
+    final data = jsonDecode(responseBody) as Map<String, dynamic>;
+    final choices = data['choices'] as List<dynamic>;
+    final first = choices[0] as Map<String, dynamic>;
+    final message = first['message'] as Map<String, dynamic>;
+    return message['content'] as String;
+  }
+
   Future<Map<String, dynamic>> generateQuiz({
     required String topic,
     required int numQuestions,
@@ -28,27 +36,32 @@ class AIService {
           {
             'role': 'system',
             'content':
-                'You are a quiz generator. Always respond with valid JSON only, no markdown.'
+                'You are a quiz generator. Always respond with valid JSON only, no markdown.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.7,
         'max_tokens': 2048,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
-  String _buildPrompt(String topic, int numQuestions, String difficulty,
-      String? subjectContext, String? videoUrl) {
+  String _buildPrompt(
+    String topic,
+    int numQuestions,
+    String difficulty,
+    String? subjectContext,
+    String? videoUrl,
+  ) {
     final difficultyVi = {
       'easy': 'dễ',
       'medium': 'trung bình',
@@ -142,22 +155,22 @@ Lưu ý:
           {
             'role': 'system',
             'content':
-                'You are a course structure analyzer. Always respond with valid JSON only, no markdown.'
+                'You are a course structure analyzer. Always respond with valid JSON only, no markdown.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.7,
         'max_tokens': 4096,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -196,22 +209,22 @@ CHỈ TRẢ VỀ JSON.
           {
             'role': 'system',
             'content':
-                'You are a course organizer. Respond with valid JSON only.'
+                'You are a course organizer. Respond with valid JSON only.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.7,
         'max_tokens': 2048,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -262,22 +275,22 @@ CHỈ TRẢ VỀ JSON.
           {
             'role': 'system',
             'content':
-                'You are an advanced quiz generator. Always respond with valid JSON only.'
+                'You are an advanced quiz generator. Always respond with valid JSON only.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.5,
         'max_tokens': 4096,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -318,20 +331,20 @@ Ví dụ output mong muốn:
         'messages': [
           {
             'role': 'system',
-            'content': 'You are a helpful learning assistant.'
+            'content': 'You are a helpful learning assistant.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.7,
         'max_tokens': 150,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'] as String;
+      return _extractChatContent(response.body);
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -375,22 +388,79 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
           {
             'role': 'system',
             'content':
-                'You are an expert Educational Data Scientist. Always respond with valid JSON.'
+                'You are an expert Educational Data Scientist. Always respond with valid JSON.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.5,
       }),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
+  }
+
+  Future<String> _condenseTranscript(String transcript) async {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+    final words = transcript.split(RegExp(r'\s+'));
+
+    if (words.length <= 3000) return transcript;
+
+    const chunkSize = 2500;
+    final chunks = <String>[];
+    for (var i = 0; i < words.length; i += chunkSize) {
+      final end = (i + chunkSize).clamp(0, words.length);
+      chunks.add(words.sublist(i, end).join(' '));
+    }
+
+    final summaries = <String>[];
+    for (var i = 0; i < chunks.length; i++) {
+      try {
+        final response = await http.post(
+          Uri.parse(baseUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $openaiApiKey',
+          },
+          body: jsonEncode({
+            'model': 'gpt-4o-mini',
+            'messages': [
+              {
+                'role': 'system',
+                'content':
+                    'Bạn là trợ lý tóm tắt nội dung. Hãy tóm tắt chi tiết đoạn nội dung bài giảng dưới đây, giữ lại TẤT CẢ khái niệm quan trọng, thuật ngữ chuyên môn, ví dụ, và thông tin kỹ thuật. Tóm tắt bằng tiếng Việt.',
+              },
+              {
+                'role': 'user',
+                'content':
+                    'Đây là phần ${i + 1}/${chunks.length} của bài giảng. Hãy tóm tắt chi tiết:\n\n${chunks[i]}',
+              },
+            ],
+            'temperature': 0.3,
+            'max_tokens': 1024,
+          }),
+        );
+        if (response.statusCode == 200) {
+          summaries.add(_extractChatContent(response.body));
+        }
+      } catch (_) {
+        summaries.add(
+          chunks[i].substring(0, chunks[i].length.clamp(0, 500)),
+        );
+      }
+    }
+
+    return summaries
+        .asMap()
+        .entries
+        .map((e) => '=== Phần ${e.key + 1} ===\n${e.value}')
+        .join('\n\n');
   }
 
   Future<String> chatWithContext({
@@ -403,6 +473,14 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
 
     final hasContent = textContent.trim().isNotEmpty;
 
+    var processedContent = textContent;
+    if (hasContent) {
+      final wordCount = textContent.split(RegExp(r'\s+')).length;
+      if (wordCount > 3000) {
+        processedContent = await _condenseTranscript(textContent);
+      }
+    }
+
     final systemPrompt = hasContent
         ? '''
 Bạn là trợ lý học tập AI thông minh. Nhiệm vụ: trả lời câu hỏi của sinh viên DỰA TRÊN nội dung bài học được cung cấp bên dưới.
@@ -410,7 +488,7 @@ Bạn là trợ lý học tập AI thông minh. Nhiệm vụ: trả lời câu h
 Bài học: "$lessonTitle"
 Nội dung bài học:
 """
-$textContent
+$processedContent
 """
 
 Quy tắc:
@@ -418,7 +496,7 @@ Quy tắc:
 2. Ưu tiên trả lời dựa trên nội dung bài học. Nếu câu hỏi liên quan đến chủ đề bài học nhưng không có trong nội dung, hãy dùng kiến thức chuyên môn để trả lời và ghi chú rằng đây là kiến thức bổ sung.
 3. Giải thích rõ ràng, dễ hiểu, có ví dụ khi cần.
 4. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
-5. Ngắn gọn nhưng đầy đủ thông tin.
+5. Trả lời đầy đủ, chi tiết, không cắt ngắn.
 '''
         : '''
 Bạn là trợ lý học tập AI thông minh. Nhiệm vụ: trả lời câu hỏi của sinh viên về bài học "$lessonTitle".
@@ -430,7 +508,7 @@ Quy tắc:
 2. Trả lời mọi câu hỏi liên quan đến chủ đề bài học và các chủ đề liên quan trong khóa học (ví dụ: nếu bài học về Java fullstack thì các câu hỏi về Spring Boot, React, HTML, CSS, database, API... đều hợp lệ).
 3. Giải thích rõ ràng, dễ hiểu, có ví dụ khi cần.
 4. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
-5. Ngắn gọn nhưng đầy đủ thông tin.
+5. Trả lời đầy đủ, chi tiết, không cắt ngắn.
 6. Chỉ từ chối các câu hỏi hoàn toàn không liên quan đến học tập.
 ''';
 
@@ -450,16 +528,16 @@ Quy tắc:
         'model': 'gpt-4o-mini',
         'messages': messages,
         'temperature': 0.7,
-        'max_tokens': 1024,
+        'max_tokens': 2048,
       }),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'] as String;
+      return _extractChatContent(response.body);
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -538,9 +616,9 @@ Yêu cầu:
           {
             'role': 'system',
             'content':
-                'You are a student verification system. Always respond with valid JSON only, no markdown.'
+                'You are a student verification system. Always respond with valid JSON only, no markdown.',
           },
-          {'role': 'user', 'content': fullPrompt}
+          {'role': 'user', 'content': fullPrompt},
         ],
         'temperature': 0.7,
         'max_tokens': 512,
@@ -548,13 +626,13 @@ Yêu cầu:
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -564,17 +642,23 @@ Yêu cầu:
   }) async {
     const baseUrl = 'https://api.openai.com/v1/chat/completions';
 
+    final wordCount = textContent.split(RegExp(r'\s+')).length;
+    var contentForSummary = textContent;
+    if (wordCount > 3000) {
+      contentForSummary = await _condenseTranscript(textContent);
+    }
+
     final prompt = '''
 Hãy tóm tắt nội dung bài học "$lessonTitle" bên dưới.
 
 Nội dung bài học:
 """
-$textContent
+$contentForSummary
 """
 
 Trả về JSON theo format sau (CHỈ JSON, KHÔNG text khác):
 {
-  "summary": "Đoạn tóm tắt ngắn gọn 3-5 câu về nội dung chính của bài học",
+  "summary": "Đoạn tóm tắt chi tiết 5-8 câu về nội dung chính của bài học, bao gồm các khái niệm cốt lõi",
   "keyPoints": [
     "Điểm chính 1",
     "Điểm chính 2",
@@ -585,9 +669,10 @@ Trả về JSON theo format sau (CHỈ JSON, KHÔNG text khác):
 
 Yêu cầu:
 - Tóm tắt bằng tiếng Việt
-- keyPoints: 3-7 điểm chính quan trọng nhất
-- keywords: 3-8 từ khóa chủ đề
-- Ngắn gọn, súc tích, dễ hiểu
+- summary: 5-8 câu chi tiết, bao phủ TOÀN BỘ nội dung chính
+- keyPoints: 5-10 điểm chính quan trọng nhất, mỗi điểm 1-2 câu
+- keywords: 5-10 từ khóa/thuật ngữ chủ đề
+- Đầy đủ, chi tiết, không bỏ sót nội dung quan trọng
 ''';
 
     final response = await http.post(
@@ -602,23 +687,23 @@ Yêu cầu:
           {
             'role': 'system',
             'content':
-                'You are a lecture summarizer. Always respond with valid JSON only, no markdown.'
+                'You are a lecture summarizer. Always respond with valid JSON only, no markdown.',
           },
-          {'role': 'user', 'content': prompt}
+          {'role': 'user', 'content': prompt},
         ],
         'temperature': 0.5,
-        'max_tokens': 1024,
+        'max_tokens': 2048,
       }),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['choices'][0]['message']['content'] as String;
+      final text = _extractChatContent(response.body);
       final jsonStr = _extractJson(text);
       return jsonDecode(jsonStr) as Map<String, dynamic>;
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -666,11 +751,11 @@ Câu lệnh từ chối mẫu: "Rất tiếc, tôi được thiết kế để h
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'] as String;
+      return _extractChatContent(response.body);
     } else {
       throw Exception(
-          'OpenAI API Error: ${response.statusCode} - ${response.body}');
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -680,7 +765,6 @@ Câu lệnh từ chối mẫu: "Rất tiếc, tôi được thiết kế để h
     final request = http.MultipartRequest('POST', Uri.parse(baseUrl));
     request.headers['Authorization'] = 'Bearer $openaiApiKey';
     request.fields['model'] = 'whisper-1';
-    request.fields['language'] = 'vi';
     request.files.add(
       await http.MultipartFile.fromPath('file', audioFile.path),
     );
@@ -689,11 +773,12 @@ Câu lệnh từ chối mẫu: "Rất tiếc, tôi được thiết kế để h
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
       return data['text'] as String;
     } else {
       throw Exception(
-          'Whisper API Error: ${response.statusCode} - ${response.body}');
+        'Whisper API Error: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 }

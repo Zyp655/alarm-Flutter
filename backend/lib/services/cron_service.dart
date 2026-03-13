@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:backend/database/database.dart';
+import 'package:backend/helpers/log.dart';
 import 'package:backend/services/attendance_engine.dart';
 import 'package:backend/services/notification_engine.dart';
 
@@ -16,7 +17,7 @@ class CronService {
   }
 
   void start() {
-    print('[Cron] Service started. Checking every 60 seconds.');
+    Log.info('Cron', 'Service started. Checking every 60 seconds.');
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _tick());
     _tick();
   }
@@ -24,7 +25,7 @@ class CronService {
   void stop() {
     _timer?.cancel();
     _timer = null;
-    print('[Cron] Service stopped.');
+    Log.info('Cron', 'Service stopped.');
   }
 
   Future<void> _tick() async {
@@ -59,12 +60,12 @@ class CronService {
   }
 
   Future<void> _runJob(String name, Future<void> Function() job) async {
-    print('[Cron] Running job: $name at ${DateTime.now()}');
+    Log.info('Cron', 'Running job: $name at ${DateTime.now()}');
     try {
       await job();
-      print('[Cron] Job $name completed successfully.');
+      Log.info('Cron', 'Job $name completed successfully.');
     } catch (e, st) {
-      print('[Cron] Job $name failed: $e\n$st');
+      Log.error('Cron', 'Job $name failed', e, st);
     }
   }
 

@@ -1,4 +1,4 @@
-﻿import 'package:backend/repositories/user_repository.dart';
+import 'package:backend/repositories/user_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:dotenv/dotenv.dart';
@@ -17,7 +17,7 @@ Future<Response> onRequest(RequestContext context) async {
         body: {'message': 'Vui lòng nhập đầy đủ email và mật khẩu'});
   }
   final user = await repo.getUserByEmail(email);
-  if (user == null || !await repo.verifyPassword(password, user.passwordHash)) {
+  if (user == null || !await repo.verifyPassword(password, user.passwordHash, email: email)) {
     return Response.json(
         statusCode: 401, body: {'message': 'Sai email hoặc mật khẩu'});
   }

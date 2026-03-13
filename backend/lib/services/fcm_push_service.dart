@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:backend/database/database.dart';
+import 'package:backend/helpers/log.dart';
 
 class FcmPushService {
   static String? _projectId;
@@ -84,7 +85,7 @@ class FcmPushService {
         return _accessToken;
       }
     } catch (e) {
-      print('FCM token error: $e');
+      Log.error('FCM', 'Token error', e);
     }
     return null;
   }
@@ -160,15 +161,15 @@ class FcmPushService {
           .getSingleOrNull();
 
       if (user == null || user.fcmToken == null) {
-        print('[FCM] No user or fcmToken for recipientId=$recipientId');
+        Log.info('FCM', 'No user or fcmToken for recipientId=$recipientId');
         return;
       }
-      print(
-          '[FCM] Sending to recipientId=$recipientId, token=${user.fcmToken!.substring(0, 20)}...');
+      Log.info(
+          'FCM', 'Sending to recipientId=$recipientId, token=${user.fcmToken!.substring(0, 20)}...');
 
       final accessToken = await _getAccessToken();
       if (accessToken == null || _projectId == null) {
-        print('[FCM] Failed to get access token or projectId');
+        Log.warning('FCM', 'Failed to get access token or projectId');
         return;
       }
 
@@ -208,9 +209,9 @@ class FcmPushService {
         },
         body: jsonEncode(messageBody),
       );
-      print('[FCM] Response: ${response.statusCode} ${response.body}');
+      Log.info('FCM', 'Response: ${response.statusCode} ${response.body}');
     } catch (e) {
-      print('FCM push error: $e');
+      Log.error('FCM', 'Push error', e);
     }
   }
 
@@ -254,7 +255,7 @@ class FcmPushService {
         body: jsonEncode(messageBody),
       );
     } catch (e) {
-      print('FCM sendToToken error: $e');
+      Log.error('FCM', 'sendToToken error', e);
     }
   }
 }

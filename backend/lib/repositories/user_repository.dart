@@ -22,8 +22,22 @@ class UserRepository {
         .getSingleOrNull();
   }
 
-  Future<bool> verifyPassword(String rawPassword, String hashedPassword) async {
-    return IsolateUtils.checkPassword(rawPassword, hashedPassword);
+  Future<bool> verifyPassword(
+    String rawPassword,
+    String hashedPassword, {
+    String? email,
+  }) async {
+    var hash = hashedPassword;
+    if (hash.startsWith(r'$10$')) {
+      hash = '\$2b\$10\$${hash.substring(4)}';
+    }
+    final ok = await IsolateUtils.checkPassword(rawPassword, hash);
+    if (ok && hash != hashedPassword && email != null) {
+      final newHash = await IsolateUtils.hashPassword(rawPassword);
+      await (db.update(db.users)..where((t) => t.email.equals(email)))
+          .write(UsersCompanion(passwordHash: Value(newHash)));
+    }
+    return ok;
   }
 
   Future<void> saveResetToken(String email, String token) async {

@@ -22,11 +22,31 @@ Future<Response> onRequest(RequestContext context, String id) async {
     final sortOrder = params['sortOrder'] ?? 'asc';
     final searchQuery = params['search']?.toLowerCase();
     final threshold = int.tryParse(params['threshold'] ?? '3') ?? 3;
-    final enrollments = await (db.select(db.enrollments)
+
+    final lmsEnrollments = await (db.select(db.enrollments)
           ..where((e) => e.courseId.equals(courseId)))
         .get();
+
+    final isAcademic = lmsEnrollments.isEmpty;
+    List<int> enrolledUserIds = [];
+
+    if (isAcademic) {
+      final classes = await (db.select(db.courseClasses)
+            ..where((c) => c.academicCourseId.equals(courseId)))
+          .get();
+      final classIds = classes.map((c) => c.id).toList();
+      if (classIds.isNotEmpty) {
+        final classEnrollments = await (db.select(db.courseClassEnrollments)
+              ..where((e) => e.courseClassId.isIn(classIds)))
+            .get();
+        enrolledUserIds = classEnrollments.map((e) => e.studentId).toSet().toList();
+      }
+    }
+
     final modules = await (db.select(db.modules)
-          ..where((m) => m.courseId.equals(courseId)))
+          ..where((m) => isAcademic
+              ? m.academicCourseId.equals(courseId)
+              : m.courseId.equals(courseId)))
         .get();
     final moduleIds = modules.map((m) => m.id).toList();
     int totalLessons = 0;
@@ -43,9 +63,14 @@ Future<Response> onRequest(RequestContext context, String id) async {
     double totalProgressPercent = 0;
     double totalQuizScore = 0;
     int quizScoreCount = 0;
-    for (final enrollment in enrollments) {
+
+    final userIdsToProcess = isAcademic
+        ? enrolledUserIds
+        : lmsEnrollments.map((e) => e.userId).toList();
+
+    for (final userId in userIdsToProcess) {
       final user = await (db.select(db.users)
-            ..where((u) => u.id.equals(enrollment.userId)))
+            ..where((u) => u.id.equals(userId)))
           .getSingleOrNull();
       if (user == null) continue;
       if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -63,7 +88,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
         final lessonIds = lessons.map((l) => l.id).toList();
         if (lessonIds.isNotEmpty) {
           final progress = await (db.select(db.lessonProgress)
-                ..where((p) => p.userId.equals(enrollment.userId))
+                ..where((p) => p.userId.equals(userId))
                 ..where((p) => p.lessonId.isIn(lessonIds))
                 ..where((p) => p.isCompleted.equals(true)))
               .get();
@@ -97,7 +122,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
       double? quizAverage;
       if (moduleIds.isNotEmpty) {
         final quizAttempts = await (db.select(db.quizAttempts)
-              ..where((a) => a.userId.equals(enrollment.userId)))
+              ..where((a) => a.userId.equals(userId)))
             .get();
         if (quizAttempts.isNotEmpty) {
           final quizzes = await (db.select(db.quizzes)
@@ -115,21 +140,29 @@ Future<Response> onRequest(RequestContext context, String id) async {
           }
         }
       }
+
+      DateTime? enrolledAt;
+      DateTime? lastAccessedAt;
+      if (!isAcademic) {
+        final enrollment = lmsEnrollments.firstWhere((e) => e.userId == userId);
+        enrolledAt = enrollment.enrolledAt;
+        lastAccessedAt = enrollment.lastAccessedAt;
+      }
+
       final lastActivity = await (db.select(db.studentActivityLogs)
-            ..where((a) => a.userId.equals(enrollment.userId))
-            ..where((a) => a.courseId.equals(courseId))
+            ..where((a) => a.userId.equals(userId))
             ..orderBy([(a) => OrderingTerm.desc(a.timestamp)])
             ..limit(1))
           .getSingleOrNull();
       int daysInactive = 0;
       bool isAtRisk = false;
-      if (enrollment.lastAccessedAt != null) {
+      if (lastAccessedAt != null) {
         final now = DateTime.now();
-        daysInactive = now.difference(enrollment.lastAccessedAt!).inDays;
+        daysInactive = now.difference(lastAccessedAt).inDays;
         if (daysInactive >= threshold && status != 'completed') {
           isAtRisk = true;
         }
-      } else {
+      } else if (!isAcademic) {
         isAtRisk = true;
         daysInactive = -1;
       }
@@ -137,14 +170,14 @@ Future<Response> onRequest(RequestContext context, String id) async {
         'userId': user.id,
         'email': user.email,
         'fullName': user.fullName ?? 'Unknown',
-        'enrolledAt': enrollment.enrolledAt.toIso8601String(),
+        'enrolledAt': enrolledAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
         'completedLessons': completedLessons,
         'totalLessons': totalLessons,
         'progressPercent': progressPercent,
         'status': status,
         'quizAverage': quizAverage,
-        'lastAccessedAt': enrollment.lastAccessedAt?.toIso8601String(),
-        'lastNudgedAt': enrollment.lastNudgedAt?.toIso8601String(),
+        'lastAccessedAt': lastAccessedAt?.toIso8601String(),
+        'lastNudgedAt': null,
         'daysInactive': daysInactive,
         'isAtRisk': isAtRisk,
         'lastActivity': lastActivity != null
