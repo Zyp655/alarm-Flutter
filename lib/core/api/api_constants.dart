@@ -5,8 +5,7 @@ class ApiConstants {
   static const String _localIP = '192.168.1.42';
   static const int _port = 8080;
 
-  // TODO: Replace with your production backend URL when deployed
-  static const String _productionUrl = '';
+  static const String _productionUrl = 'https://lms-production-c546.up.railway.app';
 
   static String get baseUrl {
     if (_productionUrl.isNotEmpty) {
