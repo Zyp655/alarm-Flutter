@@ -1,5 +1,7 @@
 FROM dart:stable AS build
 
+ENV PATH="$PATH:/root/.pub-cache/bin"
+
 RUN dart pub global activate dart_frog_cli
 
 WORKDIR /app
@@ -9,7 +11,7 @@ RUN dart pub get
 
 COPY . .
 RUN dart pub get --offline
-RUN dart pub global run dart_frog build
+RUN dart_frog build
 RUN dart compile exe build/bin/server.dart -o build/bin/server
 
 FROM debian:bookworm-slim
