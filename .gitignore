@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Admin SDK key
+*firebase-adminsdk*.json
+
+# Uploaded files
+backend/uploads/documents/
+backend/uploads/videos/
+
+# Agent / Gemini
+.agent/
+.agents/
+.gemini/

@@ -68,15 +68,11 @@ dependencies:
   rive: ^0.13.0
   go_router: ^14.8.1
 
-  # Module 2: Offline Learning dependencies
-  encrypt: ^5.0.3
   path_provider: ^2.1.5
   path: ^1.9.0
-  connectivity_plus: ^6.1.1
-  sqflite: ^2.4.1
   share_plus: ^12.0.1
-  record: ^6.2.0
   cached_network_image: ^3.4.1
+  record: ^6.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

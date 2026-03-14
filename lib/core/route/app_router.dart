@@ -22,17 +22,12 @@ import '../../features/chat/presentation/pages/chat_room_page.dart';
 import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/search/presentation/pages/global_search_page.dart';
 import '../../features/search/presentation/bloc/search_bloc.dart';
-import '../../features/quiz/presentation/pages/generate_quiz_page.dart';
 import '../../features/quiz/presentation/pages/take_quiz_page.dart';
 import '../../features/quiz/presentation/pages/quiz_result_page.dart';
-import '../../features/quiz/presentation/pages/my_quizzes_page.dart';
 import '../../features/quiz/presentation/pages/quiz_statistics_page.dart';
 import '../../features/quiz/presentation/pages/leaderboard_page.dart';
-import '../../features/quiz/presentation/pages/multiplayer_lobby_page.dart';
-import '../../features/quiz/presentation/pages/multiplayer_game_page.dart';
 import '../../features/quiz/presentation/bloc/quiz_bloc.dart';
 import '../../features/quiz/presentation/bloc/leaderboard/leaderboard_bloc.dart';
-import '../../features/quiz/presentation/bloc/multiplayer/multiplayer_bloc.dart';
 import '../../features/quiz/domain/entities/quiz_entity.dart';
 import '../../features/analytics/presentation/pages/analytics_dashboard_page.dart';
 import '../../features/analytics/presentation/bloc/analytics_bloc.dart';
@@ -206,17 +201,6 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: AppRoutes.generateQuiz,
-      builder: (context, state) {
-        final args = state.extra as Map<String, dynamic>?;
-        return GenerateQuizPage(
-          isForMultiplayer: args?['isForMultiplayer'] as bool? ?? false,
-          videoUrl: args?['videoUrl'] as String?,
-          lessonTitle: args?['lessonTitle'] as String?,
-        );
-      },
-    ),
-    GoRoute(
       path: AppRoutes.takeQuiz,
       builder: (context, state) {
         final args = state.extra as Map<String, dynamic>;
@@ -231,16 +215,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final result = state.extra as QuizResultEntity;
         return QuizResultPage(result: result);
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.myQuizzes,
-      builder: (context, state) {
-        final userId = state.extra as int;
-        return BlocProvider(
-          create: (_) => sl<QuizBloc>(),
-          child: MyQuizzesPage(userId: userId),
-        );
       },
     ),
     GoRoute(
@@ -262,20 +236,6 @@ final GoRouter appRouter = GoRouter(
           child: LeaderboardPage(classId: classId),
         );
       },
-    ),
-    GoRoute(
-      path: AppRoutes.multiplayerLobby,
-      builder: (context, state) => BlocProvider(
-        create: (_) => sl<MultiplayerBloc>(),
-        child: const MultiplayerLobbyPage(),
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.multiplayerGame,
-      builder: (context, state) => BlocProvider(
-        create: (_) => sl<MultiplayerBloc>(),
-        child: const MultiplayerGamePage(),
-      ),
     ),
 
     GoRoute(
