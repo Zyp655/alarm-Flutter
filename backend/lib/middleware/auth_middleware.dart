@@ -16,6 +16,10 @@ const _publicExact = [
 
 Handler authMiddleware(Handler handler) {
   return (context) async {
+    if (context.request.method == HttpMethod.options) {
+      return handler(context);
+    }
+
     final path = context.request.uri.path;
 
     if (_publicExact.contains(path) ||
