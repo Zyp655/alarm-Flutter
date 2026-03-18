@@ -63,7 +63,7 @@ class InsightsTab extends StatelessWidget {
                     Icon(Icons.auto_awesome, color: AppColors.primary),
                     SizedBox(width: 8),
                     Text(
-                      'AI Data Scientist',
+                      'Phân tích AI',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -137,6 +137,7 @@ class InsightsTab extends StatelessWidget {
                   final stat = e.value;
                   final dropRate =
                       ((stat['dropOffRate'] as double? ?? 0) * 100);
+                  final barWidth = moduleStats.length == 1 ? 40.0 : (moduleStats.length <= 3 ? 24.0 : 16.0);
 
                   return BarChartGroupData(
                     x: index,
@@ -146,7 +147,7 @@ class InsightsTab extends StatelessWidget {
                         color: dropRate > 30
                             ? Colors.redAccent
                             : Colors.blueAccent,
-                        width: 16,
+                        width: barWidth,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ],
@@ -157,16 +158,25 @@ class InsightsTab extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      reservedSize: 44,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index >= 0 && index < moduleStats.length) {
+                          final title = moduleStats[index]['title'] as String? ?? 'M${index + 1}';
+                          final display = title.length > 12 ? '${title.substring(0, 12)}...' : title;
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'M${index + 1}',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 10,
+                            child: SizedBox(
+                              width: 60,
+                              child: Text(
+                                display,
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 9,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           );
@@ -255,7 +265,7 @@ class InsightsTab extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              'Drop-off: ${(stat['dropOffRate'] * 100).toStringAsFixed(1)}%',
+                              'Rơi rớt: ${(stat['dropOffRate'] * 100).toStringAsFixed(1)}%',
                               style: TextStyle(
                                 color: Colors.redAccent.withAlpha(200),
                                 fontSize: 12,
@@ -263,7 +273,7 @@ class InsightsTab extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Avg Quiz: ${stat['avgQuizScore'] ?? 'N/A'}',
+                              'ĐTB Quiz: ${stat['avgQuizScore'] ?? 'N/A'}',
                               style: const TextStyle(
                                 color: AppColors.warning,
                                 fontSize: 12,

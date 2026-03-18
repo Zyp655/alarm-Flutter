@@ -328,7 +328,7 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
                 icon: Icon(Icons.list_alt_rounded, size: 18),
               ),
               Tab(
-                text: 'Insights',
+                text: 'Ph\u00E2n t\u00EDch',
                 icon: Icon(Icons.insights_rounded, size: 18),
               ),
             ],

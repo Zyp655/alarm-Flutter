@@ -70,7 +70,7 @@ class _CourseInsightsPageState extends State<CourseInsightsPage> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
-          '🤖 AI Insights',
+          '🤖 Phân tích AI',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -304,7 +304,7 @@ class _CourseInsightsPageState extends State<CourseInsightsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '📊 Completion Funnel',
+            '📊 Hoàn thành từng chương',
             style: TextStyle(
               color: cs.onSurface,
               fontWeight: FontWeight.bold,

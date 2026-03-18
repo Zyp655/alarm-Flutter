@@ -435,7 +435,7 @@ class _ModuleCard extends StatelessWidget {
               height: 3,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [accentColor, accentColor.withAlpha(100)],
+                  colors: [AppColors.primary, AppColors.primary.withAlpha(80)],
                 ),
               ),
             ),
@@ -851,7 +851,6 @@ class _AddLessonButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: () => AddLessonDialog.show(context, moduleId),
       borderRadius: BorderRadius.circular(12),
@@ -860,8 +859,7 @@ class _AddLessonButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-            style: BorderStyle.solid,
+            color: AppColors.primary.withAlpha(60),
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1194,17 +1192,9 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
       margin: const EdgeInsets.symmetric(horizontal: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF1A2E1A), const Color(0xFF16381E)]
-              : [const Color(0xFFF0FFF4), const Color(0xFFE6FFED)],
-        ),
+        color: isDark ? AppColors.darkSurfaceVariant : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A4A2A) : const Color(0xFFC6F6D5),
-        ),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1214,14 +1204,12 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00B894), Color(0xFF00CEC9)],
-                  ),
+                  color: AppColors.primary.withAlpha(isDark ? 30 : 15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.assignment_rounded,
-                  color: Colors.white,
+                  color: AppColors.primary,
                   size: 16,
                 ),
               ),
@@ -1327,14 +1315,12 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: _showCreateAssignmentDialog,
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Tạo bài tập', style: TextStyle(fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B894),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
+                  icon: Icon(Icons.add_rounded, size: 16, color: AppColors.primary),
+                  label: Text('Tạo bài tập', style: TextStyle(fontSize: 13, color: AppColors.primary)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.primary.withAlpha(80)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1344,7 +1330,7 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -1355,12 +1341,10 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text('Tạo Quiz AI', style: TextStyle(fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
+                  icon: const Icon(Icons.auto_awesome, size: 16, color: AppColors.accent),
+                  label: const Text('Tạo Quiz AI', style: TextStyle(fontSize: 13, color: AppColors.accent)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.accent.withAlpha(80)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

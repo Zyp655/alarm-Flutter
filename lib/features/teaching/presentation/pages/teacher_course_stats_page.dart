@@ -108,7 +108,7 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
           if (_selectedCourseId != null)
             IconButton(
               icon: const Icon(Icons.auto_awesome),
-              tooltip: 'AI Insights',
+              tooltip: 'Ph\u00E2n t\u00EDch AI',
               onPressed: () {
                 final course = _courses.firstWhere(
                   (c) => c['id'] == _selectedCourseId,

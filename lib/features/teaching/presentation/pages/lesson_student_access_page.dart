@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -70,7 +70,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Lỗi tải dữ liệu: $e');
+      if (mounted) setState(() => _error = 'Loi tai du lieu: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -135,7 +135,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
             const SizedBox(height: 12),
             Text(_error!, style: TextStyle(color: AppColors.error)),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _load, child: const Text('Thử lại')),
+            FilledButton(onPressed: _load, child: const Text('Thu lai')),
           ],
         ),
       );
@@ -151,8 +151,8 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
           child: Row(
             children: [
               _buildSummaryChip(
-                'ðŸŸ¢ $_viewed',
-                'Đã xem',
+                '\u2705 $_viewed',
+                '',
                 AppColors.success,
                 _filter == _FilterMode.viewed,
                 () => setState(() => _filter = _filter == _FilterMode.viewed
@@ -161,8 +161,8 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
               ),
               const SizedBox(width: 8),
               _buildSummaryChip(
-                'ðŸŸ¡ $_late',
-                'Muộn',
+                '\u26A0 $_late',
+                '',
                 AppColors.warning,
                 _filter == _FilterMode.late,
                 () => setState(() => _filter = _filter == _FilterMode.late
@@ -171,8 +171,8 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
               ),
               const SizedBox(width: 8),
               _buildSummaryChip(
-                'ðŸ”´ $_absent',
-                'Vắng',
+                '\u274C $_absent',
+                '',
                 AppColors.error,
                 _filter == _FilterMode.absent,
                 () => setState(() => _filter = _filter == _FilterMode.absent
@@ -197,7 +197,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
           child: TextField(
             controller: _searchCtrl,
             decoration: InputDecoration(
-              hintText: 'Tìm theo tên, MSSV...',
+              hintText: 'Tim theo ten, MSSV...',
               hintStyle: TextStyle(
                 color: AppColors.textSecondary(context),
                 fontSize: 14,
@@ -228,7 +228,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Hiển thị ${filtered.length}/$total',
+                'Hien thi ${filtered.length}/$total',
                 style: TextStyle(
                   color: AppColors.textSecondary(context),
                   fontSize: 12,
@@ -248,7 +248,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
                           color: AppColors.textSecondary(context)),
                       const SizedBox(height: 12),
                       Text(
-                        'Không có sinh viên phù hợp',
+                        'Khong co sinh vien phu hop',
                         style: TextStyle(
                           color: AppColors.textSecondary(context),
                         ),
@@ -314,17 +314,17 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
     switch (status) {
       case 'viewed':
         statusColor = AppColors.success;
-        statusLabel = isCompleted ? 'Hoàn thành' : 'Đã xem';
+        statusLabel = isCompleted ? 'Hoan thanh' : 'Da xem';
         statusIcon = isCompleted ? Icons.check_circle : Icons.visibility;
         break;
       case 'late':
         statusColor = AppColors.warning;
-        statusLabel = 'Muộn';
+        statusLabel = 'Muon';
         statusIcon = Icons.schedule;
         break;
       default:
         statusColor = AppColors.error;
-        statusLabel = 'Vắng';
+        statusLabel = 'Vang';
         statusIcon = Icons.cancel_outlined;
     }
 
@@ -334,9 +334,9 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
         final dt = DateTime.parse(lastAccess);
         final diff = DateTime.now().difference(dt);
         if (diff.inMinutes < 60) {
-          timeLabel = '${diff.inMinutes}p trước';
+          timeLabel = '${diff.inMinutes}p truoc';
         } else if (diff.inHours < 24) {
-          timeLabel = '${diff.inHours}h trước';
+          timeLabel = '${diff.inHours}h truoc';
         } else {
           timeLabel = DateFormat('dd/MM HH:mm').format(dt);
         }
@@ -378,7 +378,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    studentId.isNotEmpty ? studentId : 'Chưa có MSSV',
+                    studentId.isNotEmpty ? studentId : 'Chua co MSSV',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary(context),
@@ -387,7 +387,7 @@ class _LessonStudentAccessPageState extends State<LessonStudentAccessPage> {
                   if (timeLabel.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      '⏰ $timeLabel${watchedPos > 0 ? " • ${_formatPosition(watchedPos)}" : ""}',
+                      '\u23F0 $timeLabel${watchedPos > 0 ? " \u2022 ${_formatPosition(watchedPos)}" : ""}',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary(context),
