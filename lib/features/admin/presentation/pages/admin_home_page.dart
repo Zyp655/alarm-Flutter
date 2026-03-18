@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -21,7 +21,6 @@ class AdminHomePage extends StatefulWidget {
 class _AdminHomePageState extends State<AdminHomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isLoading = false;
 
   List<Map<String, dynamic>> _departments = [];
   List<Map<String, dynamic>> _semesters = [];
@@ -67,10 +66,7 @@ class _AdminHomePageState extends State<AdminHomePage>
     context.read<AdminBloc>().add(LoadAnalytics());
   }
 
-  void _seedRoadmap() {
-    setState(() => _isLoading = true);
-    context.read<AdminBloc>().add(SeedRoadmap());
-  }
+
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -124,14 +120,10 @@ class _AdminHomePageState extends State<AdminHomePage>
             _isLoadingAnalytics = false;
           });
         } else if (state is AdminActionSuccess) {
-          setState(() => _isLoading = false);
           _snack(state.message);
           _loadAcademicData();
         } else if (state is AdminError) {
-          setState(() {
-            _isLoading = false;
-            _isLoadingAnalytics = false;
-          });
+          setState(() => _isLoadingAnalytics = false);
           _snack(state.message, isError: true);
         }
       },
@@ -303,7 +295,7 @@ class _AdminHomePageState extends State<AdminHomePage>
                 isLoading: _isLoadingAnalytics,
                 onRefresh: () async => _loadAnalytics(),
               ),
-              ToolsTab(isLoading: _isLoading, onSeedRoadmap: _seedRoadmap),
+              const ToolsTab(),
             ],
           ),
         ),

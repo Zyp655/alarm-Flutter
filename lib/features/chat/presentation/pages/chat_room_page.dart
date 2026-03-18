@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/api/api_constants.dart';
 import '../../domain/entities/chat_message_entity.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
@@ -100,16 +103,54 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     );
     if (image == null) return;
 
-    _chatBloc.add(
-      SendMessage(
-        conversationId: widget.conversationId,
-        senderId: _currentUserId,
-        text: '📷 Ảnh',
-        mediaUrl: image.path,
-        messageType: 'image',
-      ),
-    );
-    _scrollToBottom();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final uri = Uri.parse('${ApiConstants.baseUrl}/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['uploadedBy'] = '$_currentUserId'
+        ..fields['fileType'] = 'image'
+        ..files.add(await http.MultipartFile.fromPath('file', image.path));
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      final streamResp = await request.send();
+      final resp = await http.Response.fromStream(streamResp);
+
+      if (resp.statusCode == 201) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final fileData = body['file'] as Map<String, dynamic>;
+        final uploadUrl = fileData['uploadUrl'] as String? ?? fileData['filePath'] as String? ?? '';
+
+        final fullUrl = uploadUrl.startsWith('http')
+            ? uploadUrl
+            : '${ApiConstants.baseUrl}$uploadUrl';
+
+        _chatBloc.add(
+          SendMessage(
+            conversationId: widget.conversationId,
+            senderId: _currentUserId,
+            text: '📷 Ảnh',
+            mediaUrl: fullUrl,
+            messageType: 'image',
+          ),
+        );
+        _scrollToBottom();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gửi ảnh thất bại'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _scrollToBottom() {

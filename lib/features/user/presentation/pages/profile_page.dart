@@ -16,7 +16,6 @@ import '../bloc/user_bloc.dart';
 import '../bloc/user_event.dart';
 import '../bloc/user_state.dart';
 import '../../../../injection_container.dart' as di;
-import '../widgets/transcript_dialog.dart';
 import '../widgets/grade_calculator_dialog.dart';
 import '../widgets/change_password_dialog.dart';
 
@@ -207,15 +206,6 @@ class _ProfileViewState extends State<ProfileView>
                                 textColor: textColor,
                                 children: [
                                   _buildMenuItem(
-                                    icon: Icons.assessment,
-                                    label: 'Xem Bảng Điểm',
-                                    color: AppColors.info,
-                                    onTap: () => showDialog(
-                                      context: context,
-                                      builder: (_) => const TranscriptDialog(),
-                                    ),
-                                  ),
-                                  _buildMenuItem(
                                     icon: Icons.calculate,
                                     label: 'Tính Điểm',
                                     color: AppColors.success,
@@ -225,56 +215,8 @@ class _ProfileViewState extends State<ProfileView>
                                           const GradeCalculatorDialog(),
                                     ),
                                   ),
-                                  _buildMenuItem(
-                                    icon: Icons.auto_awesome,
-                                    label: 'Quiz AI',
-                                    color: AppColors.secondary,
-                                    onTap: () =>
-                                        context.push(AppRoutes.generateQuiz),
-                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
-
-                              _buildSectionCard(
-                                title: 'Hoạt động',
-                                icon: Icons.explore_outlined,
-                                theme: theme,
-                                cardColor: cardColor,
-                                textColor: textColor,
-                                children: [
-                                  _buildMenuItem(
-                                    icon: Icons.people,
-                                    label: 'Multiplayer Quiz',
-                                    color: AppColors.primary,
-                                    onTap: () => context.push(
-                                      AppRoutes.multiplayerLobby,
-                                    ),
-                                  ),
-                                  _buildMenuItem(
-                                    icon: Icons.leaderboard,
-                                    label: 'Bảng xếp hạng',
-                                    color: AppColors.warning,
-                                    onTap: () {
-                                      final userSt = context
-                                          .read<UserBloc>()
-                                          .state;
-                                      if (userSt is UserProfileLoaded) {
-                                        context.push(AppRoutes.leaderboard);
-                                      }
-                                    },
-                                  ),
-                                  _buildMenuItem(
-                                    icon: Icons.bar_chart,
-                                    label: 'Thống kê học tập',
-                                    color: AppColors.info,
-                                    onTap: () =>
-                                        context.push(AppRoutes.analytics),
-                                  ),
-
-                                ],
-                              ),
-                              const SizedBox(height: 16),
                             ],
 
                             _buildSectionCard(

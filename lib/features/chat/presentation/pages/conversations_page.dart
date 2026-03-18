@@ -80,16 +80,6 @@ class _ConversationsView extends StatelessWidget {
         ),
         backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit_square, color: AppColors.primary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Tạo cuộc trò chuyện mới')),
-              );
-            },
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

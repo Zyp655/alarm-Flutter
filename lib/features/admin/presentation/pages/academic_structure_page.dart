@@ -469,10 +469,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
               : cs.outlineVariant.withValues(alpha: 0.15),
         ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onEdit,
-        child: Padding(
+      child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
@@ -591,7 +588,6 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
             ],
           ),
         ),
-      ),
     );
   }
 

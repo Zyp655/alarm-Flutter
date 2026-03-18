@@ -5,7 +5,6 @@ import 'package:video_player/video_player.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../bloc/ai_assistant_bloc.dart';
 import '../widgets/ai_chat_sheet.dart';
-import '../widgets/ai_summary_sheet.dart';
 import '../pages/module_quiz_page.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -84,57 +83,28 @@ class LessonOverviewTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        Row(
-          children: [
-            Expanded(
-              child: _buildAiButton(
-                cs,
-                icon: Icons.smart_toy_rounded,
-                label: 'Hỏi AI',
-                color: AppColors.accent,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => BlocProvider.value(
-                      value: context.read<AiAssistantBloc>(),
-                      child: AiChatSheet(
-                        lessonTitle: lesson.title,
-                        textContent: lesson.textContent ?? '',
-                        contentUrl: lesson.contentUrl,
-                        lessonId: lesson.id,
-                        userId: userId,
-                      ),
-                    ),
-                  );
-                },
+        _buildAiButton(
+          cs,
+          icon: Icons.smart_toy_rounded,
+          label: 'Hỏi AI',
+          color: AppColors.accent,
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => BlocProvider.value(
+                value: context.read<AiAssistantBloc>(),
+                child: AiChatSheet(
+                  lessonTitle: lesson.title,
+                  textContent: lesson.textContent ?? '',
+                  contentUrl: lesson.contentUrl,
+                  lessonId: lesson.id,
+                  userId: userId,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildAiButton(
-                cs,
-                icon: Icons.auto_awesome_rounded,
-                label: 'Tóm tắt',
-                color: AppColors.secondary,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => BlocProvider.value(
-                      value: context.read<AiAssistantBloc>(),
-                      child: AiSummarySheet(
-                        lessonTitle: lesson.title,
-                        textContent: lesson.textContent ?? '',
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
 
         const SizedBox(height: 16),

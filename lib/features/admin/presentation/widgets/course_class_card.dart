@@ -276,10 +276,14 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
   bool _isCreating = false;
   bool _showStudentList = false;
   Timer? _debounce;
-  DateTime? _selectedDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
+  int? _selectedDayOfWeek;
   String? _errorMessage;
   bool _hasCodeError = false;
   bool _isDuplicate = false;
+
+  static const _dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
   @override
   void initState() {
@@ -360,26 +364,24 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
 
   void _createClass() {
     if (widget.codeCtrl.text.trim().isEmpty) return;
-    int? dayOfWeek;
-    String? startDate;
-    if (_selectedDate != null) {
-      final d = _selectedDate!;
-      dayOfWeek = d.weekday == 7 ? 8 : d.weekday + 1;
-      startDate = d.toIso8601String();
-    }
     setState(() => _isCreating = true);
     context.read<AdminBloc>().add(
       CreateCourseClassEvent(
         academicCourseId: widget.courseId,
         classCode: widget.codeCtrl.text.trim(),
-        dayOfWeek: dayOfWeek,
-        startDate: startDate,
+        dayOfWeek: _selectedDayOfWeek,
+        startDate: _startDate?.toIso8601String(),
+        endDate: _endDate?.toIso8601String(),
       ),
     );
   }
 
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
 
     return BlocListener<AdminBloc, AdminState>(
@@ -456,40 +458,110 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime.now().subtract(
-                      const Duration(days: 365),
-                    ),
+                    initialDate: _startDate ?? DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (picked != null) setState(() => _selectedDate = picked);
+                  if (picked != null) setState(() => _startDate = picked);
                 },
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Ngày học',
-                    prefixIcon: const Icon(
-                      Icons.calendar_today_rounded,
-                      size: 20,
-                    ),
+                    labelText: 'Ngày bắt đầu',
+                    prefixIcon: const Icon(Icons.calendar_today_rounded, size: 20),
                     border: const OutlineInputBorder(),
                     isDense: true,
-                    suffixIcon: _selectedDate != null
+                    suffixIcon: _startDate != null
                         ? IconButton(
                             icon: const Icon(Icons.close, size: 18),
-                            onPressed: () =>
-                                setState(() => _selectedDate = null),
+                            onPressed: () => setState(() => _startDate = null),
                           )
                         : null,
                   ),
                   child: Text(
-                    _selectedDate != null
-                        ? '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}'
-                        : 'Chọn ngày',
+                    _startDate != null ? _formatDate(_startDate!) : 'Chọn ngày',
                     style: TextStyle(
-                      color: _selectedDate != null ? null : Colors.grey[600],
+                      color: _startDate != null ? null : Colors.grey[600],
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _endDate ?? _startDate?.add(const Duration(days: 105)) ?? DateTime.now().add(const Duration(days: 105)),
+                    firstDate: _startDate ?? DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 730)),
+                  );
+                  if (picked != null) setState(() => _endDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Ngày kết thúc',
+                    prefixIcon: const Icon(Icons.event_rounded, size: 20),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: _endDate != null
+                        ? IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () => setState(() => _endDate = null),
+                          )
+                        : null,
+                  ),
+                  child: Text(
+                    _endDate != null ? _formatDate(_endDate!) : 'Chọn ngày',
+                    style: TextStyle(
+                      color: _endDate != null ? null : Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Text(
+                'Học vào thứ',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: List.generate(7, (i) {
+                  final dayValue = i + 2;
+                  final isSelected = _selectedDayOfWeek == dayValue;
+                  return ChoiceChip(
+                    label: Text(
+                      _dayLabels[i],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textPrimary(context),
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: AppColors.primary,
+                    backgroundColor: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : Colors.grey.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedDayOfWeek = isSelected ? null : dayValue;
+                      });
+                    },
+                  );
+                }),
               ),
               const SizedBox(height: 16),
 

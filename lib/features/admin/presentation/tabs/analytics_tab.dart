@@ -138,8 +138,7 @@ class AnalyticsTab extends StatelessWidget {
               label: 'Đã xuất bản',
               count: analytics['publishedCourses'] ?? 0,
             ),
-            const SizedBox(height: 14),
-            _heroEnrollCard(cs, isDark),
+
           ],
         ),
       ),
@@ -214,35 +213,7 @@ class AnalyticsTab extends StatelessWidget {
                   letterSpacing: 1,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.trending_up_rounded,
-                      size: 12,
-                      color: Color(0xFF34D399),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+12% so với tháng trước',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF34D399),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
             ],
           ),
           const SizedBox(height: 8),
@@ -272,84 +243,7 @@ class AnalyticsTab extends StatelessWidget {
     );
   }
 
-  Widget _heroEnrollCard(ColorScheme cs, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'TỔNG GHI DANH',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.6),
-                  letterSpacing: 1,
-                ),
-              ),
-              Icon(
-                Icons.people_outline_rounded,
-                color: Colors.white.withValues(alpha: 0.4),
-                size: 22,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _formatNumber(analytics['totalEnrollments'] ?? 0),
-            style: GoogleFonts.montserrat(
-              fontSize: 40,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🏆', style: TextStyle(fontSize: 12)),
-                const SizedBox(width: 6),
-                Text(
-                  'Top: Lập trình Web (89 SV)',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _userStatCard(
     ColorScheme cs,

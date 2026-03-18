@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../injection_container.dart';
 import '../bloc/admin_bloc.dart';
 import '../widgets/course_class_card.dart';
 
@@ -15,29 +17,36 @@ class CourseTab extends StatefulWidget {
 class _CourseTabState extends State<CourseTab> {
   final _searchController = TextEditingController();
   List<Map<String, dynamic>> _courses = [];
+  List<String> _allDeptNames = [];
   bool _isLoading = false;
   int? _expandedCourseId;
   String _activeFilter = 'Tất cả';
 
-  List<String> get _filters {
-    final depts =
-        _courses
-            .map((c) => c['departmentName'] as String? ?? '')
-            .where((d) => d.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return ['Tất cả', ...depts];
-  }
+  List<String> get _filters => ['Tất cả', ..._allDeptNames];
 
   @override
   void initState() {
     super.initState();
     _loadCourses();
+    _loadDepartments();
   }
 
   void _loadCourses() {
     context.read<AdminBloc>().add(LoadAcademicCoursesWithTeachers());
+  }
+
+  Future<void> _loadDepartments() async {
+    try {
+      final api = sl<ApiClient>();
+      final res = await api.get('/academic/departments');
+      final depts = List<Map<String, dynamic>>.from(res['departments'] ?? []);
+      if (mounted) {
+        setState(() {
+          _allDeptNames =
+              depts.map((d) => d['name'] as String? ?? '').where((n) => n.isNotEmpty).toList()..sort();
+        });
+      }
+    } catch (_) {}
   }
 
   @override

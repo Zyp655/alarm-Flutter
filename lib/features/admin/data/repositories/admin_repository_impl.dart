@@ -14,6 +14,8 @@ class AdminRepositoryImpl implements AdminRepository {
     String? search,
     int? departmentId,
     String? studentClass,
+    int? page,
+    int? limit,
   }) async {
     try {
       var path = '/admin/users';
@@ -24,6 +26,8 @@ class AdminRepositoryImpl implements AdminRepository {
       if (studentClass != null && studentClass.isNotEmpty) {
         params.add('studentClass=${Uri.encodeComponent(studentClass)}');
       }
+      if (page != null) params.add('page=$page');
+      if (limit != null) params.add('limit=$limit');
       if (params.isNotEmpty) path += '?${params.join('&')}';
       final response = await apiClient.get(path);
       return Right(response);
@@ -108,35 +112,8 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Future<Either<Failure, Map<String, dynamic>>> getAnalytics() async {
     try {
-      final usersRes = await apiClient.get('/admin/users?limit=9999');
-      final courseRes = await apiClient.get('/courses?limit=9999');
-      final allUsers = List<Map<String, dynamic>>.from(usersRes['users'] ?? []);
-      final allCourses = List<Map<String, dynamic>>.from(
-        courseRes['courses'] ?? [],
-      );
-
-      final students = allUsers.where((u) => u['role'] == 0).length;
-      final teachers = allUsers.where((u) => u['role'] == 1).length;
-      final admins = allUsers.where((u) => u['role'] == 2).length;
-      final banned = allUsers.where((u) => u['isBanned'] == true).length;
-      final published = allCourses
-          .where((c) => c['isPublished'] == true)
-          .length;
-      final totalEnrollments = allCourses.fold<int>(
-        0,
-        (sum, c) => sum + ((c['studentCount'] as int?) ?? 0),
-      );
-
-      return Right({
-        'totalUsers': allUsers.length,
-        'students': students,
-        'teachers': teachers,
-        'admins': admins,
-        'banned': banned,
-        'totalCourses': allCourses.length,
-        'publishedCourses': published,
-        'totalEnrollments': totalEnrollments,
-      });
+      final response = await apiClient.get('/admin/stats');
+      return Right(response);
     } catch (e) {
       return Left(ServerFailure('Lỗi tải thống kê: $e'));
     }

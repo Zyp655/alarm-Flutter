@@ -80,7 +80,7 @@ class _MainWrapperPageState extends State<MainWrapperPage> {
                   1,
                   Icons.menu_book_outlined,
                   Icons.menu_book_rounded,
-                  'Khóa học',
+                  'Môn học',
                 ),
                 _buildNavItem(
                   2,

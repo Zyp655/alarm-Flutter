@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/api/api_client.dart';
 import '../../../../core/route/app_route.dart';
+import '../../../../injection_container.dart';
 
-class AcademicTab extends StatelessWidget {
+class AcademicTab extends StatefulWidget {
   final List<Map<String, dynamic>> departments;
   final List<Map<String, dynamic>> semesters;
   final List<Map<String, dynamic>> academicCourses;
@@ -20,12 +22,46 @@ class AcademicTab extends StatelessWidget {
   });
 
   @override
+  State<AcademicTab> createState() => _AcademicTabState();
+}
+
+class _AcademicTabState extends State<AcademicTab> {
+  List<Map<String, dynamic>> _activities = [];
+  bool _loadingActivities = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
+
+  Future<void> _loadActivities() async {
+    try {
+      final api = sl<ApiClient>();
+      final res = await api.get('/admin/recent-activities');
+      if (mounted) {
+        setState(() {
+          _activities = List<Map<String, dynamic>>.from(
+            res['activities'] ?? [],
+          );
+          _loadingActivities = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingActivities = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return RefreshIndicator(
-      onRefresh: onRefresh,
+      onRefresh: () async {
+        await widget.onRefresh();
+        await _loadActivities();
+      },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
@@ -38,20 +74,18 @@ class AcademicTab extends StatelessWidget {
                   cs,
                   isDark,
                   'Khoa',
-                  departments.length,
+                  widget.departments.length,
                   Icons.business_rounded,
                   const Color(0xFF2563EB),
-                  '+2%',
                 ),
                 const SizedBox(width: 12),
                 _statCard(
                   cs,
                   isDark,
                   'Học kỳ',
-                  semesters.length,
+                  widget.semesters.length,
                   Icons.calendar_month_rounded,
                   const Color(0xFF10B981),
-                  '+1%',
                 ),
               ],
             ),
@@ -62,20 +96,18 @@ class AcademicTab extends StatelessWidget {
                   cs,
                   isDark,
                   'Học phần',
-                  academicCourses.length,
+                  widget.academicCourses.length,
                   Icons.menu_book_rounded,
                   const Color(0xFF7C3AED),
-                  '+8%',
                 ),
                 const SizedBox(width: 12),
                 _statCard(
                   cs,
                   isDark,
                   'Lớp HP',
-                  courseClasses.length,
+                  widget.courseClasses.length,
                   Icons.groups_rounded,
                   const Color(0xFFE17055),
-                  '+13%',
                 ),
               ],
             ),
@@ -96,7 +128,6 @@ class AcademicTab extends StatelessWidget {
     int count,
     IconData icon,
     Color color,
-    String trend,
   ) {
     return Expanded(
       child: Container(
@@ -154,33 +185,6 @@ class AcademicTab extends StatelessWidget {
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.trending_up_rounded,
-                    size: 12,
-                    color: Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    trend,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF10B981),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -190,7 +194,7 @@ class AcademicTab extends StatelessWidget {
   Widget _buildCta(BuildContext context, ColorScheme cs, bool isDark) {
     return GestureDetector(
       onTap: () =>
-          context.push(AppRoutes.academicStructure).then((_) => onRefresh()),
+          context.push(AppRoutes.academicStructure).then((_) => widget.onRefresh()),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -269,6 +273,53 @@ class AcademicTab extends StatelessWidget {
     );
   }
 
+  IconData _iconFromType(String type) {
+    switch (type) {
+      case 'department':
+        return Icons.business_rounded;
+      case 'semester':
+        return Icons.calendar_month_rounded;
+      case 'course':
+        return Icons.menu_book_rounded;
+      case 'class':
+        return Icons.groups_rounded;
+      case 'users':
+        return Icons.people_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _colorFromType(String type) {
+    switch (type) {
+      case 'department':
+        return const Color(0xFF2563EB);
+      case 'semester':
+        return const Color(0xFF10B981);
+      case 'course':
+        return const Color(0xFF7C3AED);
+      case 'class':
+        return const Color(0xFFE17055);
+      case 'users':
+        return const Color(0xFF0984E3);
+      default:
+        return const Color(0xFF636E72);
+    }
+  }
+
+  String _formatTime(String? iso) {
+    if (iso == null) return '';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'Vừa xong';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
+    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
   Widget _buildRecentActivity(ColorScheme cs, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,32 +333,46 @@ class AcademicTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        _activityItem(
-          cs,
-          isDark,
-          icon: Icons.update_rounded,
-          color: const Color(0xFF2563EB),
-          title: 'Cập nhật Học kỳ 1 (2023-2024)',
-          subtitle: 'Hệ thống · 2 giờ trước',
-        ),
-        const SizedBox(height: 1),
-        _activityItem(
-          cs,
-          isDark,
-          icon: Icons.add_circle_outline_rounded,
-          color: const Color(0xFF10B981),
-          title: 'Thêm 12 Lớp Học phần mới',
-          subtitle: 'Admin Khoa CNTT · Hôm qua, 14:30',
-        ),
-        const SizedBox(height: 1),
-        _activityItem(
-          cs,
-          isDark,
-          icon: Icons.file_download_outlined,
-          color: const Color(0xFF7C3AED),
-          title: 'Import danh sách sinh viên Khoá 15',
-          subtitle: 'Phòng đào tạo · 12/02/2025',
-        ),
+        if (_loadingActivities)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (_activities.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Text(
+                'Chưa có hoạt động nào',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          ..._activities.map((a) {
+            final type = a['type'] as String? ?? '';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 1),
+              child: _activityItem(
+                cs,
+                isDark,
+                icon: _iconFromType(type),
+                color: _colorFromType(type),
+                title: a['title'] as String? ?? '',
+                subtitle:
+                    '${a['subtitle'] ?? ''} · ${_formatTime(a['timestamp'] as String?)}',
+              ),
+            );
+          }),
       ],
     );
   }

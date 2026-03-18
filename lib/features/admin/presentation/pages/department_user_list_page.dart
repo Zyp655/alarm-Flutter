@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/repositories/admin_repository.dart';
 import '../../../../injection_container.dart';
@@ -37,10 +38,33 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
   bool _isLoadingUsers = false;
   String _searchQuery = '';
 
+  static const int _pageSize = 50;
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  int _totalUsers = 0;
+  final ScrollController _scrollCtrl = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _loadDepartments();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 300) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadMore();
+      });
+    }
   }
 
   Future<void> _loadDepartments() async {
@@ -66,11 +90,23 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
     );
   }
 
-  Future<void> _loadUsers(int departmentId) async {
-    setState(() => _isLoadingUsers = true);
+  Future<void> _loadUsers(int departmentId, {bool refresh = false}) async {
+    if (refresh) {
+      setState(() {
+        _currentPage = 1;
+        _hasMore = true;
+        _users = [];
+        _isLoadingUsers = true;
+      });
+    } else {
+      setState(() => _isLoadingUsers = true);
+    }
+
     final result = await _repo.getUsers(
       role: widget.args.role,
       departmentId: departmentId,
+      page: 1,
+      limit: _pageSize,
     );
     result.fold(
       (failure) {
@@ -82,9 +118,42 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
         }
       },
       (data) {
+        final users = List<Map<String, dynamic>>.from(data['users'] ?? []);
+        final pagination = data['pagination'] as Map<String, dynamic>?;
         setState(() {
-          _users = List<Map<String, dynamic>>.from(data['users'] ?? []);
+          _users = users;
+          _currentPage = 1;
+          _totalUsers = pagination?['total'] ?? users.length;
+          _hasMore = pagination?['hasMore'] ?? false;
           _isLoadingUsers = false;
+        });
+      },
+    );
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _selectedDeptId == null) return;
+    setState(() => _isLoadingMore = true);
+
+    final nextPage = _currentPage + 1;
+    final result = await _repo.getUsers(
+      role: widget.args.role,
+      departmentId: _selectedDeptId,
+      page: nextPage,
+      limit: _pageSize,
+    );
+    result.fold(
+      (failure) {
+        setState(() => _isLoadingMore = false);
+      },
+      (data) {
+        final newUsers = List<Map<String, dynamic>>.from(data['users'] ?? []);
+        final pagination = data['pagination'] as Map<String, dynamic>?;
+        setState(() {
+          _users.addAll(newUsers);
+          _currentPage = nextPage;
+          _hasMore = pagination?['hasMore'] ?? false;
+          _isLoadingMore = false;
         });
       },
     );
@@ -104,6 +173,9 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
       _selectedDeptId = null;
       _selectedDeptName = null;
       _users = [];
+      _currentPage = 1;
+      _hasMore = true;
+      _totalUsers = 0;
     });
   }
 
@@ -153,7 +225,7 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
             ),
             if (_selectedDeptName != null)
               Text(
-                _selectedDeptName!,
+                '$_selectedDeptName ($_totalUsers)',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -313,16 +385,33 @@ class _DepartmentUserListPageState extends State<DepartmentUserListPage> {
       );
     }
 
+    final itemCount = users.length + (_hasMore && _searchQuery.isEmpty ? 1 : 0);
+
     return RefreshIndicator(
-      onRefresh: () => _loadUsers(_selectedDeptId!),
+      onRefresh: () => _loadUsers(_selectedDeptId!, refresh: true),
       child: ListView.builder(
+        controller: _scrollCtrl,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        itemCount: users.length,
-        itemBuilder: (_, i) => SoftUserTile(
-          user: users[i],
-          accent: accent,
-          roleIcon: widget.args.roleIcon,
-        ),
+        itemCount: itemCount,
+        itemBuilder: (_, i) {
+          if (i >= users.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return SoftUserTile(
+            user: users[i],
+            accent: accent,
+            roleIcon: widget.args.roleIcon,
+          );
+        },
       ),
     );
   }

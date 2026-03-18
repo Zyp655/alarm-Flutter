@@ -7,6 +7,8 @@ abstract class AdminRepository {
     String? search,
     int? departmentId,
     String? studentClass,
+    int? page,
+    int? limit,
   });
 
   Future<Either<Failure, String>> updateUser(

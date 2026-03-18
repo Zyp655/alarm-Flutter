@@ -4,14 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/route/app_route.dart';
 
 class ToolsTab extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onSeedRoadmap;
-
-  const ToolsTab({
-    super.key,
-    required this.isLoading,
-    required this.onSeedRoadmap,
-  });
+  const ToolsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +43,6 @@ class ToolsTab extends StatelessWidget {
             iconBg: const Color(0xFFECFDF5),
             title: 'Import Sinh Viên',
             subtitle: 'Tải lên danh sách sinh viên từ file Excel (.xlsx)',
-            statusLabel: 'Lần cuối: 2h trước',
-            statusColor: const Color(0xFF10B981),
             buttonLabel: 'Chọn File',
             buttonStyle: _ButtonStyle.outlined,
             buttonColor: const Color(0xFF10B981),
@@ -89,20 +80,6 @@ class ToolsTab extends StatelessWidget {
           _toolCard(
             cs: cs,
             isDark: isDark,
-            icon: Icons.route_rounded,
-            iconColor: const Color(0xFF7C3AED),
-            iconBg: const Color(0xFFF5F3FF),
-            title: 'Seed Roadmap & Khoá học',
-            subtitle: 'Khởi tạo lộ trình đào tạo mặc định cho sinh viên',
-            buttonLabel: 'Khởi tạo',
-            buttonStyle: _ButtonStyle.filled,
-            buttonColor: const Color(0xFF7C3AED),
-            onPressed: isLoading ? null : onSeedRoadmap,
-          ),
-          const SizedBox(height: 10),
-          _toolCard(
-            cs: cs,
-            isDark: isDark,
             icon: Icons.sync_rounded,
             iconColor: const Color(0xFF2563EB),
             iconBg: const Color(0xFFEFF6FF),
@@ -114,53 +91,6 @@ class ToolsTab extends StatelessWidget {
             buttonStyle: _ButtonStyle.filled,
             buttonColor: const Color(0xFF2563EB),
             onPressed: () => context.push(AppRoutes.enrollmentImport),
-          ),
-          if (isLoading) ...[
-            const SizedBox(height: 20),
-            const Center(child: CircularProgressIndicator()),
-          ],
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                size: 18,
-                color: cs.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Quản lý dữ liệu',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _dangerCard(
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.warning_rounded,
-                  color: const Color(0xFFEF4444),
-                  label: 'Xoá dữ liệu test',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _dangerCard(
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.refresh_rounded,
-                  color: const Color(0xFF64748B),
-                  label: 'Reset cache',
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -315,38 +245,7 @@ class ToolsTab extends StatelessWidget {
       ),
     );
   }
-
-  Widget _dangerCard({
-    required ColorScheme cs,
-    required bool isDark,
-    required IconData icon,
-    required Color color,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? cs.surfaceContainerHigh : color.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 enum _ButtonStyle { outlined, filled }
+

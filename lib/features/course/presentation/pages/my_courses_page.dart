@@ -62,18 +62,20 @@ class _MyCoursesViewState extends State<MyCoursesView> {
   Future<void> _loadTodaySchedule() async {
     try {
       final api = sl<ApiClient>();
-      final res = await api.get('/schedule');
-      final list = List<Map<String, dynamic>>.from(res is List ? res : []);
+      final res = await api.get('/academic/classes');
+      final data = res is Map ? res : {};
+      final classes = List<Map<String, dynamic>>.from(data['classes'] ?? []);
       final now = DateTime.now();
-      final today = list.where((s) {
-        final day = s['dayOfWeek'] as int? ?? 0;
+      final today = classes.where((c) {
+        final day = c['dayOfWeek'] as int? ?? 0;
         return day == now.weekday;
       }).toList();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _todaySchedule = today;
           _scheduleLoading = false;
         });
+      }
     } catch (e) {
       if (mounted) setState(() => _scheduleLoading = false);
     }
