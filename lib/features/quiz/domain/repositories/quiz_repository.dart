@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import '../entities/quiz_entity.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
@@ -42,6 +42,7 @@ abstract class QuizRepository {
     required int quizId,
     required List<dynamic> answers,
     required int timeSpentSeconds,
+    List<int>? perQuestionTimeMs,
   });
 
   Future<Either<Failure, QuizStatisticsResponseEntity>> getStatistics(

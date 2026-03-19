@@ -110,12 +110,14 @@ class SubmitQuizUseCase {
     required int quizId,
     required List<dynamic> answers,
     required int timeSpentSeconds,
-  }) {
+    List<int>? perQuestionTimeMs,
+  }) async {
     return repository.submitQuiz(
       userId: userId,
       quizId: quizId,
       answers: answers,
       timeSpentSeconds: timeSpentSeconds,
+      perQuestionTimeMs: perQuestionTimeMs,
     );
   }
 }

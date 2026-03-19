@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -10,6 +10,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../widgets/notification_item.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../course/presentation/pages/course_submissions_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -62,22 +63,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
     switch (notification.type) {
       case 'assignment_new':
       case 'assignment_deadline':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Chức năng xem chi tiết bài tập (ID: ${notification.relatedId}) đang phát triển',
+        if (notification.relatedId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CourseSubmissionsPage(
+                assignmentId: notification.relatedId!,
+                assignmentTitle: notification.title ?? 'Bài tập',
+              ),
             ),
-          ),
-        );
+          );
+        }
         break;
       case 'grade_updated':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Chức năng xem điểm (ID: ${notification.relatedId}) đang phát triển',
-            ),
-          ),
-        );
+        if (notification.relatedId != null) {
+          context.push('/courses/${notification.relatedId}');
+        }
         break;
       case 'new_course':
       case 'course_completed':

@@ -9,9 +9,54 @@ import '../api/api_constants.dart';
 import '../route/app_route.dart';
 import '../route/app_router.dart';
 
+final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await _showLocalNotification(message);
+}
+
+Future<void> _showLocalNotification(RemoteMessage message) async {
+  final notification = message.notification;
+  final data = message.data;
+  final type = data['type'] as String? ?? '';
+
+  String channelId = 'general_notifications';
+  String channelName = 'Thông báo chung';
+
+  if (type == 'chat_message') {
+    channelId = 'chat_messages';
+    channelName = 'Tin nhắn Chat';
+  } else if (type == 'quiz_new' || type == 'assignment_new') {
+    channelId = 'course_updates';
+    channelName = 'Cập nhật khóa học';
+  } else if (type == 'absence_warning') {
+    channelId = 'ai_attendance';
+    channelName = 'Cảnh báo vắng';
+  }
+
+  final title = notification?.title ?? data['title'] ?? 'Thông báo mới';
+  final body = notification?.body ?? data['message'] ?? '';
+
+  await _localNotificationsPlugin.show(
+    id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title: title,
+    body: body,
+    notificationDetails: NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        icon: '@mipmap/ic_launcher',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        enableVibration: true,
+      ),
+    ),
+    payload: jsonEncode(data),
+  );
 }
 
 class FcmService {
@@ -20,22 +65,41 @@ class FcmService {
   FcmService._internal();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
 
   int? _currentUserId;
   int? _activeConversationId;
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<RemoteMessage>? _onMessageSub;
 
-  static const AndroidNotificationChannel _chatChannel =
-      AndroidNotificationChannel(
-        'chat_messages',
-        'Tin nhắn Chat',
-        description: 'Thông báo khi có tin nhắn mới',
-        importance: Importance.max,
-        playSound: true,
-      );
+  static const _channels = [
+    AndroidNotificationChannel(
+      'chat_messages',
+      'Tin nhắn Chat',
+      description: 'Thông báo khi có tin nhắn mới',
+      importance: Importance.max,
+      playSound: true,
+    ),
+    AndroidNotificationChannel(
+      'course_updates',
+      'Cập nhật khóa học',
+      description: 'Quiz mới, bài tập mới',
+      importance: Importance.high,
+      playSound: true,
+    ),
+    AndroidNotificationChannel(
+      'ai_attendance',
+      'Cảnh báo vắng',
+      description: 'Nhắc nhở hoàn thành bài học',
+      importance: Importance.high,
+      playSound: true,
+    ),
+    AndroidNotificationChannel(
+      'general_notifications',
+      'Thông báo chung',
+      description: 'Các thông báo khác',
+      importance: Importance.defaultImportance,
+    ),
+  ];
 
   Future<void> init({required int userId}) async {
     _currentUserId = userId;
@@ -47,14 +111,16 @@ class FcmService {
       provisional: false,
     );
 
-    await _localNotifications
+    final androidPlugin = _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_chatChannel);
+        >();
+    for (final channel in _channels) {
+      await androidPlugin?.createNotificationChannel(channel);
+    }
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    await _localNotifications.initialize(
+    await _localNotificationsPlugin.initialize(
       settings: const InitializationSettings(android: androidInit),
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
@@ -90,41 +156,31 @@ class FcmService {
 
   void _handleForegroundMessage(RemoteMessage message) {
     final data = message.data;
-    final conversationId = int.tryParse(data['conversationId'] ?? '');
+    final type = data['type'] as String? ?? '';
 
-    if (conversationId == _activeConversationId) {
-      return;
+    if (type == 'chat_message') {
+      final conversationId = int.tryParse(data['conversationId'] ?? '');
+      if (conversationId == _activeConversationId) return;
     }
 
-    final notification = message.notification;
-    if (notification != null) {
-      _localNotifications.show(
-        id: conversationId ?? notification.hashCode,
-        title: notification.title ?? 'Tin nhắn mới',
-        body: notification.body ?? '',
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            _chatChannel.id,
-            _chatChannel.name,
-            channelDescription: _chatChannel.description,
-            icon: '@mipmap/ic_launcher',
-            importance: Importance.max,
-            priority: Priority.max,
-            fullScreenIntent: true,
-          ),
-        ),
-        payload: jsonEncode(data),
-      );
-    }
+    _showLocalNotification(message);
   }
 
   void _handleNotificationTap(RemoteMessage message) {
     final data = message.data;
-    final conversationId = int.tryParse(data['conversationId'] ?? '');
-    final recipientName = data['senderName'] ?? '';
+    final type = data['type'] as String? ?? '';
 
-    if (conversationId != null) {
-      _navigateToChat(conversationId, recipientName);
+    if (type == 'chat_message') {
+      final conversationId = int.tryParse(data['conversationId'] ?? '');
+      final recipientName = data['senderName'] ?? '';
+      if (conversationId != null) {
+        _navigateToChat(conversationId, recipientName);
+      }
+    } else {
+      final relatedId = int.tryParse(data['relatedId'] ?? '');
+      if (relatedId != null) {
+        _navigateToCourse(relatedId);
+      }
     }
   }
 
@@ -132,11 +188,20 @@ class FcmService {
     if (response.payload != null) {
       try {
         final data = jsonDecode(response.payload!) as Map<String, dynamic>;
-        final conversationId = int.tryParse(data['conversationId'] ?? '');
-        final senderName = data['senderName'] ?? '';
+        final type = data['type'] as String? ?? '';
 
-        if (conversationId != null) {
-          _navigateToChat(conversationId, senderName);
+        if (type == 'chat_message') {
+          final conversationId = int.tryParse(data['conversationId'] ?? '');
+          final senderName = data['senderName'] ?? '';
+          if (conversationId != null) {
+            _navigateToChat(conversationId, senderName);
+          }
+        } else {
+          final relatedId = int.tryParse(
+              (data['relatedId'] ?? '').toString());
+          if (relatedId != null) {
+            _navigateToCourse(relatedId);
+          }
         }
       } catch (_) {}
     }
@@ -153,6 +218,13 @@ class FcmService {
           'isTeacher': false,
         },
       );
+    }
+  }
+
+  void _navigateToCourse(int courseId) {
+    final context = appRouter.routerDelegate.navigatorKey.currentContext;
+    if (context != null) {
+      GoRouter.of(context).push('/courses/$courseId');
     }
   }
 

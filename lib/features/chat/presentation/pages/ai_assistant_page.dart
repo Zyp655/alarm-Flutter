@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/api_constants.dart';
@@ -87,9 +88,14 @@ class _AiAssistantPageState extends State<AiAssistantPage>
     _scrollToBottom();
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/ai/assistant'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'question': text, 'history': _history}),
       );
 
@@ -170,10 +176,15 @@ class _AiAssistantPageState extends State<AiAssistantPage>
     }
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiConstants.baseUrl}/ai/speech-to-text'),
       );
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
       request.files.add(await http.MultipartFile.fromPath('audio', path));
 
       final streamedResponse = await request.send();

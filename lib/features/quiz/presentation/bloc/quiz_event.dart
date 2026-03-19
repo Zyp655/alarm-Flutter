@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 
 abstract class QuizEvent extends Equatable {
@@ -87,15 +87,17 @@ class SubmitQuizToServerEvent extends QuizEvent {
   final int userId;
   final int quizId;
   final int timeSpentSeconds;
+  final List<int>? perQuestionTimeMs;
 
   const SubmitQuizToServerEvent({
     required this.userId,
     required this.quizId,
     required this.timeSpentSeconds,
+    this.perQuestionTimeMs,
   });
 
   @override
-  List<Object?> get props => [userId, quizId, timeSpentSeconds];
+  List<Object?> get props => [userId, quizId, timeSpentSeconds, perQuestionTimeMs];
 }
 
 class SaveQuizEvent extends QuizEvent {

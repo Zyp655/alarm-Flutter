@@ -1,4 +1,4 @@
-﻿import 'package:equatable/equatable.dart';
+import 'package:equatable/equatable.dart';
 
 enum QuestionType { multipleChoice, trueFalse, fillBlank, matching }
 
@@ -115,11 +115,13 @@ class QuizResultEntity extends Equatable {
   final QuizEntity quiz;
   final List<dynamic> userAnswers;
   final int timeSpentSeconds;
+  final List<int>? perQuestionTimeMs;
 
   const QuizResultEntity({
     required this.quiz,
     required this.userAnswers,
     this.timeSpentSeconds = 0,
+    this.perQuestionTimeMs,
   });
 
   int get correctCount {
@@ -151,7 +153,7 @@ class QuizResultEntity extends Equatable {
       quiz.totalQuestions > 0 ? (correctCount / quiz.totalQuestions) * 10 : 0;
 
   @override
-  List<Object?> get props => [quiz, userAnswers, timeSpentSeconds];
+  List<Object?> get props => [quiz, userAnswers, timeSpentSeconds, perQuestionTimeMs];
 }
 
 class QuizStatisticsEntity extends Equatable {

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -129,6 +130,11 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   Map<String, dynamic>? _verifyQuizData;
   bool _isLoadingVerify = false;
   static const _verifyIntervalSeconds = 600;
+
+  int _seekForwardCount = 0;
+  int _seekBackwardCount = 0;
+  int _pauseCount = 0;
+  Duration _previousPosition = Duration.zero;
 
   @override
   void initState() {
@@ -321,6 +327,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     if (currentPos > _maxWatchedPosition + const Duration(seconds: 5)) {
       if (!_isSeeking) {
         _isSeeking = true;
+        _seekForwardCount++;
         _videoController!.seekTo(_maxWatchedPosition);
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -337,6 +344,20 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         );
       }
     }
+
+    if (_previousPosition - currentPos > const Duration(seconds: 3) && !_isSeeking) {
+      _seekBackwardCount++;
+    }
+    if (_previousPosition != Duration.zero &&
+        !_videoController!.value.isPlaying &&
+        _videoController!.value.position == _previousPosition &&
+        currentPos == _previousPosition) {
+    } else if (!_videoController!.value.isPlaying &&
+        _previousPosition != Duration.zero &&
+        (_videoController!.value.position - _previousPosition).abs() < const Duration(seconds: 1)) {
+      _pauseCount++;
+    }
+    _previousPosition = currentPos;
 
     if (!_hasMarkedComplete && totalDuration.inSeconds > 0) {
       final percentWatched = currentPos.inSeconds / totalDuration.inSeconds;
@@ -377,13 +398,33 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   void _startProgressTracking() {
     _progressTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (_videoController != null && _videoController!.value.isPlaying) {
+        final totalSeconds = _videoController!.value.duration.inSeconds;
+        final currentSeconds = _videoController!.value.position.inSeconds;
+        final reachedThreshold = totalSeconds > 0 &&
+            currentSeconds >= (totalSeconds * 0.9).round() &&
+            !_hasMarkedComplete;
+
         _learningPlayerBloc.add(
           UpdateProgressEvent(
             userId: widget.userId,
             lessonId: widget.lesson.id,
-            currentPosition: _videoController!.value.position.inSeconds,
+            currentPosition: currentSeconds,
+            isCompleted: reachedThreshold,
           ),
         );
+
+        if (reachedThreshold) {
+          _hasMarkedComplete = true;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Bạn đã hoàn thành bài học này!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        }
+
         _accumulatedWatchSeconds += 10;
       }
     });
@@ -414,9 +455,14 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     try {
       final totalDuration = _videoController?.value.duration ?? Duration.zero;
       final currentPos = _videoController?.value.position ?? Duration.zero;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/ai/verify-watching'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           'lessonTitle': widget.lesson.title,
           'currentMinute': currentPos.inMinutes,
@@ -512,12 +558,21 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   Future<void> _reportWatchTime() async {
     if (_accumulatedWatchSeconds <= 0 || _isReviewMode) return;
     final seconds = _accumulatedWatchSeconds;
+    final skips = _seekForwardCount;
+    final rewinds = _seekBackwardCount;
+    final pauses = _pauseCount;
     _accumulatedWatchSeconds = 0;
+    _seekForwardCount = 0;
+    _seekBackwardCount = 0;
+    _pauseCount = 0;
     try {
       final api = sl<ApiClient>();
       await api.post('/student/daily-learning-log', {
         'scheduleId': widget.lesson.moduleId,
         'watchSeconds': seconds,
+        'skipCount': skips,
+        'rewindCount': rewinds,
+        'pauseCount': pauses,
       });
     } catch (_) {}
   }

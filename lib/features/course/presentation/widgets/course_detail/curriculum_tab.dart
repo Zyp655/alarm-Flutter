@@ -107,6 +107,71 @@ class _CurriculumTabState extends State<CurriculumTab> {
       itemCount: widget.modules.length,
       itemBuilder: (context, index) {
         final module = widget.modules[index];
+        final isModuleLocked = !module.isUnlocked;
+
+        if (isModuleLocked) {
+          final unlockStr = module.unlockDate != null
+              ? '${module.unlockDate!.day}/${module.unlockDate!.month}/${module.unlockDate!.year}'
+              : '';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child:
+                    const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
+              ),
+              title: Text(
+                module.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Colors.grey[600],
+                ),
+              ),
+              subtitle: Text(
+                '🔒 Mở khóa vào $unlockStr',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Chưa mở',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Chương này sẽ mở khóa vào ngày $unlockStr'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+          ).animate().fadeIn(delay: Duration(milliseconds: 50 * index));
+        }
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -172,9 +237,8 @@ class _CurriculumTabState extends State<CurriculumTab> {
                       final questions = quizData['questions'] as List;
 
                       final lessons = module.lessons ?? [];
-                      final completedLessons = lessons
-                          .where((l) => l.isCompleted)
-                          .length;
+                      final completedLessons =
+                          lessons.where((l) => l.isCompleted).length;
                       final allLessonsCompleted =
                           lessons.isNotEmpty &&
                           completedLessons == lessons.length;

@@ -42,6 +42,7 @@ abstract class QuizRemoteDataSource {
     required int quizId,
     required List<dynamic> answers,
     required int timeSpentSeconds,
+    List<int>? perQuestionTimeMs,
   });
 
   Future<QuizStatisticsResponseModel> getStatistics(
@@ -260,6 +261,7 @@ class QuizRemoteDataSourceImpl implements QuizRemoteDataSource {
     required int quizId,
     required List<dynamic> answers,
     required int timeSpentSeconds,
+    List<int>? perQuestionTimeMs,
   }) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/quiz/submit');
 
@@ -271,6 +273,7 @@ class QuizRemoteDataSourceImpl implements QuizRemoteDataSource {
         'quizId': quizId,
         'answers': answers,
         'timeSpentSeconds': timeSpentSeconds,
+        if (perQuestionTimeMs != null) 'perQuestionTimeMs': perQuestionTimeMs,
       }),
     );
 

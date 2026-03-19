@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../error/exceptions.dart';
 import 'api_constants.dart';
+import '../route/app_router.dart';
+import '../route/app_route.dart';
 
 class ApiClient {
   final http.Client client;
@@ -79,8 +82,18 @@ class ApiClient {
     } else {
       try {
         final errorMap = jsonDecode(utf8.decode(response.bodyBytes));
+        final errorMsg = errorMap['error'] ?? errorMap['message'] ?? 'Unknown Error';
+
+        if (response.statusCode == 403 && errorMsg == 'session_expired') {
+          _forceLogout();
+          throw ServerException(
+            'Tài khoản đã đăng nhập trên thiết bị khác.',
+            statusCode: 403,
+          );
+        }
+
         throw ServerException(
-          errorMap['error'] ?? errorMap['message'] ?? 'Unknown Error',
+          errorMsg,
           statusCode: response.statusCode,
         );
       } on ServerException {
@@ -92,5 +105,25 @@ class ApiClient {
         );
       }
     }
+  }
+
+  void _forceLogout() async {
+    try {
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs!.clear();
+
+      final context = appRouter.routerDelegate.navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tài khoản đã đăng nhập trên thiết bị khác. Vui lòng đăng nhập lại.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
+      appRouter.go(AppRoutes.login);
+    } catch (_) {}
   }
 }

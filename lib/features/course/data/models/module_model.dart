@@ -12,6 +12,7 @@ class ModuleModel extends ModuleEntity {
     super.description,
     required super.orderIndex,
     required super.createdAt,
+    super.unlockDate,
     this.lessons,
   });
 
@@ -25,6 +26,9 @@ class ModuleModel extends ModuleEntity {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
+      unlockDate: json['unlockDate'] != null
+          ? DateTime.parse(json['unlockDate'] as String)
+          : null,
       lessons: json['lessons'] != null
           ? (json['lessons'] as List)
                 .map(
@@ -44,6 +48,7 @@ class ModuleModel extends ModuleEntity {
       'description': description,
       'orderIndex': orderIndex,
       'createdAt': createdAt.toIso8601String(),
+      if (unlockDate != null) 'unlockDate': unlockDate!.toIso8601String(),
       if (lessons != null) 'lessons': lessons!.map((l) => l.toJson()).toList(),
     };
   }

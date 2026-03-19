@@ -382,6 +382,7 @@ class _CourseDetailViewState extends State<CourseDetailView>
                             modules: state.modules,
                             courseId: state.course.id,
                             userId: widget.userId,
+                            isTeacher: true,
                           ),
                           CourseStudentsTab(courseId: state.course.id),
                           CourseAssignmentsTab(courseId: state.course.id),

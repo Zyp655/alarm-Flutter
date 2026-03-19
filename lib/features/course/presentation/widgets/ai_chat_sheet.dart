@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../bloc/ai_assistant_bloc.dart';
@@ -39,6 +42,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   bool _isRecording = false;
   bool _isTranscribing = false;
   bool _isTranscribingVideo = false;
+  bool _transcribeFailed = false;
   String _videoTranscript = '';
 
   static const _suggestedQuestions = [
@@ -88,7 +92,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   Future<void> _extractContent() async {
     if (widget.contentUrl == null || widget.contentUrl!.isEmpty) return;
 
-    setState(() => _isTranscribingVideo = true);
+    setState(() {
+      _isTranscribingVideo = true;
+      _transcribeFailed = false;
+    });
 
     try {
       var url = widget.contentUrl!;
@@ -96,10 +103,15 @@ class _AiChatSheetState extends State<AiChatSheet> {
         url = '${ApiConstants.baseUrl}/$url';
       }
 
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       if (_isDocumentUrl(url)) {
         final response = await http.post(
           Uri.parse('${ApiConstants.baseUrl}/ai/extract-document'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
           body: jsonEncode({'documentUrl': url}),
         );
 
@@ -116,7 +128,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
         if (widget.lessonId != null) reqBody['lessonId'] = widget.lessonId;
         final response = await http.post(
           Uri.parse('${ApiConstants.baseUrl}/ai/transcribe-video'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
           body: jsonEncode(reqBody),
         );
 
@@ -130,9 +145,15 @@ class _AiChatSheetState extends State<AiChatSheet> {
         }
       }
 
-      setState(() => _isTranscribingVideo = false);
+      setState(() {
+        _isTranscribingVideo = false;
+        _transcribeFailed = true;
+      });
     } catch (_) {
-      setState(() => _isTranscribingVideo = false);
+      setState(() {
+        _isTranscribingVideo = false;
+        _transcribeFailed = true;
+      });
     }
   }
 
@@ -246,6 +267,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
               _buildHeader(cs),
               const Divider(height: 1),
               if (_isTranscribingVideo) _buildVideoTranscribeBanner(cs),
+              if (_transcribeFailed && !_isTranscribingVideo) _buildTranscribeFailedBanner(cs),
               if (_isRecording) _buildRecordingBanner(cs),
               if (_isTranscribing) _buildTranscribingBanner(cs),
               Expanded(
@@ -306,6 +328,40 @@ class _AiChatSheetState extends State<AiChatSheet> {
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranscribeFailedBanner(ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      color: AppColors.error.withAlpha(15),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Không thể phân tích nội dung. AI sẽ trả lời bằng kiến thức chung.',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: _extractContent,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Thử lại'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -415,6 +471,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
                     Text(
                       _isTranscribingVideo
                           ? 'Đang phân tích video...'
+                          : _transcribeFailed
+                          ? '⚠️ Phân tích thất bại'
                           : _videoTranscript.isNotEmpty
                           ? 'Đã phân tích video ✓'
                           : 'Hỏi đáp theo nội dung bài học',
@@ -422,6 +480,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
                         fontSize: 12,
                         color: _isTranscribingVideo
                             ? AppColors.primary
+                            : _transcribeFailed
+                            ? AppColors.error
                             : cs.onSurfaceVariant,
                       ),
                     ),
@@ -547,24 +607,67 @@ class _AiChatSheetState extends State<AiChatSheet> {
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isUser ? AppColors.accent : cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isUser ? 16 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 16),
+            child: GestureDetector(
+              onLongPress: () {
+                Clipboard.setData(ClipboardData(text: message.content));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã copy nội dung'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isUser ? AppColors.accent : cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isUser ? 16 : 4),
+                    bottomRight: Radius.circular(isUser ? 4 : 16),
+                  ),
                 ),
-              ),
-              child: SelectableText(
-                message.content,
-                style: TextStyle(
-                  color: isUser ? Colors.white : cs.onSurface,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
+                child: isUser
+                    ? SelectableText(
+                        message.content,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      )
+                    : MarkdownBody(
+                        data: message.content,
+                        selectable: true,
+                        shrinkWrap: true,
+                        styleSheet: MarkdownStyleSheet(
+                          p: TextStyle(color: cs.onSurface, fontSize: 14, height: 1.5),
+                          strong: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
+                          em: TextStyle(color: cs.onSurface, fontStyle: FontStyle.italic),
+                          h1: TextStyle(color: cs.onSurface, fontSize: 20, fontWeight: FontWeight.bold),
+                          h2: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
+                          h3: TextStyle(color: cs.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+                          listBullet: TextStyle(color: cs.onSurface, fontSize: 14),
+                          code: TextStyle(
+                            color: AppColors.primary,
+                            backgroundColor: cs.surfaceContainerHighest,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          codeblockDecoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2E),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          blockquoteDecoration: BoxDecoration(
+                            color: AppColors.info.withValues(alpha: 0.08),
+                            border: Border(
+                              left: BorderSide(color: AppColors.info, width: 3),
+                            ),
+                          ),
+                          blockquotePadding: const EdgeInsets.all(10),
+                        ),
+                      ),
               ),
             ),
           ),

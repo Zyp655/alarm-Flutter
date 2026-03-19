@@ -20,15 +20,20 @@ class _TakeQuizPageState extends State<TakeQuizPage> {
   int _currentIndex = 0;
   late List<int?> _answers;
   final PageController _pageController = PageController();
+  final Stopwatch _questionStopwatch = Stopwatch();
+  late List<int> _perQuestionTimeMs;
 
   @override
   void initState() {
     super.initState();
     _answers = List.filled(widget.quiz.questions.length, null);
+    _perQuestionTimeMs = List.filled(widget.quiz.questions.length, 0);
+    _questionStopwatch.start();
   }
 
   @override
   void dispose() {
+    _questionStopwatch.stop();
     _pageController.dispose();
     super.dispose();
   }
@@ -76,6 +81,8 @@ class _TakeQuizPageState extends State<TakeQuizPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
+              _perQuestionTimeMs[_currentIndex] += _questionStopwatch.elapsedMilliseconds;
+              _questionStopwatch.stop();
               context.read<QuizBloc>().add(const SubmitQuizEvent());
             },
             style: ElevatedButton.styleFrom(
@@ -174,7 +181,12 @@ class _TakeQuizPageState extends State<TakeQuizPage> {
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
-                onPageChanged: (index) => setState(() => _currentIndex = index),
+                onPageChanged: (index) {
+                  _perQuestionTimeMs[_currentIndex] += _questionStopwatch.elapsedMilliseconds;
+                  _questionStopwatch.reset();
+                  _questionStopwatch.start();
+                  setState(() => _currentIndex = index);
+                },
                 itemCount: widget.quiz.questions.length,
                 itemBuilder: (context, index) {
                   final question = widget.quiz.questions[index];

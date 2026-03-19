@@ -116,6 +116,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required int quizId,
     required List<dynamic> answers,
     required int timeSpentSeconds,
+    List<int>? perQuestionTimeMs,
   }) async {
     try {
       final result = await remoteDataSource.submitQuiz(
@@ -123,6 +124,7 @@ class QuizRepositoryImpl implements QuizRepository {
         quizId: quizId,
         answers: answers,
         timeSpentSeconds: timeSpentSeconds,
+        perQuestionTimeMs: perQuestionTimeMs,
       );
       return Right(result);
     } catch (e) {

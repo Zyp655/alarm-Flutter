@@ -136,6 +136,7 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
       quizId: event.quizId,
       answers: _userAnswers,
       timeSpentSeconds: event.timeSpentSeconds,
+      perQuestionTimeMs: event.perQuestionTimeMs,
     );
 
     result.fold(
