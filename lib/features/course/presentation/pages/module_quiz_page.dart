@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +22,7 @@ class ModuleQuizPage extends StatefulWidget {
 
 class _ModuleQuizPageState extends State<ModuleQuizPage> {
   bool _isLoading = true;
+  List<Map<String, dynamic>> _allQuizzes = [];
   Map<String, dynamic>? _quizData;
   List<dynamic> _questions = [];
   Map<int, int> _userAnswers = {};
@@ -32,16 +34,16 @@ class _ModuleQuizPageState extends State<ModuleQuizPage> {
   @override
   void initState() {
     super.initState();
-    _loadQuiz();
+    _loadQuizzes();
   }
 
-  Future<void> _loadQuiz() async {
+  Future<void> _loadQuizzes() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/modules/${widget.moduleId}/quiz'),
+        Uri.parse('${ApiConstants.baseUrl}/modules/${widget.moduleId}/quizzes'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -50,17 +52,42 @@ class _ModuleQuizPageState extends State<ModuleQuizPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final quizzes = List<Map<String, dynamic>>.from(data['quizzes'] ?? []);
         setState(() {
-          _quizData = data;
-          _questions = data['questions'] ?? [];
+          _allQuizzes = quizzes;
+          if (quizzes.length == 1) {
+            _selectQuiz(quizzes.first);
+          }
           _isLoading = false;
         });
       } else {
         setState(() => _isLoading = false);
       }
     } catch (e) {
+      debugPrint('[Quiz] Load error: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+  void _selectQuiz(Map<String, dynamic> quiz) {
+    setState(() {
+      _quizData = quiz;
+      _questions = quiz['questions'] ?? [];
+      _userAnswers.clear();
+      _isSubmitted = false;
+      _score = 0;
+      _currentQuestionIndex = 0;
+    });
+  }
+
+  void _backToList() {
+    setState(() {
+      _quizData = null;
+      _questions = [];
+      _userAnswers.clear();
+      _isSubmitted = false;
+      _currentQuestionIndex = 0;
+    });
   }
 
   void _selectAnswer(int questionIndex, int answerIndex) {
@@ -118,11 +145,24 @@ class _ModuleQuizPageState extends State<ModuleQuizPage> {
 
   @override
   Widget build(BuildContext context) {
+    final showList = _quizData == null && _allQuizzes.length > 1;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (_quizData != null && _allQuizzes.length > 1) {
+              _backToList();
+            } else {
+              Navigator.pop(context);
+            }
+          },
+        ),
         title: Text(
-          _quizData?['quiz']?['topic'] ?? 'Bài kiểm tra',
+          showList
+              ? widget.moduleTitle
+              : (_quizData?['quiz']?['topic'] ?? _quizData?['topic'] ?? 'Bài kiểm tra'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.accent,
@@ -133,11 +173,74 @@ class _ModuleQuizPageState extends State<ModuleQuizPage> {
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.accent),
             )
+          : showList
+          ? _buildQuizList()
           : _questions.isEmpty
           ? _buildNoQuiz()
           : _isSubmitted
           ? _buildResult()
           : _buildQuiz(),
+    );
+  }
+
+  Widget _buildQuizList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _allQuizzes.length,
+      itemBuilder: (context, index) {
+        final quiz = _allQuizzes[index];
+        final quizMeta = quiz['quiz'] as Map<String, dynamic>? ?? quiz;
+        final topic = quizMeta['topic'] ?? 'Quiz ${index + 1}';
+        final difficulty = quizMeta['difficulty'] ?? quiz['difficulty'] ?? '';
+        final questions = quiz['questions'] as List? ?? [];
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 1,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _selectQuiz(quiz),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.quiz_rounded, color: AppColors.accent),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          topic,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${questions.length} câu${difficulty.isNotEmpty ? ' · $difficulty' : ''}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey[400]),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

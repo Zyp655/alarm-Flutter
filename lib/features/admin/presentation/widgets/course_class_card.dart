@@ -533,7 +533,7 @@ class _CreateClassDialogContentState extends State<_CreateClassDialogContent> {
                 spacing: 6,
                 runSpacing: 6,
                 children: List.generate(7, (i) {
-                  final dayValue = i + 2;
+                  final dayValue = i + 1;
                   final isSelected = _selectedDayOfWeek == dayValue;
                   return ChoiceChip(
                     label: Text(

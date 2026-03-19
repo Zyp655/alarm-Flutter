@@ -101,15 +101,43 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('Thông Báo'),
+        backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF5F6FA),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_rounded,
+            size: 20,
+            color: isDark ? Colors.white : AppColors.darkBackground,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Thông Báo',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: isDark ? Colors.white : AppColors.darkBackground,
+            letterSpacing: -0.3,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.done_all),
+            icon: Icon(
+              Icons.done_all_rounded,
+              size: 22,
+              color: AppColors.primary,
+            ),
             tooltip: 'Đánh dấu tất cả đã đọc',
             onPressed: _markAllAsRead,
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: BlocConsumer<NotificationBloc, NotificationState>(
@@ -119,19 +147,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             );
           } else if (state is NotificationActionSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
           }
         },
         builder: (context, state) {
           if (state is NotificationLoading) {
             return ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: 5,
-              itemBuilder: (context, index) => const ShimmerCard(height: 100),
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                child: ShimmerCard(height: 90),
+              ),
             );
           }
 
@@ -142,18 +180,41 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     PulseWidget(
-                      child: Icon(
-                        Icons.notifications_none,
-                        size: 80,
-                        color: Colors.grey[400],
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : AppColors.primary).withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.notifications_off_rounded,
+                          size: 36,
+                          color: isDark ? Colors.grey[600] : Colors.grey[400],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     FadeInWidget(
                       delay: const Duration(milliseconds: 300),
                       child: Text(
                         'Chưa có thông báo nào',
-                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.grey[500] : Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeInWidget(
+                      delay: const Duration(milliseconds: 500),
+                      child: Text(
+                        'Bạn sẽ nhận thông báo tại đây',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.grey[700] : Colors.grey[400],
+                        ),
                       ),
                     ),
                   ],
@@ -161,24 +222,53 @@ class _NotificationsPageState extends State<NotificationsPage> {
               );
             }
 
+            final unreadCount = state.notifications.where((n) => !n.isRead).length;
+
             return RefreshIndicator(
               onRefresh: _onRefresh,
+              color: AppColors.primary,
               child: AnimationLimiter(
                 child: ListView.builder(
-                  itemCount: state.notifications.length,
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
+                  itemCount: state.notifications.length + (unreadCount > 0 ? 1 : 0),
                   itemBuilder: (context, index) {
-                    final notification = state.notifications[index];
+                    if (unreadCount > 0 && index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '$unreadCount chưa đọc',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final notifIndex = unreadCount > 0 ? index - 1 : index;
+                    final notification = state.notifications[notifIndex];
+
                     return AnimationConfiguration.staggeredList(
                       position: index,
                       duration: const Duration(milliseconds: 375),
                       child: SlideAnimation(
-                        verticalOffset: 50.0,
+                        verticalOffset: 30.0,
                         child: FadeInAnimation(
                           child: NotificationItem(
                             notification: notification,
-                            onTap: () {
-                              _handleNotificationTap(notification);
-                            },
+                            onTap: () => _handleNotificationTap(notification),
                             onDelete: () {
                               context.read<NotificationBloc>().add(
                                 DeleteNotification(notification.id!),
@@ -196,26 +286,48 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
           if (state is NotificationError) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 80,
-                    color: AppColors.error.withValues(alpha: 0.35),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Lỗi: ${state.message}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.error),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadNotifications,
-                    child: const Text('Thử lại'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        size: 32,
+                        color: AppColors.error.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _loadNotifications,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Thử lại'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }

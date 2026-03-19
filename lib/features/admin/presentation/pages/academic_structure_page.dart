@@ -389,7 +389,7 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
         subtitle: '${item['courseName']} · GV: ${item['teacherName']}',
         description: [
           if (item['semesterName'] != null) 'HK: ${item['semesterName']}',
-          if (item['dayOfWeek'] != null) 'Thứ ${item['dayOfWeek']}',
+          if (item['dayOfWeek'] != null) item['dayOfWeek'] == 7 ? 'Chủ nhật' : 'Thứ ${(item['dayOfWeek'] as int) + 1}',
           if (item['startDate'] != null || item['endDate'] != null)
             '${_fmtDate(item['startDate'])} → ${_fmtDate(item['endDate'])}',
           'SV tối đa: ${item['maxStudents'] ?? 50}',
@@ -885,13 +885,13 @@ class _AcademicStructurePageState extends State<AcademicStructurePage>
     }
 
     final dayLabels = {
-      2: 'Thứ 2',
-      3: 'Thứ 3',
-      4: 'Thứ 4',
-      5: 'Thứ 5',
-      6: 'Thứ 6',
-      7: 'Thứ 7',
-      8: 'Chủ nhật',
+      1: 'Thứ 2',
+      2: 'Thứ 3',
+      3: 'Thứ 4',
+      4: 'Thứ 5',
+      5: 'Thứ 6',
+      6: 'Thứ 7',
+      7: 'Chủ nhật',
     };
 
     final isEdit = existing != null;

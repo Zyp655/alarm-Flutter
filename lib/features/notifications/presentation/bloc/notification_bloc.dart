@@ -1,4 +1,4 @@
-﻿import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
 import '../../domain/usecases/mark_notification_read_usecase.dart';
 import '../../domain/usecases/mark_all_notifications_read_usecase.dart';
@@ -121,13 +121,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
           );
         }).toList();
 
+        emit(const NotificationActionSuccess('Đã đánh dấu tất cả đã đọc'));
         emit(
           NotificationsLoaded(
             notifications: updatedNotifications,
             unreadCount: 0,
           ),
         );
-        emit(const NotificationActionSuccess('Đã đánh dấu tất cả đã đọc'));
       }
     });
   }

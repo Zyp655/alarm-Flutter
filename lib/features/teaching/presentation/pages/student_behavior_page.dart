@@ -35,6 +35,7 @@ class _StudentBehaviorPageState extends State<StudentBehaviorPage> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -51,17 +52,20 @@ class _StudentBehaviorPageState extends State<StudentBehaviorPage> {
         },
       );
       if (res.statusCode == 200) {
+        if (!mounted) return;
         setState(() {
           _data = jsonDecode(res.body) as Map<String, dynamic>;
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _error = 'Lỗi: ${res.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Không thể tải dữ liệu';
         _isLoading = false;
@@ -106,7 +110,7 @@ class _StudentBehaviorPageState extends State<StudentBehaviorPage> {
         );
       }
     }
-    setState(() => _nudging = false);
+    if (mounted) setState(() => _nudging = false);
   }
 
   @override

@@ -18,34 +18,46 @@ class NotificationItem extends StatelessWidget {
   IconData _getIcon(String type) {
     switch (type) {
       case 'assignment_new':
-        return Icons.assignment;
+        return Icons.assignment_rounded;
       case 'assignment_deadline':
-        return Icons.alarm;
+        return Icons.alarm_rounded;
       case 'grade_updated':
-        return Icons.grade;
+        return Icons.emoji_events_rounded;
       case 'submission_new':
-        return Icons.upload_file;
+        return Icons.upload_file_rounded;
       case 'schedule_change':
-        return Icons.event_note;
+        return Icons.event_note_rounded;
+      case 'quiz_new':
+        return Icons.quiz_rounded;
+      case 'chat_message':
+        return Icons.chat_bubble_rounded;
+      case 'absence_warning':
+        return Icons.warning_amber_rounded;
       default:
-        return Icons.notifications;
+        return Icons.notifications_rounded;
     }
   }
 
-  Color _getIconColor(String type) {
+  Color _getAccentColor(String type) {
     switch (type) {
       case 'assignment_new':
-        return Colors.blue;
+        return const Color(0xFF4A90D9);
       case 'assignment_deadline':
-        return Colors.orange;
+        return const Color(0xFFE8854A);
       case 'grade_updated':
-        return Colors.green;
+        return const Color(0xFF50B86C);
       case 'submission_new':
-        return Colors.purple;
+        return const Color(0xFF9B6CD9);
       case 'schedule_change':
-        return Colors.red;
+        return const Color(0xFFD94A5E);
+      case 'quiz_new':
+        return const Color(0xFF3DBAAA);
+      case 'chat_message':
+        return const Color(0xFF5C7AEA);
+      case 'absence_warning':
+        return const Color(0xFFD9A54A);
       default:
-        return Colors.grey;
+        return const Color(0xFF8E99A4);
     }
   }
 
@@ -68,85 +80,142 @@ class NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = _getAccentColor(notification.type);
+    final isUnread = !notification.isRead;
+
     return Dismissible(
       key: Key('notification_${notification.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: Icon(Icons.delete, color: Colors.white),
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.delete_rounded, color: Colors.white, size: 22),
       ),
       onDismissed: (_) => onDelete(),
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        elevation: notification.isRead ? 0 : 2,
-        color: notification.isRead ? null : Colors.blue.withValues(alpha: 0.05),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getIconColor(notification.type).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getIcon(notification.type),
-                    color: _getIconColor(notification.type),
-                    size: 24,
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? (isUnread ? const Color(0xFF1E2A3A) : AppColors.darkCard)
+                    : (isUnread ? accent.withValues(alpha: 0.04) : Colors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isUnread
+                      ? accent.withValues(alpha: 0.25)
+                      : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.withValues(alpha: 0.12)),
                 ),
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              notification.title,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: notification.isRead
-                                    ? FontWeight.normal
-                                    : FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          if (!notification.isRead)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: AppColors.info,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                boxShadow: isUnread
+                    ? [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          accent.withValues(alpha: 0.15),
+                          accent.withValues(alpha: 0.08),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        notification.message,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _formatTime(notification.createdAt),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      ),
-                    ],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(_getIcon(notification.type), color: accent, size: 22),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                notification.title,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
+                                  color: isDark ? Colors.white : AppColors.darkBackground,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                            if (isUnread)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: accent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: accent.withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          notification.message,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatTime(notification.createdAt),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -52,7 +52,7 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
       request.headers['Authorization'] = 'Bearer $token';
     }
 
-    request.fields['studentId'] = studentId.toString();
+    request.fields['userId'] = studentId.toString();
 
     if (link != null) request.fields['link'] = link;
     if (text != null) request.fields['text'] = text;

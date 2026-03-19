@@ -365,7 +365,7 @@ class _CourseDetailViewState extends State<CourseDetailView>
             SliverToBoxAdapter(child: _buildTabBar()),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
+                height: MediaQuery.of(context).size.height * 0.75,
                 child: TabBarView(
                   controller: _tabController!,
                   children: isEnrolled

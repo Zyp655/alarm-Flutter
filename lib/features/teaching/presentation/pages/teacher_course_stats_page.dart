@@ -113,110 +113,158 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final courseName = _courses.isNotEmpty && _selectedCourseId != null
+        ? (_courses.firstWhere(
+            (c) => c['id'] == _selectedCourseId,
+            orElse: () => {'title': ''},
+          )['title'] as String? ?? '')
+        : '';
+
     return Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
-        title: const Text('Thống kê Môn học'),
+        title: Text(courseName.isNotEmpty ? courseName : 'Thống kê Môn học'),
         elevation: 0,
-        actions: [
-          if (_selectedCourseId != null)
-            IconButton(
-              icon: const Icon(Icons.psychology_rounded),
-              tooltip: 'Phân tích hành vi SV',
-              onPressed: () {
-                final course = _courses.firstWhere(
-                  (c) => c['id'] == _selectedCourseId,
-                  orElse: () => {'title': ''},
-                );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentBehaviorPage(
-                      courseId: _selectedCourseId!,
-                      courseTitle: course['title'] as String? ?? '',
-                      teacherId: widget.teacherId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (_selectedCourseId != null)
-            IconButton(
-              icon: const Icon(Icons.auto_awesome),
-              tooltip: 'Ph\u00E2n t\u00EDch AI',
-              onPressed: () {
-                final course = _courses.firstWhere(
-                  (c) => c['id'] == _selectedCourseId,
-                  orElse: () => {'title': ''},
-                );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CourseInsightsPage(
-                      courseId: _selectedCourseId!,
-                      courseTitle: course['title'] as String? ?? '',
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (_selectedCourseId != null)
-            IconButton(
-              icon: const Icon(Icons.warning_amber_rounded),
-              tooltip: 'SV Nguy cơ',
-              onPressed: () {
-                final course = _courses.firstWhere(
-                  (c) => c['id'] == _selectedCourseId,
-                  orElse: () => {'title': ''},
-                );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AtRiskStudentsPage(
-                      courseId: _selectedCourseId!,
-                      courseTitle: course['title'] as String? ?? '',
-                    ),
-                  ),
-                );
-              },
-            ),
-
-
-        ],
       ),
-      body: Column(
-        children: [
-          _buildCourseSelector(),
-          Expanded(child: _buildContent()),
-        ],
-      ),
+      body: _buildContent(),
     );
   }
 
-  Widget _buildCourseSelector() {
-    return Container(
-      padding: AppSpacing.paddingLg,
-      color: AppColors.surface(context),
-      child: DropdownButtonFormField<int>(
-        value: _selectedCourseId,
-        dropdownColor: AppColors.surface(context),
-        style: TextStyle(color: AppColors.textPrimary(context)),
-        decoration: InputDecoration(
-          labelText: 'Chọn môn học',
-          labelStyle: TextStyle(color: AppColors.textSecondary(context)),
+  Widget _buildActionCards() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final course = _courses.firstWhere(
+      (c) => c['id'] == _selectedCourseId,
+      orElse: () => {'title': ''},
+    );
+    final courseTitle = course['title'] as String? ?? '';
+
+    return Column(
+      children: [
+        _buildActionCard(
+          icon: Icons.psychology_rounded,
+          gradient: const [Color(0xFF6C63FF), Color(0xFF4ECDC4)],
+          title: 'Ph\u00e2n t\u00edch h\u00e0nh vi SV',
+          subtitle: 'Theo d\u00f5i m\u1ee9c \u0111\u1ed9 tham gia v\u00e0 xu h\u01b0\u1edbng h\u1ecdc t\u1eadp',
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StudentBehaviorPage(
+                courseId: _selectedCourseId!,
+                courseTitle: courseTitle,
+                teacherId: widget.teacherId,
+              ),
+            ),
+          ),
         ),
-        items: _courses.map<DropdownMenuItem<int>>((course) {
-          return DropdownMenuItem(
-            value: course['id'] as int,
-            child: Text(course['title'] as String),
-          );
-        }).toList(),
-        onChanged: (value) {
-          setState(() {
-            _selectedCourseId = value;
-          });
-          _loadStats();
-        },
+        const SizedBox(height: 12),
+        _buildActionCard(
+          icon: Icons.auto_awesome,
+          gradient: const [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
+          title: 'Ph\u00e2n t\u00edch AI',
+          subtitle: 'G\u1ee3i \u00fd c\u1ea3i thi\u1ec7n n\u1ed9i dung v\u00e0 ph\u01b0\u01a1ng ph\u00e1p gi\u1ea3ng d\u1ea1y',
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CourseInsightsPage(
+                courseId: _selectedCourseId!,
+                courseTitle: courseTitle,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildActionCard(
+          icon: Icons.warning_amber_rounded,
+          gradient: const [Color(0xFFFF9A56), Color(0xFFFF6B6B)],
+          title: 'SV Nguy c\u01a1',
+          subtitle: 'Danh s\u00e1ch sinh vi\u00ean c\u1ea7n h\u1ed7 tr\u1ee3 \u0111\u1eb7c bi\u1ec7t',
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AtRiskStudentsPage(
+                courseId: _selectedCourseId!,
+                courseTitle: courseTitle,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required List<Color> gradient,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: gradient[0].withAlpha(40),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: gradient[0].withAlpha(isDark ? 15 : 10),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white54 : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? Colors.white38 : Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -240,7 +288,7 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
             ),
             AppSpacing.gapV16,
             Text(
-              'Bạn chưa có môn học nào',
+              'B\u1ea1n ch\u01b0a c\u00f3 m\u00f4n h\u1ecdc n\u00e0o',
               style: TextStyle(
                 color: AppColors.textSecondary(context),
                 fontSize: 16,
@@ -254,7 +302,7 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
     if (_stats == null) {
       return Center(
         child: Text(
-          'Không có dữ liệu',
+          'Kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u',
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
       );
@@ -267,6 +315,8 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_selectedCourseId != null) _buildActionCards(),
+            AppSpacing.gapV24,
             _buildOverviewCards(),
             AppSpacing.gapV24,
             _buildStudentStatusChart(),

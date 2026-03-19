@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -105,7 +106,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = prefs.getString('token');
       final uri = Uri.parse('${ApiConstants.baseUrl}/upload');
       final request = http.MultipartRequest('POST', uri)
         ..fields['uploadedBy'] = '$_currentUserId'
@@ -117,15 +118,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
       final streamResp = await request.send();
       final resp = await http.Response.fromStream(streamResp);
+      debugPrint('[Chat] Upload response: ${resp.statusCode} ${resp.body}');
 
       if (resp.statusCode == 201) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final fileData = body['file'] as Map<String, dynamic>;
-        final uploadUrl = fileData['uploadUrl'] as String? ?? fileData['filePath'] as String? ?? '';
-
-        final fullUrl = uploadUrl.startsWith('http')
-            ? uploadUrl
-            : '${ApiConstants.baseUrl}$uploadUrl';
+        final fileId = fileData['id'];
+        final fullUrl = '${ApiConstants.baseUrl}/files/$fileId';
 
         _chatBloc.add(
           SendMessage(
@@ -138,13 +137,15 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         );
         _scrollToBottom();
       } else {
+        debugPrint('[Chat] Upload failed: ${resp.statusCode} ${resp.body}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gửi ảnh thất bại'), backgroundColor: Colors.red),
+            SnackBar(content: Text('Gửi ảnh thất bại: ${resp.statusCode}'), backgroundColor: Colors.red),
           );
         }
       }
     } catch (e) {
+      debugPrint('[Chat] Upload error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
@@ -556,6 +557,49 @@ class _MessageBubble extends StatelessWidget {
     return '$h:$m';
   }
 
+  void _openImageViewer(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        barrierDismissible: true,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: animation,
+            child: Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              extendBodyBehindAppBar: true,
+              body: Center(
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (_, __) => const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                    errorWidget: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -622,34 +666,37 @@ class _MessageBubble extends StatelessWidget {
                     children: [
                       if (message.type == MessageType.image &&
                           message.mediaUrl != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: CachedNetworkImage(
-                            imageUrl: message.mediaUrl!,
-                            width: 200,
-                            height: 150,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(
+                        GestureDetector(
+                          onTap: () => _openImageViewer(context, message.mediaUrl!),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                              imageUrl: message.mediaUrl!,
                               width: 200,
                               height: 150,
-                              color: Colors.grey.withAlpha(40),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                width: 200,
+                                height: 150,
+                                color: Colors.grey.withAlpha(40),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
-                            ),
-                            errorWidget: (_, __, ___) => Container(
-                              width: 200,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withAlpha(40),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  color: Colors.grey,
+                              errorWidget: (_, __, ___) => Container(
+                                width: 200,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             ),

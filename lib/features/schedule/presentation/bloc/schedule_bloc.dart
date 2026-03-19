@@ -43,12 +43,13 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
     final result = await getSchedulesUseCase();
     result.fold((failure) => emit(ScheduleError(failure.message)), (schedules) {
       final uniqueSchedules = <ScheduleEntity>[];
-      final seenClassCodes = <String>{};
+      final seenKeys = <String>{};
 
       for (var schedule in schedules) {
         if (schedule.classCode != null && schedule.classCode!.isNotEmpty) {
-          if (!seenClassCodes.contains(schedule.classCode)) {
-            seenClassCodes.add(schedule.classCode!);
+          final key = '${schedule.classCode}_${schedule.subject}_${schedule.start.toIso8601String().substring(0, 10)}';
+          if (!seenKeys.contains(key)) {
+            seenKeys.add(key);
             uniqueSchedules.add(schedule);
           }
         } else {

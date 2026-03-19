@@ -9,7 +9,6 @@ import '../widgets/notification_dialog_widget.dart';
 
 import 'teacher_students/widgets/student_progress_card.dart';
 import 'teacher_students/widgets/student_detail_sheet.dart';
-import 'teacher_students/widgets/insights_tab.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class TeacherStudentsPage extends StatefulWidget {
@@ -26,12 +25,10 @@ class TeacherStudentsPage extends StatefulWidget {
   State<TeacherStudentsPage> createState() => _TeacherStudentsPageState();
 }
 
-class _TeacherStudentsPageState extends State<TeacherStudentsPage>
-    with SingleTickerProviderStateMixin {
+class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
   List<dynamic> _courses = [];
   List<dynamic> _students = [];
   Map<String, dynamic>? _stats;
-  Map<String, dynamic>? _insightsData;
 
   int? _selectedCourseId;
   String? _selectedStatus;
@@ -42,16 +39,13 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
   int _riskThreshold = 3;
 
   bool _isLoading = true;
-  bool _isLoadingInsights = false;
   bool _isMultiSelectMode = false;
-  late TabController _tabController;
   Set<int> _selectedStudentIds = {};
   final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _selectedCourseId = widget.initialCourseId;
     _loadCourses();
   }
@@ -59,7 +53,6 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
   @override
   void dispose() {
     _searchController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -75,11 +68,9 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
           _courses = courses;
           if (_selectedCourseId != null) {
             _loadStudents();
-            _loadInsights();
           } else if (_courses.isNotEmpty) {
             _selectedCourseId = _courses.first['academicCourseId'] as int?;
             _loadStudents();
-            _loadInsights();
           } else {
             _isLoading = false;
           }
@@ -124,25 +115,6 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
     }
   }
 
-  Future<void> _loadInsights() async {
-    if (_selectedCourseId == null) return;
-    setState(() => _isLoadingInsights = true);
-
-    try {
-      final api = sl<ApiClient>();
-      final data = await api.get(
-        '/courses/$_selectedCourseId/analytics/insights',
-      );
-      if (mounted) {
-        setState(() {
-          _insightsData = data is Map<String, dynamic> ? data : null;
-          _isLoadingInsights = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingInsights = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,19 +130,10 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             _buildSliverAppBar(isDark, innerBoxIsScrolled),
           ],
-          body: TabBarView(
-            controller: _tabController,
+          body: Column(
             children: [
-              Column(
-                children: [
-                  _buildFilters(isDark),
-                  Expanded(child: _buildStudentList(isDark)),
-                ],
-              ),
-              InsightsTab(
-                isLoading: _isLoadingInsights,
-                insightsData: _insightsData,
-              ),
+              _buildFilters(isDark),
+              Expanded(child: _buildStudentList(isDark)),
             ],
           ),
         ),
@@ -299,39 +262,6 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
-            border: Border(
-              bottom: BorderSide(color: AppColors.border(context), width: 0.5),
-            ),
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: AppColors.primary,
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelColor: AppColors.primary,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-            unselectedLabelColor: AppColors.textSecondary(context),
-            tabs: const [
-              Tab(
-                text: 'Danh sách',
-                icon: Icon(Icons.list_alt_rounded, size: 18),
-              ),
-              Tab(
-                text: 'Ph\u00E2n t\u00EDch',
-                icon: Icon(Icons.insights_rounded, size: 18),
-              ),
-            ],
           ),
         ),
       ),
@@ -487,7 +417,6 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage>
                     onChanged: (value) {
                       setState(() => _selectedCourseId = value);
                       _loadStudents();
-                      _loadInsights();
                     },
                   ),
                 ),

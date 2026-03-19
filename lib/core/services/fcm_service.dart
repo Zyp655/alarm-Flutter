@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -53,6 +54,9 @@ Future<void> _showLocalNotification(RemoteMessage message) async {
         priority: Priority.max,
         playSound: true,
         enableVibration: true,
+        fullScreenIntent: true,
+        ticker: title,
+        styleInformation: BigTextStyleInformation(body),
       ),
     ),
     payload: jsonEncode(data),
@@ -78,26 +82,35 @@ class FcmService {
       description: 'Thông báo khi có tin nhắn mới',
       importance: Importance.max,
       playSound: true,
+      enableVibration: true,
+      enableLights: true,
     ),
     AndroidNotificationChannel(
       'course_updates',
       'Cập nhật khóa học',
       description: 'Quiz mới, bài tập mới',
-      importance: Importance.high,
+      importance: Importance.max,
       playSound: true,
+      enableVibration: true,
+      enableLights: true,
     ),
     AndroidNotificationChannel(
       'ai_attendance',
       'Cảnh báo vắng',
       description: 'Nhắc nhở hoàn thành bài học',
-      importance: Importance.high,
+      importance: Importance.max,
       playSound: true,
+      enableVibration: true,
+      enableLights: true,
     ),
     AndroidNotificationChannel(
       'general_notifications',
       'Thông báo chung',
       description: 'Các thông báo khác',
-      importance: Importance.defaultImportance,
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
     ),
   ];
 
@@ -141,10 +154,13 @@ class FcmService {
 
     try {
       final token = await _messaging.getToken();
+      debugPrint('[FCM] token=${token?.substring(0, 20)}... userId=$userId');
       if (token != null) {
         await _sendTokenToServer(token);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[FCM] getToken error: $e');
+    }
 
     _tokenRefreshSub?.cancel();
     _tokenRefreshSub = _messaging.onTokenRefresh.listen(_sendTokenToServer);
@@ -157,6 +173,7 @@ class FcmService {
   void _handleForegroundMessage(RemoteMessage message) {
     final data = message.data;
     final type = data['type'] as String? ?? '';
+    debugPrint('[FCM] Foreground message: type=$type title=${message.notification?.title}');
 
     if (type == 'chat_message') {
       final conversationId = int.tryParse(data['conversationId'] ?? '');

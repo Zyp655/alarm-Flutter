@@ -73,7 +73,7 @@ class ClassTile extends StatelessWidget {
                   ),
                   if (dayOfWeek != null)
                     Text(
-                      'Thứ $dayOfWeek',
+                      dayOfWeek == 7 ? 'Chủ nhật' : 'Thứ ${dayOfWeek + 1}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary(context),
                       ),

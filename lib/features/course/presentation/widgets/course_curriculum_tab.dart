@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/module_entity.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../../../../core/route/app_route.dart';
-import '../../../../core/services/content_analyzer_service.dart';
+import '../../../../core/api/api_constants.dart';
 import '../bloc/course_detail_bloc.dart';
 import '../bloc/course_detail_event.dart';
 import '../pages/course_submissions_page.dart';
@@ -33,23 +34,34 @@ class CourseCurriculumTab extends StatefulWidget {
 }
 
 class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
-  final Map<int, Map<String, dynamic>?> _moduleQuizzes = {};
+  final Map<int, List<Map<String, dynamic>>> _moduleQuizzes = {};
   final Set<int> _loadingQuizModules = {};
 
-  void _loadQuizForModule(int moduleId) async {
+  void _loadQuizzesForModule(int moduleId) async {
     if (_loadingQuizModules.contains(moduleId) ||
-        _moduleQuizzes.containsKey(moduleId))
+        _moduleQuizzes.containsKey(moduleId)) {
       return;
+    }
     _loadingQuizModules.add(moduleId);
     try {
-      final result = await ContentAnalyzerService().getSavedQuiz(
-        moduleId: moduleId,
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/modules/$moduleId/quizzes'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
-      if (mounted) {
+      if (response.statusCode == 200 && mounted) {
+        final data = jsonDecode(response.body);
+        final quizzes = List<Map<String, dynamic>>.from(data['quizzes'] ?? []);
         setState(() {
-          _moduleQuizzes[moduleId] = result;
+          _moduleQuizzes[moduleId] = quizzes;
           _loadingQuizModules.remove(moduleId);
         });
+      } else {
+        if (mounted) setState(() => _loadingQuizModules.remove(moduleId));
       }
     } catch (e) {
       if (mounted) setState(() => _loadingQuizModules.remove(moduleId));
@@ -59,8 +71,9 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
   Future<Map<String, dynamic>?> _getQuizResult(int moduleId) async {
     final prefs = await SharedPreferences.getInstance();
     final resultJson = prefs.getString('quiz_result_$moduleId');
-    if (resultJson != null)
+    if (resultJson != null) {
       return jsonDecode(resultJson) as Map<String, dynamic>;
+    }
     return null;
   }
 
@@ -127,7 +140,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
                 ),
               ),
               subtitle: Text(
-                '🔒 Mở khóa vào $unlockStr',
+                'M\u1edf kh\u00f3a v\u00e0o $unlockStr',
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
               trailing: Container(
@@ -138,7 +151,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Chưa mở',
+                  'Ch\u01b0a m\u1edf',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 11,
@@ -150,7 +163,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content:
-                        Text('Chương này sẽ mở khóa vào ngày $unlockStr'),
+                        Text('Ch\u01b0\u01a1ng n\u00e0y s\u1ebd m\u1edf kh\u00f3a v\u00e0o ng\u00e0y $unlockStr'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -197,7 +210,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
                 ),
               ),
               subtitle: Text(
-                '${module.lessons?.length ?? 0} bài học',
+                '${module.lessons?.length ?? 0} b\u00e0i h\u1ecdc',
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
               children: [
@@ -220,33 +233,30 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
         if (!_moduleQuizzes.containsKey(module.id) &&
             !_loadingQuizModules.contains(module.id)) {
           WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _loadQuizForModule(module.id),
+            (_) => _loadQuizzesForModule(module.id),
           );
         }
 
-        final quizData = _moduleQuizzes[module.id];
-        final hasQuiz =
-            quizData != null &&
-            quizData['quiz'] != null &&
-            quizData['questions'] != null &&
-            (quizData['questions'] as List).isNotEmpty;
+        final quizzes = _moduleQuizzes[module.id];
+        if (quizzes == null || quizzes.isEmpty) return const SizedBox.shrink();
 
-        if (!hasQuiz) return const SizedBox.shrink();
-
-        final quiz = quizData['quiz'] as Map<String, dynamic>;
-        final questions = quizData['questions'] as List;
         final lessons = module.lessons ?? [];
         final completedLessons = lessons.where((l) => l.isCompleted).length;
-        final allDone =
-            lessons.isNotEmpty && completedLessons == lessons.length;
+        final allDone = lessons.isNotEmpty && completedLessons == lessons.length;
 
-        return _buildQuizLessonItem(
-          module.id,
-          quiz['topic'] ?? 'Bài kiểm tra',
-          questions.length,
-          isLocked: !allDone,
-          completedLessons: completedLessons,
-          totalLessons: lessons.length,
+        return Column(
+          children: quizzes.map((quizData) {
+            final quizMeta = quizData['quiz'] as Map<String, dynamic>? ?? quizData;
+            final questions = quizData['questions'] as List? ?? [];
+            return _buildQuizLessonItem(
+              module.id,
+              quizMeta['topic'] ?? 'B\u00e0i ki\u1ec3m tra',
+              questions.length,
+              isLocked: !allDone,
+              completedLessons: completedLessons,
+              totalLessons: lessons.length,
+            );
+          }).toList(),
         );
       },
     );
@@ -281,7 +291,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
               color: Colors.grey[400],
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.lock, color: Colors.white, size: 20),
+            child: const Icon(Icons.lock, color: Colors.white, size: 20),
           ),
           title: Text(
             title,
@@ -292,7 +302,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
             ),
           ),
           subtitle: Text(
-            'ðŸ”’ Hoàn thành $completedLessons/$totalLessons bài để mở khóa',
+            'Ho\u00e0n th\u00e0nh $completedLessons/$totalLessons b\u00e0i \u0111\u1ec3 m\u1edf kh\u00f3a',
             style: TextStyle(color: Colors.grey[500], fontSize: 12),
           ),
           trailing: Container(
@@ -302,7 +312,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Khóa',
+              'Kh\u00f3a',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 12,
@@ -314,7 +324,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Hoàn thành tất cả ${totalLessons - completedLessons} bài học còn lại để mở khóa quiz!',
+                  'Ho\u00e0n th\u00e0nh t\u1ea5t c\u1ea3 ${totalLessons - completedLessons} b\u00e0i h\u1ecdc c\u00f2n l\u1ea1i \u0111\u1ec3 m\u1edf kh\u00f3a quiz!',
                 ),
                 behavior: SnackBarBehavior.floating,
               ),
@@ -415,9 +425,9 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
             subtitle: Text(
               isCompleted
                   ? (isPassing
-                        ? '✅ Đã hoàn thành • $percentage%'
-                        : '⚠️ Cần cải thiện • $percentage%')
-                  : '$questionCount câu hỏi trắc nghiệm',
+                        ? '\u0110\u00e3 ho\u00e0n th\u00e0nh \u2022 $percentage%'
+                        : 'C\u1ea7n c\u1ea3i thi\u1ec7n \u2022 $percentage%')
+                  : '$questionCount c\u00e2u h\u1ecfi tr\u1eafc nghi\u1ec7m',
               style: TextStyle(
                 color: isCompleted
                     ? (isPassing ? Colors.green[700] : Colors.orange[700])
@@ -438,7 +448,7 @@ class _CourseCurriculumTabState extends State<CourseCurriculumTab> {
                     : null,
               ),
               child: Text(
-                isCompleted ? (isPassing ? 'Xem lại' : 'Làm lại') : 'Làm bài',
+                isCompleted ? (isPassing ? 'Xem l\u1ea1i' : 'L\u00e0m l\u1ea1i') : 'L\u00e0m b\u00e0i',
                 style: TextStyle(
                   color: isCompleted && isPassing
                       ? Colors.green[700]
