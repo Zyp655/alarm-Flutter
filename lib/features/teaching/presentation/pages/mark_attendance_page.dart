@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -49,7 +50,14 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
         '${ApiConstants.baseUrl}/teacher/classes/${widget.classId}/students',
       );
 
-      final response = await http.get(url);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        url,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
@@ -82,7 +90,14 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
         '${ApiConstants.baseUrl}/teacher/attendance/records?classId=${widget.classId}&date=$dateStr',
       );
 
-      final response = await http.get(url);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        url,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
@@ -106,6 +121,8 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
     setState(() => _isSaving = true);
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final attendances = _attendance.entries.map((entry) {
         return {
           'studentId': entry.key,
@@ -118,7 +135,10 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
 
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           'classId': widget.classId,
           'date': _selectedDate.toIso8601String(),

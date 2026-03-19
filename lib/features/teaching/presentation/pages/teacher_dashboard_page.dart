@@ -8,6 +8,7 @@ import '../../../../features/user/presentation/pages/profile_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import 'teacher_subject_list_page.dart';
+import 'teacher_course_stats_page.dart';
 import 'teacher_students_page.dart';
 import 'teacher_tasks_page.dart';
 import '../bloc/teacher_bloc.dart';
@@ -719,71 +720,88 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
         final courseCode = cls['courseCode'] ?? '';
         final studentCount = cls['studentCount'] ?? 0;
         final classCode = cls['classCode'] ?? '';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: cardColor,
+        final courseId = cls['academicCourseId'] as int?;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TeacherCourseStatsPage(
+                    teacherId: widget.teacherId,
+                    courseId: courseId,
+                  ),
+                ),
+              );
+            },
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border(context)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border(context)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.school_rounded,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$courseName – $courseCode',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: textColor,
-                      ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
+                    child: Icon(
+                      Icons.school_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.people_outline, size: 14, color: subColor),
-                        const SizedBox(width: 4),
                         Text(
-                          '$studentCount',
-                          style: TextStyle(fontSize: 12, color: subColor),
+                          '$courseName – $courseCode',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: textColor,
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                        Icon(Icons.class_rounded, size: 14, color: subColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          classCode,
-                          style: TextStyle(fontSize: 12, color: subColor),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.people_outline, size: 14, color: subColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$studentCount',
+                              style: TextStyle(fontSize: 12, color: subColor),
+                            ),
+                            const SizedBox(width: 16),
+                            Icon(Icons.class_rounded, size: 14, color: subColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              classCode,
+                              style: TextStyle(fontSize: 12, color: subColor),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: subColor, size: 22),
+                ],
               ),
-              Icon(Icons.chevron_right_rounded, color: subColor, size: 22),
-            ],
+            ),
           ),
         );
       }).toList(),

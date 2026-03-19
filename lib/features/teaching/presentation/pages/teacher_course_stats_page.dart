@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -9,7 +10,7 @@ import '../widgets/review_card_widget.dart';
 import '../widgets/rating_section_widget.dart';
 import 'course_insights_page.dart';
 import 'at_risk_students_page.dart';
-import 'teacher_ai_quiz_page.dart';
+import 'student_behavior_page.dart';
 
 class TeacherCourseStatsPage extends StatefulWidget {
   final int teacherId;
@@ -41,8 +42,13 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
 
   Future<void> _loadCourses() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/courses'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
       if (response.statusCode == 200) {
         final courses = jsonDecode(response.body) as List;
@@ -71,12 +77,20 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
     setState(() => _isLoading = true);
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final statsResponse = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/courses/$_selectedCourseId/stats'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
 
       final reviewsResponse = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/courses/$_selectedCourseId/reviews'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (statsResponse.statusCode == 200) {
@@ -105,6 +119,27 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
         title: const Text('Thống kê Môn học'),
         elevation: 0,
         actions: [
+          if (_selectedCourseId != null)
+            IconButton(
+              icon: const Icon(Icons.psychology_rounded),
+              tooltip: 'Phân tích hành vi SV',
+              onPressed: () {
+                final course = _courses.firstWhere(
+                  (c) => c['id'] == _selectedCourseId,
+                  orElse: () => {'title': ''},
+                );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudentBehaviorPage(
+                      courseId: _selectedCourseId!,
+                      courseTitle: course['title'] as String? ?? '',
+                      teacherId: widget.teacherId,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (_selectedCourseId != null)
             IconButton(
               icon: const Icon(Icons.auto_awesome),
@@ -145,21 +180,8 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
                 );
               },
             ),
-          if (_selectedCourseId != null)
-            IconButton(
-              icon: const Icon(Icons.quiz_outlined),
-              tooltip: 'Tạo Quiz AI',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TeacherAiQuizPage(
-                      courseId: _selectedCourseId!,
-                    ),
-                  ),
-                );
-              },
-            ),
+
+
         ],
       ),
       body: Column(

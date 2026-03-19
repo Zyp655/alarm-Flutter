@@ -838,6 +838,7 @@ class _LessonItem extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => TeacherAiQuizPage(
           courseId: courseId,
+          moduleId: lesson.moduleId,
           initialContent: lesson.textContent,
         ),
       ),
@@ -895,12 +896,30 @@ class _AssignmentSection extends StatefulWidget {
 
 class _AssignmentSectionState extends State<_AssignmentSection> {
   List<Map<String, dynamic>> _assignments = [];
+  List<Map<String, dynamic>> _quizzes = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadAssignments();
+    _loadQuizzes();
+  }
+
+  Future<void> _loadQuizzes() async {
+    try {
+      final api = sl<ApiClient>();
+      final data = await api.get(
+        '/modules/${widget.module.id}/quizzes',
+      );
+      if (mounted) {
+        setState(() {
+          _quizzes = List<Map<String, dynamic>>.from(data['quizzes'] ?? []);
+        });
+      }
+    } catch (e) {
+      debugPrint('[_loadQuizzes] moduleId=${widget.module.id} error: $e');
+    }
   }
 
   Future<void> _loadAssignments() async {
@@ -1311,6 +1330,92 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
                 ),
               ),
             ),
+          if (_quizzes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withAlpha(isDark ? 30 : 15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.quiz_rounded,
+                    color: AppColors.accent,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Quiz AI',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._quizzes.map(
+              (q) => Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.accent.withAlpha(12)
+                      : AppColors.accent.withAlpha(8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.accent.withAlpha(30)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            q['topic'] ?? 'Quiz',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${q['questionCount'] ?? 0} câu · ${q['difficulty'] ?? ''}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '✓ Đã tạo',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1337,9 +1442,12 @@ class _AssignmentSectionState extends State<_AssignmentSection> {
                       MaterialPageRoute(
                         builder: (_) => TeacherAiQuizPage(
                           courseId: widget.courseId,
+                          moduleId: widget.module.id,
                         ),
                       ),
-                    );
+                    ).then((created) {
+                      if (created == true) _loadQuizzes();
+                    });
                   },
                   icon: const Icon(Icons.auto_awesome, size: 16, color: AppColors.accent),
                   label: const Text('Tạo Quiz AI', style: TextStyle(fontSize: 13, color: AppColors.accent)),

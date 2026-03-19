@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -36,8 +37,13 @@ class _AtRiskStudentsPageState extends State<AtRiskStudentsPage> {
     });
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/courses/${widget.courseId}/at-risk-students'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {

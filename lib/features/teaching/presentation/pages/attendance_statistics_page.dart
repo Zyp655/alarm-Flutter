@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/api/api_constants.dart';
@@ -41,7 +42,14 @@ class _AttendanceStatisticsPageState extends State<AttendanceStatisticsPage> {
         '${ApiConstants.baseUrl}/teacher/attendance/statistics?classId=${widget.classId}',
       );
 
-      final response = await http.get(url);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        url,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
