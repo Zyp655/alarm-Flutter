@@ -1,6 +1,7 @@
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:dotenv/dotenv.dart';
+import 'package:backend/database/database.dart';
 
 import 'rbac_middleware.dart';
 
@@ -45,6 +46,28 @@ Handler authMiddleware(Handler handler) {
       final payload = jwt.payload as Map<String, dynamic>;
       final userId = payload['id'] as int;
       final role = (payload['role'] as int?) ?? 0;
+      final sessionToken = payload['sessionToken'] as String?;
+
+      if (sessionToken != null) {
+        try {
+          final db = context.read<AppDatabase>();
+          final user = await (db.select(db.users)
+                ..where((u) => u.id.equals(userId)))
+              .getSingleOrNull();
+
+          if (user != null &&
+              user.activeSessionToken != null &&
+              user.activeSessionToken != sessionToken) {
+            return Response.json(
+              statusCode: 403,
+              body: {
+                'error': 'session_expired',
+                'message': 'Tài khoản đã đăng nhập trên thiết bị khác.',
+              },
+            );
+          }
+        } catch (_) {}
+      }
 
       return provider<int>((_) => userId)(
         provider<UserRole>((_) => UserRole(role))(handler),

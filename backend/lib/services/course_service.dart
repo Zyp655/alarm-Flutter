@@ -72,6 +72,17 @@ class CourseService {
     final modulesWithLessons = <Map<String, dynamic>>[];
     int totalDuration = 0;
 
+    DateTime? classStartDate;
+    int? classDayOfWeek;
+    if (isAcademic) {
+      final courseClass = await (db.select(db.courseClasses)
+            ..where((c) => c.academicCourseId.equals(courseId))
+            ..limit(1))
+          .getSingleOrNull();
+      classStartDate = courseClass?.startDate;
+      classDayOfWeek = courseClass?.dayOfWeek;
+    }
+
     for (final module in modules) {
       final lessons = await (db.select(db.lessons)
             ..where((tbl) => tbl.moduleId.equals(module.id))
@@ -82,11 +93,24 @@ class CourseService {
         totalDuration += lesson.durationMinutes;
       }
 
+      DateTime? effectiveUnlockDate = module.unlockDate;
+      if (effectiveUnlockDate == null && classStartDate != null) {
+        final weeksOffset = module.orderIndex;
+        var baseDate = classStartDate.add(Duration(days: weeksOffset * 7));
+        if (classDayOfWeek != null) {
+          final diff = classDayOfWeek - baseDate.weekday;
+          baseDate = baseDate.add(Duration(days: diff >= 0 ? diff : diff + 7));
+        }
+        effectiveUnlockDate = baseDate;
+      }
+
       modulesWithLessons.add({
         'id': module.id,
         'title': module.title,
         'description': module.description,
         'orderIndex': module.orderIndex,
+        'createdAt': module.createdAt.toIso8601String(),
+        'unlockDate': effectiveUnlockDate?.toIso8601String(),
         'lessons': lessons
             .map((lesson) => {
                   'id': lesson.id,

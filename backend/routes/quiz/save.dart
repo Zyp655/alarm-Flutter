@@ -4,6 +4,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/database/database.dart';
 import 'package:backend/helpers/notification_helper.dart';
+import 'package:backend/services/email_service.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
@@ -92,6 +93,14 @@ Future<Response> onRequest(RequestContext context) async {
               relatedType: 'quiz',
             );
             notifiedCount = studentIds.length;
+
+            EmailService.notifyNewQuiz(
+              db: db,
+              studentIds: studentIds.toList(),
+              quizTopic: topic,
+              difficulty: difficulty,
+              questionCount: questions.length,
+            );
           }
         }
       } catch (_) {}

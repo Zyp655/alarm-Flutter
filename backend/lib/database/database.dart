@@ -16,6 +16,7 @@ class Users extends Table {
   BoolColumn get isBanned => boolean().withDefault(const Constant(false))();
   DateTimeColumn get resetTokenExpiry => dateTime().nullable()();
   TextColumn get fcmToken => text().nullable()();
+  TextColumn get activeSessionToken => text().nullable()();
   @ReferenceName('userDepartment')
   IntColumn get departmentId =>
       integer().nullable().references(Departments, #id)();
@@ -319,6 +320,7 @@ class Modules extends Table {
   TextColumn get description => text().nullable()();
   IntColumn get orderIndex => integer()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get unlockDate => dateTime().nullable()();
 }
 
 class Lessons extends Table {
@@ -652,6 +654,15 @@ class PersonalRoadmapItems extends Table {
   DateTimeColumn get addedAt => dateTime()();
 }
 
+class BehaviorReports extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get courseId => integer()();
+  TextColumn get reportJson => text()();
+  TextColumn get statsJson => text()();
+  DateTimeColumn get generatedAt => dateTime()();
+  DateTimeColumn get expiresAt => dateTime()();
+}
+
 @DriftDatabase(tables: [
   Users,
   StudentProfiles,
@@ -704,6 +715,7 @@ class PersonalRoadmapItems extends Table {
   EnrollmentImports,
   PersonalRoadmaps,
   PersonalRoadmapItems,
+  BehaviorReports,
 ])
 class DailyLearningLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -816,6 +828,7 @@ class SegmentQuizAttempts extends Table {
   AiNotificationLogs,
   VideoSegments,
   SegmentQuizAttempts,
+  BehaviorReports,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -836,7 +849,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration {
@@ -1187,6 +1200,28 @@ class AppDatabase extends _$AppDatabase {
           );
           await m.issueCustomQuery(
             'ALTER TABLE course_classes ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ',
+          );
+        }
+
+        if (from < 35) {
+          await m.issueCustomQuery('''
+            CREATE TABLE IF NOT EXISTS behavior_reports (
+              id SERIAL PRIMARY KEY,
+              course_id INTEGER NOT NULL,
+              report_json TEXT NOT NULL,
+              stats_json TEXT NOT NULL,
+              generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+              expires_at TIMESTAMPTZ NOT NULL
+            )
+          ''');
+          await m.issueCustomQuery(
+            'CREATE INDEX IF NOT EXISTS idx_behavior_reports_course ON behavior_reports(course_id, expires_at)',
+          );
+        }
+
+        if (from < 36) {
+          await m.issueCustomQuery(
+            'ALTER TABLE users ADD COLUMN IF NOT EXISTS active_session_token TEXT',
           );
         }
       },

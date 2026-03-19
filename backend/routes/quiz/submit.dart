@@ -19,6 +19,7 @@ Future<Response> onRequest(RequestContext context) async {
     final quizId = data['quizId'] as int?;
     final answers = data['answers'] as List?;
     final timeSpentSeconds = data['timeSpentSeconds'] as int? ?? 0;
+    final perQuestionTimeMs = data['perQuestionTimeMs'] as List?;
     if (userId == null || quizId == null || answers == null) {
       return Response(
         statusCode: HttpStatus.badRequest,
@@ -53,6 +54,11 @@ Future<Response> onRequest(RequestContext context) async {
     }
     final totalQuestions = questions.length;
     final scorePercentage = (correctCount / totalQuestions) * 100;
+
+    final answersPayload = perQuestionTimeMs != null
+        ? jsonEncode({'answers': answers, 'perQuestionTimeMs': perQuestionTimeMs})
+        : jsonEncode(answers);
+
     final attemptId = await db.into(db.quizAttempts).insert(
           QuizAttemptsCompanion.insert(
             quizId: quizId,
@@ -61,7 +67,7 @@ Future<Response> onRequest(RequestContext context) async {
             totalQuestions: totalQuestions,
             scorePercentage: scorePercentage,
             timeSpentSeconds: timeSpentSeconds,
-            answers: jsonEncode(answers),
+            answers: answersPayload,
             completedAt: DateTime.now(),
           ),
         );

@@ -109,6 +109,23 @@ Future<Response> _trackWatchTime(
       );
     }
 
+    final skipCount = body['skipCount'] as int? ?? 0;
+    final rewindCount = body['rewindCount'] as int? ?? 0;
+    final pauseCount = body['pauseCount'] as int? ?? 0;
+    if (skipCount > 0 || rewindCount > 0 || pauseCount > 0) {
+      try {
+        await db.into(db.learningActivities).insert(
+          LearningActivitiesCompanion.insert(
+            userId: userId,
+            activityType: 'video_behavior',
+            durationMinutes: Value((watchSeconds ?? 0) ~/ 60),
+            metadata: Value('{"skipCount":$skipCount,"rewindCount":$rewindCount,"pauseCount":$pauseCount}'),
+            createdAt: DateTime.now(),
+          ),
+        );
+      } catch (_) {}
+    }
+
     if (quizCompleted == true) {
       await engine.markQuizCompleted(logId: log.id, score: quizScore);
     }

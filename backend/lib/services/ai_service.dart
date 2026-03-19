@@ -781,4 +781,78 @@ Câu lệnh từ chối mẫu: "Rất tiếc, tôi được thiết kế để h
       );
     }
   }
+
+  Future<Map<String, dynamic>> analyzeStudentBehaviors({
+    required String courseName,
+    required int totalStudents,
+    required Map<String, int> engagementDistribution,
+    required List<Map<String, dynamic>> topRiskProfiles,
+    required List<Map<String, dynamic>> topStarProfiles,
+    required List<Map<String, dynamic>> quizRushers,
+    required String bottleneckModule,
+    required double bottleneckDropRate,
+  }) async {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+    final prompt = '''
+Bạn là Data Scientist giáo dục. Phân tích dữ liệu hành vi sinh viên khóa "$courseName":
+
+TỔNG QUAN ($totalStudents sinh viên):
+- Xuất sắc: ${engagementDistribution['excellent']}
+- Tốt: ${engagementDistribution['good']}
+- Trung bình: ${engagementDistribution['fair']}
+- Nguy cơ: ${engagementDistribution['low']}
+
+TOP SINH VIÊN NGUY CƠ CAO:
+${topRiskProfiles.map((p) => '- ${p['name']}: completion=${p['completionRate']}%, avgScore=${p['avgQuizScore']}, inactive=${p['daysInactive']} ngày, quizSpeed=${p['quizSpeed']}').join('\n')}
+
+TOP SINH VIÊN XUẤT SẮC:
+${topStarProfiles.map((p) => '- ${p['name']}: completion=${p['completionRate']}%, avgScore=${p['avgQuizScore']}, watchMins=${p['totalWatchMinutes']}').join('\n')}
+
+QUIZ "ĐÁNH LỤI" (làm nhanh < 10s/câu + điểm < 50):
+${quizRushers.isEmpty ? 'Không có' : quizRushers.map((p) => '- ${p['name']}: speed=${p['avgSecondsPerQ']}s/câu, score=${p['avgScore']}%').join('\n')}
+
+BOTTLENECK MODULE: "$bottleneckModule" (drop-off ${(bottleneckDropRate * 100).toStringAsFixed(0)}%)
+
+Trả về JSON (CHỈ JSON):
+{
+  "summary": "Phân tích tổng quan 3-5 câu",
+  "causes": ["Nguyên nhân 1", "Nguyên nhân 2", "Nguyên nhân 3"],
+  "curriculumSuggestions": ["Đề xuất can thiệp giáo trình 1", "Đề xuất 2"],
+  "recommendations": ["Hành động cụ thể 1", "Hành động 2", "Hành động 3"],
+  "nudgeTemplates": [
+    {"target": "inactive", "message": "Template tin nhắn cho SV không hoạt động"},
+    {"target": "rushers", "message": "Template cho SV đánh lụi quiz"}
+  ]
+}
+''';
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $openaiApiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o-mini',
+        'messages': [
+          {
+            'role': 'system',
+            'content':
+                'You are an expert Educational Data Scientist. Always respond with valid JSON only, no markdown.',
+          },
+          {'role': 'user', 'content': prompt},
+        ],
+        'temperature': 0.5,
+        'max_tokens': 1024,
+      }),
+    );
+    if (response.statusCode == 200) {
+      final text = _extractChatContent(response.body);
+      final jsonStr = _extractJson(text);
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } else {
+      throw Exception(
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
 }

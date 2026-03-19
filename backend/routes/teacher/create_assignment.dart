@@ -1,5 +1,6 @@
 import 'package:backend/database/database.dart';
 import 'package:backend/helpers/notification_helper.dart';
+import 'package:backend/services/email_service.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 
@@ -121,6 +122,18 @@ Future<Response> onRequest(RequestContext context) async {
         message: 'Giáo viên đã giao bài tập: $title',
         relatedId: assignmentId,
         relatedType: 'assignment',
+      );
+
+      final cls = await (db.select(db.classes)
+            ..where((c) => c.id.equals(resolvedClassId)))
+          .getSingleOrNull();
+
+      EmailService.notifyNewAssignment(
+        db: db,
+        studentIds: studentIds,
+        assignmentTitle: title,
+        className: cls?.className ?? 'Lớp học',
+        dueDate: dueDate,
       );
     }
 

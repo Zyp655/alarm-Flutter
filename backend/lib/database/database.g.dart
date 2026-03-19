@@ -372,6 +372,12 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   late final GeneratedColumn<String> fcmToken = GeneratedColumn<String>(
       'fcm_token', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _activeSessionTokenMeta =
+      const VerificationMeta('activeSessionToken');
+  @override
+  late final GeneratedColumn<String> activeSessionToken =
+      GeneratedColumn<String>('active_session_token', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _departmentIdMeta =
       const VerificationMeta('departmentId');
   @override
@@ -392,6 +398,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         isBanned,
         resetTokenExpiry,
         fcmToken,
+        activeSessionToken,
         departmentId
       ];
   @override
@@ -449,6 +456,12 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
       context.handle(_fcmTokenMeta,
           fcmToken.isAcceptableOrUnknown(data['fcm_token']!, _fcmTokenMeta));
     }
+    if (data.containsKey('active_session_token')) {
+      context.handle(
+          _activeSessionTokenMeta,
+          activeSessionToken.isAcceptableOrUnknown(
+              data['active_session_token']!, _activeSessionTokenMeta));
+    }
     if (data.containsKey('department_id')) {
       context.handle(
           _departmentIdMeta,
@@ -482,6 +495,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
           DriftSqlType.dateTime, data['${effectivePrefix}reset_token_expiry']),
       fcmToken: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}fcm_token']),
+      activeSessionToken: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}active_session_token']),
       departmentId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}department_id']),
     );
@@ -503,6 +518,7 @@ class User extends DataClass implements Insertable<User> {
   final bool isBanned;
   final DateTime? resetTokenExpiry;
   final String? fcmToken;
+  final String? activeSessionToken;
   final int? departmentId;
   const User(
       {required this.id,
@@ -514,6 +530,7 @@ class User extends DataClass implements Insertable<User> {
       required this.isBanned,
       this.resetTokenExpiry,
       this.fcmToken,
+      this.activeSessionToken,
       this.departmentId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -534,6 +551,9 @@ class User extends DataClass implements Insertable<User> {
     }
     if (!nullToAbsent || fcmToken != null) {
       map['fcm_token'] = Variable<String>(fcmToken);
+    }
+    if (!nullToAbsent || activeSessionToken != null) {
+      map['active_session_token'] = Variable<String>(activeSessionToken);
     }
     if (!nullToAbsent || departmentId != null) {
       map['department_id'] = Variable<int>(departmentId);
@@ -560,6 +580,9 @@ class User extends DataClass implements Insertable<User> {
       fcmToken: fcmToken == null && nullToAbsent
           ? const Value.absent()
           : Value(fcmToken),
+      activeSessionToken: activeSessionToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activeSessionToken),
       departmentId: departmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(departmentId),
@@ -580,6 +603,8 @@ class User extends DataClass implements Insertable<User> {
       resetTokenExpiry:
           serializer.fromJson<DateTime?>(json['resetTokenExpiry']),
       fcmToken: serializer.fromJson<String?>(json['fcmToken']),
+      activeSessionToken:
+          serializer.fromJson<String?>(json['activeSessionToken']),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
     );
   }
@@ -596,6 +621,7 @@ class User extends DataClass implements Insertable<User> {
       'isBanned': serializer.toJson<bool>(isBanned),
       'resetTokenExpiry': serializer.toJson<DateTime?>(resetTokenExpiry),
       'fcmToken': serializer.toJson<String?>(fcmToken),
+      'activeSessionToken': serializer.toJson<String?>(activeSessionToken),
       'departmentId': serializer.toJson<int?>(departmentId),
     };
   }
@@ -610,6 +636,7 @@ class User extends DataClass implements Insertable<User> {
           bool? isBanned,
           Value<DateTime?> resetTokenExpiry = const Value.absent(),
           Value<String?> fcmToken = const Value.absent(),
+          Value<String?> activeSessionToken = const Value.absent(),
           Value<int?> departmentId = const Value.absent()}) =>
       User(
         id: id ?? this.id,
@@ -623,6 +650,9 @@ class User extends DataClass implements Insertable<User> {
             ? resetTokenExpiry.value
             : this.resetTokenExpiry,
         fcmToken: fcmToken.present ? fcmToken.value : this.fcmToken,
+        activeSessionToken: activeSessionToken.present
+            ? activeSessionToken.value
+            : this.activeSessionToken,
         departmentId:
             departmentId.present ? departmentId.value : this.departmentId,
       );
@@ -642,6 +672,9 @@ class User extends DataClass implements Insertable<User> {
           ? data.resetTokenExpiry.value
           : this.resetTokenExpiry,
       fcmToken: data.fcmToken.present ? data.fcmToken.value : this.fcmToken,
+      activeSessionToken: data.activeSessionToken.present
+          ? data.activeSessionToken.value
+          : this.activeSessionToken,
       departmentId: data.departmentId.present
           ? data.departmentId.value
           : this.departmentId,
@@ -660,14 +693,25 @@ class User extends DataClass implements Insertable<User> {
           ..write('isBanned: $isBanned, ')
           ..write('resetTokenExpiry: $resetTokenExpiry, ')
           ..write('fcmToken: $fcmToken, ')
+          ..write('activeSessionToken: $activeSessionToken, ')
           ..write('departmentId: $departmentId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, email, passwordHash, fullName, resetToken,
-      role, isBanned, resetTokenExpiry, fcmToken, departmentId);
+  int get hashCode => Object.hash(
+      id,
+      email,
+      passwordHash,
+      fullName,
+      resetToken,
+      role,
+      isBanned,
+      resetTokenExpiry,
+      fcmToken,
+      activeSessionToken,
+      departmentId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -681,6 +725,7 @@ class User extends DataClass implements Insertable<User> {
           other.isBanned == this.isBanned &&
           other.resetTokenExpiry == this.resetTokenExpiry &&
           other.fcmToken == this.fcmToken &&
+          other.activeSessionToken == this.activeSessionToken &&
           other.departmentId == this.departmentId);
 }
 
@@ -694,6 +739,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<bool> isBanned;
   final Value<DateTime?> resetTokenExpiry;
   final Value<String?> fcmToken;
+  final Value<String?> activeSessionToken;
   final Value<int?> departmentId;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -705,6 +751,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.isBanned = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
     this.fcmToken = const Value.absent(),
+    this.activeSessionToken = const Value.absent(),
     this.departmentId = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -717,6 +764,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.isBanned = const Value.absent(),
     this.resetTokenExpiry = const Value.absent(),
     this.fcmToken = const Value.absent(),
+    this.activeSessionToken = const Value.absent(),
     this.departmentId = const Value.absent(),
   })  : email = Value(email),
         passwordHash = Value(passwordHash);
@@ -730,6 +778,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<bool>? isBanned,
     Expression<DateTime>? resetTokenExpiry,
     Expression<String>? fcmToken,
+    Expression<String>? activeSessionToken,
     Expression<int>? departmentId,
   }) {
     return RawValuesInsertable({
@@ -742,6 +791,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (isBanned != null) 'is_banned': isBanned,
       if (resetTokenExpiry != null) 'reset_token_expiry': resetTokenExpiry,
       if (fcmToken != null) 'fcm_token': fcmToken,
+      if (activeSessionToken != null)
+        'active_session_token': activeSessionToken,
       if (departmentId != null) 'department_id': departmentId,
     });
   }
@@ -756,6 +807,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       Value<bool>? isBanned,
       Value<DateTime?>? resetTokenExpiry,
       Value<String?>? fcmToken,
+      Value<String?>? activeSessionToken,
       Value<int?>? departmentId}) {
     return UsersCompanion(
       id: id ?? this.id,
@@ -767,6 +819,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       isBanned: isBanned ?? this.isBanned,
       resetTokenExpiry: resetTokenExpiry ?? this.resetTokenExpiry,
       fcmToken: fcmToken ?? this.fcmToken,
+      activeSessionToken: activeSessionToken ?? this.activeSessionToken,
       departmentId: departmentId ?? this.departmentId,
     );
   }
@@ -801,6 +854,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (fcmToken.present) {
       map['fcm_token'] = Variable<String>(fcmToken.value);
     }
+    if (activeSessionToken.present) {
+      map['active_session_token'] = Variable<String>(activeSessionToken.value);
+    }
     if (departmentId.present) {
       map['department_id'] = Variable<int>(departmentId.value);
     }
@@ -819,6 +875,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('isBanned: $isBanned, ')
           ..write('resetTokenExpiry: $resetTokenExpiry, ')
           ..write('fcmToken: $fcmToken, ')
+          ..write('activeSessionToken: $activeSessionToken, ')
           ..write('departmentId: $departmentId')
           ..write(')'))
         .toString();
@@ -4461,6 +4518,12 @@ class $ModulesTable extends Modules with TableInfo<$ModulesTable, Module> {
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _unlockDateMeta =
+      const VerificationMeta('unlockDate');
+  @override
+  late final GeneratedColumn<DateTime> unlockDate = GeneratedColumn<DateTime>(
+      'unlock_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -4469,7 +4532,8 @@ class $ModulesTable extends Modules with TableInfo<$ModulesTable, Module> {
         title,
         description,
         orderIndex,
-        createdAt
+        createdAt,
+        unlockDate
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4520,6 +4584,12 @@ class $ModulesTable extends Modules with TableInfo<$ModulesTable, Module> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('unlock_date')) {
+      context.handle(
+          _unlockDateMeta,
+          unlockDate.isAcceptableOrUnknown(
+              data['unlock_date']!, _unlockDateMeta));
+    }
     return context;
   }
 
@@ -4543,6 +4613,8 @@ class $ModulesTable extends Modules with TableInfo<$ModulesTable, Module> {
           .read(DriftSqlType.int, data['${effectivePrefix}order_index'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      unlockDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}unlock_date']),
     );
   }
 
@@ -4560,6 +4632,7 @@ class Module extends DataClass implements Insertable<Module> {
   final String? description;
   final int orderIndex;
   final DateTime createdAt;
+  final DateTime? unlockDate;
   const Module(
       {required this.id,
       this.courseId,
@@ -4567,7 +4640,8 @@ class Module extends DataClass implements Insertable<Module> {
       required this.title,
       this.description,
       required this.orderIndex,
-      required this.createdAt});
+      required this.createdAt,
+      this.unlockDate});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -4584,6 +4658,9 @@ class Module extends DataClass implements Insertable<Module> {
     }
     map['order_index'] = Variable<int>(orderIndex);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || unlockDate != null) {
+      map['unlock_date'] = Variable<DateTime>(unlockDate);
+    }
     return map;
   }
 
@@ -4602,6 +4679,9 @@ class Module extends DataClass implements Insertable<Module> {
           : Value(description),
       orderIndex: Value(orderIndex),
       createdAt: Value(createdAt),
+      unlockDate: unlockDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unlockDate),
     );
   }
 
@@ -4616,6 +4696,7 @@ class Module extends DataClass implements Insertable<Module> {
       description: serializer.fromJson<String?>(json['description']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      unlockDate: serializer.fromJson<DateTime?>(json['unlockDate']),
     );
   }
   @override
@@ -4629,6 +4710,7 @@ class Module extends DataClass implements Insertable<Module> {
       'description': serializer.toJson<String?>(description),
       'orderIndex': serializer.toJson<int>(orderIndex),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'unlockDate': serializer.toJson<DateTime?>(unlockDate),
     };
   }
 
@@ -4639,7 +4721,8 @@ class Module extends DataClass implements Insertable<Module> {
           String? title,
           Value<String?> description = const Value.absent(),
           int? orderIndex,
-          DateTime? createdAt}) =>
+          DateTime? createdAt,
+          Value<DateTime?> unlockDate = const Value.absent()}) =>
       Module(
         id: id ?? this.id,
         courseId: courseId.present ? courseId.value : this.courseId,
@@ -4650,6 +4733,7 @@ class Module extends DataClass implements Insertable<Module> {
         description: description.present ? description.value : this.description,
         orderIndex: orderIndex ?? this.orderIndex,
         createdAt: createdAt ?? this.createdAt,
+        unlockDate: unlockDate.present ? unlockDate.value : this.unlockDate,
       );
   Module copyWithCompanion(ModulesCompanion data) {
     return Module(
@@ -4664,6 +4748,8 @@ class Module extends DataClass implements Insertable<Module> {
       orderIndex:
           data.orderIndex.present ? data.orderIndex.value : this.orderIndex,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      unlockDate:
+          data.unlockDate.present ? data.unlockDate.value : this.unlockDate,
     );
   }
 
@@ -4676,14 +4762,15 @@ class Module extends DataClass implements Insertable<Module> {
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('orderIndex: $orderIndex, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('unlockDate: $unlockDate')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, courseId, academicCourseId, title,
-      description, orderIndex, createdAt);
+      description, orderIndex, createdAt, unlockDate);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4694,7 +4781,8 @@ class Module extends DataClass implements Insertable<Module> {
           other.title == this.title &&
           other.description == this.description &&
           other.orderIndex == this.orderIndex &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.unlockDate == this.unlockDate);
 }
 
 class ModulesCompanion extends UpdateCompanion<Module> {
@@ -4705,6 +4793,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
   final Value<String?> description;
   final Value<int> orderIndex;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> unlockDate;
   const ModulesCompanion({
     this.id = const Value.absent(),
     this.courseId = const Value.absent(),
@@ -4713,6 +4802,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
     this.description = const Value.absent(),
     this.orderIndex = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.unlockDate = const Value.absent(),
   });
   ModulesCompanion.insert({
     this.id = const Value.absent(),
@@ -4722,6 +4812,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
     this.description = const Value.absent(),
     required int orderIndex,
     required DateTime createdAt,
+    this.unlockDate = const Value.absent(),
   })  : title = Value(title),
         orderIndex = Value(orderIndex),
         createdAt = Value(createdAt);
@@ -4733,6 +4824,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
     Expression<String>? description,
     Expression<int>? orderIndex,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? unlockDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4742,6 +4834,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
       if (description != null) 'description': description,
       if (orderIndex != null) 'order_index': orderIndex,
       if (createdAt != null) 'created_at': createdAt,
+      if (unlockDate != null) 'unlock_date': unlockDate,
     });
   }
 
@@ -4752,7 +4845,8 @@ class ModulesCompanion extends UpdateCompanion<Module> {
       Value<String>? title,
       Value<String?>? description,
       Value<int>? orderIndex,
-      Value<DateTime>? createdAt}) {
+      Value<DateTime>? createdAt,
+      Value<DateTime?>? unlockDate}) {
     return ModulesCompanion(
       id: id ?? this.id,
       courseId: courseId ?? this.courseId,
@@ -4761,6 +4855,7 @@ class ModulesCompanion extends UpdateCompanion<Module> {
       description: description ?? this.description,
       orderIndex: orderIndex ?? this.orderIndex,
       createdAt: createdAt ?? this.createdAt,
+      unlockDate: unlockDate ?? this.unlockDate,
     );
   }
 
@@ -4788,6 +4883,9 @@ class ModulesCompanion extends UpdateCompanion<Module> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (unlockDate.present) {
+      map['unlock_date'] = Variable<DateTime>(unlockDate.value);
+    }
     return map;
   }
 
@@ -4800,7 +4898,8 @@ class ModulesCompanion extends UpdateCompanion<Module> {
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('orderIndex: $orderIndex, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('unlockDate: $unlockDate')
           ..write(')'))
         .toString();
   }
@@ -25139,6 +25238,349 @@ class SegmentQuizAttemptsCompanion extends UpdateCompanion<SegmentQuizAttempt> {
   }
 }
 
+class $BehaviorReportsTable extends BehaviorReports
+    with TableInfo<$BehaviorReportsTable, BehaviorReport> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BehaviorReportsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _courseIdMeta =
+      const VerificationMeta('courseId');
+  @override
+  late final GeneratedColumn<int> courseId = GeneratedColumn<int>(
+      'course_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _reportJsonMeta =
+      const VerificationMeta('reportJson');
+  @override
+  late final GeneratedColumn<String> reportJson = GeneratedColumn<String>(
+      'report_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statsJsonMeta =
+      const VerificationMeta('statsJson');
+  @override
+  late final GeneratedColumn<String> statsJson = GeneratedColumn<String>(
+      'stats_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _generatedAtMeta =
+      const VerificationMeta('generatedAt');
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+      'generated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _expiresAtMeta =
+      const VerificationMeta('expiresAt');
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+      'expires_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, courseId, reportJson, statsJson, generatedAt, expiresAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'behavior_reports';
+  @override
+  VerificationContext validateIntegrity(Insertable<BehaviorReport> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('course_id')) {
+      context.handle(_courseIdMeta,
+          courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta));
+    } else if (isInserting) {
+      context.missing(_courseIdMeta);
+    }
+    if (data.containsKey('report_json')) {
+      context.handle(
+          _reportJsonMeta,
+          reportJson.isAcceptableOrUnknown(
+              data['report_json']!, _reportJsonMeta));
+    } else if (isInserting) {
+      context.missing(_reportJsonMeta);
+    }
+    if (data.containsKey('stats_json')) {
+      context.handle(_statsJsonMeta,
+          statsJson.isAcceptableOrUnknown(data['stats_json']!, _statsJsonMeta));
+    } else if (isInserting) {
+      context.missing(_statsJsonMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+          _generatedAtMeta,
+          generatedAt.isAcceptableOrUnknown(
+              data['generated_at']!, _generatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(_expiresAtMeta,
+          expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta));
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BehaviorReport map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BehaviorReport(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      courseId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}course_id'])!,
+      reportJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}report_json'])!,
+      statsJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}stats_json'])!,
+      generatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}generated_at'])!,
+      expiresAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expires_at'])!,
+    );
+  }
+
+  @override
+  $BehaviorReportsTable createAlias(String alias) {
+    return $BehaviorReportsTable(attachedDatabase, alias);
+  }
+}
+
+class BehaviorReport extends DataClass implements Insertable<BehaviorReport> {
+  final int id;
+  final int courseId;
+  final String reportJson;
+  final String statsJson;
+  final DateTime generatedAt;
+  final DateTime expiresAt;
+  const BehaviorReport(
+      {required this.id,
+      required this.courseId,
+      required this.reportJson,
+      required this.statsJson,
+      required this.generatedAt,
+      required this.expiresAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['course_id'] = Variable<int>(courseId);
+    map['report_json'] = Variable<String>(reportJson);
+    map['stats_json'] = Variable<String>(statsJson);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    return map;
+  }
+
+  BehaviorReportsCompanion toCompanion(bool nullToAbsent) {
+    return BehaviorReportsCompanion(
+      id: Value(id),
+      courseId: Value(courseId),
+      reportJson: Value(reportJson),
+      statsJson: Value(statsJson),
+      generatedAt: Value(generatedAt),
+      expiresAt: Value(expiresAt),
+    );
+  }
+
+  factory BehaviorReport.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BehaviorReport(
+      id: serializer.fromJson<int>(json['id']),
+      courseId: serializer.fromJson<int>(json['courseId']),
+      reportJson: serializer.fromJson<String>(json['reportJson']),
+      statsJson: serializer.fromJson<String>(json['statsJson']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'courseId': serializer.toJson<int>(courseId),
+      'reportJson': serializer.toJson<String>(reportJson),
+      'statsJson': serializer.toJson<String>(statsJson),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+    };
+  }
+
+  BehaviorReport copyWith(
+          {int? id,
+          int? courseId,
+          String? reportJson,
+          String? statsJson,
+          DateTime? generatedAt,
+          DateTime? expiresAt}) =>
+      BehaviorReport(
+        id: id ?? this.id,
+        courseId: courseId ?? this.courseId,
+        reportJson: reportJson ?? this.reportJson,
+        statsJson: statsJson ?? this.statsJson,
+        generatedAt: generatedAt ?? this.generatedAt,
+        expiresAt: expiresAt ?? this.expiresAt,
+      );
+  BehaviorReport copyWithCompanion(BehaviorReportsCompanion data) {
+    return BehaviorReport(
+      id: data.id.present ? data.id.value : this.id,
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      reportJson:
+          data.reportJson.present ? data.reportJson.value : this.reportJson,
+      statsJson: data.statsJson.present ? data.statsJson.value : this.statsJson,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BehaviorReport(')
+          ..write('id: $id, ')
+          ..write('courseId: $courseId, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('statsJson: $statsJson, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('expiresAt: $expiresAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, courseId, reportJson, statsJson, generatedAt, expiresAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BehaviorReport &&
+          other.id == this.id &&
+          other.courseId == this.courseId &&
+          other.reportJson == this.reportJson &&
+          other.statsJson == this.statsJson &&
+          other.generatedAt == this.generatedAt &&
+          other.expiresAt == this.expiresAt);
+}
+
+class BehaviorReportsCompanion extends UpdateCompanion<BehaviorReport> {
+  final Value<int> id;
+  final Value<int> courseId;
+  final Value<String> reportJson;
+  final Value<String> statsJson;
+  final Value<DateTime> generatedAt;
+  final Value<DateTime> expiresAt;
+  const BehaviorReportsCompanion({
+    this.id = const Value.absent(),
+    this.courseId = const Value.absent(),
+    this.reportJson = const Value.absent(),
+    this.statsJson = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+  });
+  BehaviorReportsCompanion.insert({
+    this.id = const Value.absent(),
+    required int courseId,
+    required String reportJson,
+    required String statsJson,
+    required DateTime generatedAt,
+    required DateTime expiresAt,
+  })  : courseId = Value(courseId),
+        reportJson = Value(reportJson),
+        statsJson = Value(statsJson),
+        generatedAt = Value(generatedAt),
+        expiresAt = Value(expiresAt);
+  static Insertable<BehaviorReport> custom({
+    Expression<int>? id,
+    Expression<int>? courseId,
+    Expression<String>? reportJson,
+    Expression<String>? statsJson,
+    Expression<DateTime>? generatedAt,
+    Expression<DateTime>? expiresAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (courseId != null) 'course_id': courseId,
+      if (reportJson != null) 'report_json': reportJson,
+      if (statsJson != null) 'stats_json': statsJson,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+    });
+  }
+
+  BehaviorReportsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? courseId,
+      Value<String>? reportJson,
+      Value<String>? statsJson,
+      Value<DateTime>? generatedAt,
+      Value<DateTime>? expiresAt}) {
+    return BehaviorReportsCompanion(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      reportJson: reportJson ?? this.reportJson,
+      statsJson: statsJson ?? this.statsJson,
+      generatedAt: generatedAt ?? this.generatedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (courseId.present) {
+      map['course_id'] = Variable<int>(courseId.value);
+    }
+    if (reportJson.present) {
+      map['report_json'] = Variable<String>(reportJson.value);
+    }
+    if (statsJson.present) {
+      map['stats_json'] = Variable<String>(statsJson.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BehaviorReportsCompanion(')
+          ..write('id: $id, ')
+          ..write('courseId: $courseId, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('statsJson: $statsJson, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('expiresAt: $expiresAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -25214,6 +25656,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VideoSegmentsTable videoSegments = $VideoSegmentsTable(this);
   late final $SegmentQuizAttemptsTable segmentQuizAttempts =
       $SegmentQuizAttemptsTable(this);
+  late final $BehaviorReportsTable behaviorReports =
+      $BehaviorReportsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -25273,7 +25717,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         dailyLearningLogs,
         aiNotificationLogs,
         videoSegments,
-        segmentQuizAttempts
+        segmentQuizAttempts,
+        behaviorReports
       ];
 }
 
@@ -25768,6 +26213,7 @@ typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({
   Value<bool> isBanned,
   Value<DateTime?> resetTokenExpiry,
   Value<String?> fcmToken,
+  Value<String?> activeSessionToken,
   Value<int?> departmentId,
 });
 typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
@@ -25780,6 +26226,7 @@ typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
   Value<bool> isBanned,
   Value<DateTime?> resetTokenExpiry,
   Value<String?> fcmToken,
+  Value<String?> activeSessionToken,
   Value<int?> departmentId,
 });
 
@@ -26495,6 +26942,10 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get fcmToken => $composableBuilder(
       column: $table.fcmToken, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get activeSessionToken => $composableBuilder(
+      column: $table.activeSessionToken,
+      builder: (column) => ColumnFilters(column));
 
   $$DepartmentsTableFilterComposer get departmentId {
     final $$DepartmentsTableFilterComposer composer = $composerBuilder(
@@ -27460,6 +27911,10 @@ class $$UsersTableOrderingComposer
   ColumnOrderings<String> get fcmToken => $composableBuilder(
       column: $table.fcmToken, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get activeSessionToken => $composableBuilder(
+      column: $table.activeSessionToken,
+      builder: (column) => ColumnOrderings(column));
+
   $$DepartmentsTableOrderingComposer get departmentId {
     final $$DepartmentsTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -27516,6 +27971,9 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get fcmToken =>
       $composableBuilder(column: $table.fcmToken, builder: (column) => column);
+
+  GeneratedColumn<String> get activeSessionToken => $composableBuilder(
+      column: $table.activeSessionToken, builder: (column) => column);
 
   $$DepartmentsTableAnnotationComposer get departmentId {
     final $$DepartmentsTableAnnotationComposer composer = $composerBuilder(
@@ -28532,6 +28990,7 @@ class $$UsersTableTableManager extends RootTableManager<
             Value<bool> isBanned = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
             Value<String?> fcmToken = const Value.absent(),
+            Value<String?> activeSessionToken = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
           }) =>
               UsersCompanion(
@@ -28544,6 +29003,7 @@ class $$UsersTableTableManager extends RootTableManager<
             isBanned: isBanned,
             resetTokenExpiry: resetTokenExpiry,
             fcmToken: fcmToken,
+            activeSessionToken: activeSessionToken,
             departmentId: departmentId,
           ),
           createCompanionCallback: ({
@@ -28556,6 +29016,7 @@ class $$UsersTableTableManager extends RootTableManager<
             Value<bool> isBanned = const Value.absent(),
             Value<DateTime?> resetTokenExpiry = const Value.absent(),
             Value<String?> fcmToken = const Value.absent(),
+            Value<String?> activeSessionToken = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
           }) =>
               UsersCompanion.insert(
@@ -28568,6 +29029,7 @@ class $$UsersTableTableManager extends RootTableManager<
             isBanned: isBanned,
             resetTokenExpiry: resetTokenExpiry,
             fcmToken: fcmToken,
+            activeSessionToken: activeSessionToken,
             departmentId: departmentId,
           ),
           withReferenceMapper: (p0) => p0
@@ -33339,6 +33801,7 @@ typedef $$ModulesTableCreateCompanionBuilder = ModulesCompanion Function({
   Value<String?> description,
   required int orderIndex,
   required DateTime createdAt,
+  Value<DateTime?> unlockDate,
 });
 typedef $$ModulesTableUpdateCompanionBuilder = ModulesCompanion Function({
   Value<int> id,
@@ -33348,6 +33811,7 @@ typedef $$ModulesTableUpdateCompanionBuilder = ModulesCompanion Function({
   Value<String?> description,
   Value<int> orderIndex,
   Value<DateTime> createdAt,
+  Value<DateTime?> unlockDate,
 });
 
 final class $$ModulesTableReferences
@@ -33451,6 +33915,9 @@ class $$ModulesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get unlockDate => $composableBuilder(
+      column: $table.unlockDate, builder: (column) => ColumnFilters(column));
 
   $$CoursesTableFilterComposer get courseId {
     final $$CoursesTableFilterComposer composer = $composerBuilder(
@@ -33580,6 +34047,9 @@ class $$ModulesTableOrderingComposer
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get unlockDate => $composableBuilder(
+      column: $table.unlockDate, builder: (column) => ColumnOrderings(column));
+
   $$CoursesTableOrderingComposer get courseId {
     final $$CoursesTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -33644,6 +34114,9 @@ class $$ModulesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get unlockDate => $composableBuilder(
+      column: $table.unlockDate, builder: (column) => column);
 
   $$CoursesTableAnnotationComposer get courseId {
     final $$CoursesTableAnnotationComposer composer = $composerBuilder(
@@ -33784,6 +34257,7 @@ class $$ModulesTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             Value<int> orderIndex = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime?> unlockDate = const Value.absent(),
           }) =>
               ModulesCompanion(
             id: id,
@@ -33793,6 +34267,7 @@ class $$ModulesTableTableManager extends RootTableManager<
             description: description,
             orderIndex: orderIndex,
             createdAt: createdAt,
+            unlockDate: unlockDate,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -33802,6 +34277,7 @@ class $$ModulesTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             required int orderIndex,
             required DateTime createdAt,
+            Value<DateTime?> unlockDate = const Value.absent(),
           }) =>
               ModulesCompanion.insert(
             id: id,
@@ -33811,6 +34287,7 @@ class $$ModulesTableTableManager extends RootTableManager<
             description: description,
             orderIndex: orderIndex,
             createdAt: createdAt,
+            unlockDate: unlockDate,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -53878,6 +54355,189 @@ typedef $$SegmentQuizAttemptsTableProcessedTableManager = ProcessedTableManager<
     (SegmentQuizAttempt, $$SegmentQuizAttemptsTableReferences),
     SegmentQuizAttempt,
     PrefetchHooks Function({bool studentId, bool segmentId})>;
+typedef $$BehaviorReportsTableCreateCompanionBuilder = BehaviorReportsCompanion
+    Function({
+  Value<int> id,
+  required int courseId,
+  required String reportJson,
+  required String statsJson,
+  required DateTime generatedAt,
+  required DateTime expiresAt,
+});
+typedef $$BehaviorReportsTableUpdateCompanionBuilder = BehaviorReportsCompanion
+    Function({
+  Value<int> id,
+  Value<int> courseId,
+  Value<String> reportJson,
+  Value<String> statsJson,
+  Value<DateTime> generatedAt,
+  Value<DateTime> expiresAt,
+});
+
+class $$BehaviorReportsTableFilterComposer
+    extends Composer<_$AppDatabase, $BehaviorReportsTable> {
+  $$BehaviorReportsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get courseId => $composableBuilder(
+      column: $table.courseId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reportJson => $composableBuilder(
+      column: $table.reportJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get statsJson => $composableBuilder(
+      column: $table.statsJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+      column: $table.expiresAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$BehaviorReportsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BehaviorReportsTable> {
+  $$BehaviorReportsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get courseId => $composableBuilder(
+      column: $table.courseId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reportJson => $composableBuilder(
+      column: $table.reportJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get statsJson => $composableBuilder(
+      column: $table.statsJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+      column: $table.expiresAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$BehaviorReportsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BehaviorReportsTable> {
+  $$BehaviorReportsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get courseId =>
+      $composableBuilder(column: $table.courseId, builder: (column) => column);
+
+  GeneratedColumn<String> get reportJson => $composableBuilder(
+      column: $table.reportJson, builder: (column) => column);
+
+  GeneratedColumn<String> get statsJson =>
+      $composableBuilder(column: $table.statsJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+}
+
+class $$BehaviorReportsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BehaviorReportsTable,
+    BehaviorReport,
+    $$BehaviorReportsTableFilterComposer,
+    $$BehaviorReportsTableOrderingComposer,
+    $$BehaviorReportsTableAnnotationComposer,
+    $$BehaviorReportsTableCreateCompanionBuilder,
+    $$BehaviorReportsTableUpdateCompanionBuilder,
+    (
+      BehaviorReport,
+      BaseReferences<_$AppDatabase, $BehaviorReportsTable, BehaviorReport>
+    ),
+    BehaviorReport,
+    PrefetchHooks Function()> {
+  $$BehaviorReportsTableTableManager(
+      _$AppDatabase db, $BehaviorReportsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BehaviorReportsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BehaviorReportsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BehaviorReportsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> courseId = const Value.absent(),
+            Value<String> reportJson = const Value.absent(),
+            Value<String> statsJson = const Value.absent(),
+            Value<DateTime> generatedAt = const Value.absent(),
+            Value<DateTime> expiresAt = const Value.absent(),
+          }) =>
+              BehaviorReportsCompanion(
+            id: id,
+            courseId: courseId,
+            reportJson: reportJson,
+            statsJson: statsJson,
+            generatedAt: generatedAt,
+            expiresAt: expiresAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int courseId,
+            required String reportJson,
+            required String statsJson,
+            required DateTime generatedAt,
+            required DateTime expiresAt,
+          }) =>
+              BehaviorReportsCompanion.insert(
+            id: id,
+            courseId: courseId,
+            reportJson: reportJson,
+            statsJson: statsJson,
+            generatedAt: generatedAt,
+            expiresAt: expiresAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$BehaviorReportsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BehaviorReportsTable,
+    BehaviorReport,
+    $$BehaviorReportsTableFilterComposer,
+    $$BehaviorReportsTableOrderingComposer,
+    $$BehaviorReportsTableAnnotationComposer,
+    $$BehaviorReportsTableCreateCompanionBuilder,
+    $$BehaviorReportsTableUpdateCompanionBuilder,
+    (
+      BehaviorReport,
+      BaseReferences<_$AppDatabase, $BehaviorReportsTable, BehaviorReport>
+    ),
+    BehaviorReport,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -53993,4 +54653,6 @@ class $AppDatabaseManager {
       $$VideoSegmentsTableTableManager(_db, _db.videoSegments);
   $$SegmentQuizAttemptsTableTableManager get segmentQuizAttempts =>
       $$SegmentQuizAttemptsTableTableManager(_db, _db.segmentQuizAttempts);
+  $$BehaviorReportsTableTableManager get behaviorReports =>
+      $$BehaviorReportsTableTableManager(_db, _db.behaviorReports);
 }

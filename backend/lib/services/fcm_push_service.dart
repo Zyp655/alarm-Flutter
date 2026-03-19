@@ -164,8 +164,8 @@ class FcmPushService {
         Log.info('FCM', 'No user or fcmToken for recipientId=$recipientId');
         return;
       }
-      Log.info(
-          'FCM', 'Sending to recipientId=$recipientId, token=${user.fcmToken!.substring(0, 20)}...');
+      Log.info('FCM',
+          'Sending to recipientId=$recipientId, token=${user.fcmToken!.substring(0, 20)}...');
 
       final accessToken = await _getAccessToken();
       if (accessToken == null || _projectId == null) {
@@ -223,7 +223,23 @@ class FcmPushService {
   }) async {
     try {
       final accessToken = await _getAccessToken();
-      if (accessToken == null || _projectId == null) return;
+      if (accessToken == null || _projectId == null) {
+        Log.warning('FCM',
+            'sendToToken: accessToken=$accessToken projectId=$_projectId');
+        return;
+      }
+
+      final type = data?['type'] ?? '';
+      String channelId = 'general_notifications';
+      if (type == 'chat_message') {
+        channelId = 'chat_messages';
+      } else if (type == 'quiz_new' ||
+          type == 'assignment_new' ||
+          type == 'assignment_deadline') {
+        channelId = 'course_updates';
+      } else if (type == 'absence_warning') {
+        channelId = 'ai_attendance';
+      }
 
       final messageBody = {
         'message': {
@@ -236,7 +252,7 @@ class FcmPushService {
           'android': {
             'priority': 'HIGH',
             'notification': {
-              'channel_id': 'ai_attendance',
+              'channel_id': channelId,
               'sound': 'default',
               'click_action': 'FLUTTER_NOTIFICATION_CLICK',
             },
@@ -244,7 +260,7 @@ class FcmPushService {
         },
       };
 
-      await http.post(
+      final response = await http.post(
         Uri.parse(
           'https://fcm.googleapis.com/v1/projects/$_projectId/messages:send',
         ),
@@ -254,6 +270,7 @@ class FcmPushService {
         },
         body: jsonEncode(messageBody),
       );
+      Log.info('FCM', 'sendToToken: ${response.statusCode} ${response.body}');
     } catch (e) {
       Log.error('FCM', 'sendToToken error', e);
     }

@@ -1,7 +1,10 @@
+import 'dart:math';
+import 'package:backend/database/database.dart';
 import 'package:backend/repositories/user_repository.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:dotenv/dotenv.dart';
+import 'package:drift/drift.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
@@ -26,10 +29,19 @@ Future<Response> onRequest(RequestContext context) async {
         statusCode: 403,
         body: {'message': 'Tài khoản đã bị khoá. Liên hệ quản trị viên.'});
   }
+
+  final sessionToken = _generateSessionToken();
+
+  final db = context.read<AppDatabase>();
+  await (db.update(db.users)..where((u) => u.id.equals(user.id))).write(
+    UsersCompanion(activeSessionToken: Value(sessionToken)),
+  );
+
   final jwt = JWT({
     'id': user.id,
     'email': user.email,
     'role': user.role,
+    'sessionToken': sessionToken,
   });
   final env = DotEnv(includePlatformEnvironment: true)..load();
   final jwtSecret = env['JWT_SECRET'] ?? 'my_secret_key_123';
@@ -43,4 +55,10 @@ Future<Response> onRequest(RequestContext context) async {
     'role': user.role,
     'departmentId': user.departmentId,
   });
+}
+
+String _generateSessionToken() {
+  final random = Random.secure();
+  final values = List<int>.generate(32, (_) => random.nextInt(256));
+  return values.map((v) => v.toRadixString(16).padLeft(2, '0')).join();
 }

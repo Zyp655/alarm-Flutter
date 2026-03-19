@@ -3,6 +3,6 @@ import 'package:dart_frog/dart_frog.dart';
 
 Handler middleware(Handler handler) {
   return handler.use(
-    rateLimitMiddleware(maxRequests: 10, window: const Duration(minutes: 1)),
+    rateLimitMiddleware(maxRequests: 30, window: const Duration(minutes: 1)),
   );
 }
