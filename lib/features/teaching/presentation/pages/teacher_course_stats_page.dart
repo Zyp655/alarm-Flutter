@@ -11,6 +11,7 @@ import '../widgets/rating_section_widget.dart';
 import 'course_insights_page.dart';
 import 'at_risk_students_page.dart';
 import 'student_behavior_page.dart';
+import 'semester_comparison_page.dart';
 
 class TeacherCourseStatsPage extends StatefulWidget {
   final int teacherId;
@@ -191,6 +192,22 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        _buildActionCard(
+          icon: Icons.compare_arrows_rounded,
+          gradient: const [Color(0xFF00B4D8), Color(0xFF90E0EF)],
+          title: 'B\u00e1o c\u00e1o H\u1ecdc k\u1ef3',
+          subtitle: 'So s\u00e1nh ti\u1ebfn \u0111\u1ed9 gi\u1eefa c\u00e1c h\u1ecdc k\u1ef3',
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SemesterComparisonPage(
+                teacherId: widget.teacherId,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -276,7 +293,7 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
       );
     }
 
-    if (_courses.isEmpty) {
+    if (_courses.isEmpty && _selectedCourseId == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -299,15 +316,6 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
       );
     }
 
-    if (_stats == null) {
-      return Center(
-        child: Text(
-          'Kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u',
-          style: TextStyle(color: AppColors.textSecondary(context)),
-        ),
-      );
-    }
-
     return RefreshIndicator(
       onRefresh: _loadStats,
       child: SingleChildScrollView(
@@ -316,14 +324,16 @@ class _TeacherCourseStatsPageState extends State<TeacherCourseStatsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_selectedCourseId != null) _buildActionCards(),
-            AppSpacing.gapV24,
-            _buildOverviewCards(),
-            AppSpacing.gapV24,
-            _buildStudentStatusChart(),
-            AppSpacing.gapV24,
-            _buildRatingSection(),
-            AppSpacing.gapV24,
-            _buildReviewsList(),
+            if (_stats != null) ...[
+              AppSpacing.gapV24,
+              _buildOverviewCards(),
+              AppSpacing.gapV24,
+              _buildStudentStatusChart(),
+              AppSpacing.gapV24,
+              _buildRatingSection(),
+              AppSpacing.gapV24,
+              _buildReviewsList(),
+            ],
           ],
         ),
       ),

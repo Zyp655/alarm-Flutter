@@ -640,116 +640,145 @@ class _MyCoursesViewState extends State<MyCoursesView> {
               final subject = s['subject'] ?? s['courseName'] ?? '';
               final room = s['room'] ?? '';
               final classCode = s['classCode'] ?? '';
+              final isLast = i == _todaySchedule.length - 1;
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 56,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            startTime,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: textColor,
-                            ),
-                          ),
-                          Text(
-                            endTime.isNotEmpty ? endTime : '',
-                            style: TextStyle(fontSize: 11, color: subColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBackground
-                                  : AppColors.lightBackground,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        if (i < _todaySchedule.length - 1)
-                          Container(
-                            width: 2,
-                            height: 50,
-                            color: AppColors.primary.withValues(alpha: 0.2),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark ? 0.1 : 0.05,
-                              ),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              subject,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            if (room.isNotEmpty)
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on_outlined,
-                                    size: 14,
-                                    color: AppColors.primary,
+              return IntrinsicHeight(
+                child: Container(
+                  margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (startTime.isNotEmpty || endTime.isNotEmpty)
+                        SizedBox(
+                          width: 48,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  startTime,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: textColor,
                                   ),
-                                  const SizedBox(width: 4),
+                                ),
+                                if (endTime.isNotEmpty)
                                   Text(
-                                    room,
+                                    endTime,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       color: subColor,
                                     ),
                                   ),
-                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      SizedBox(
+                        width: startTime.isNotEmpty || endTime.isNotEmpty
+                            ? 12
+                            : 0,
+                      ),
+                      SizedBox(
+                        width: 20,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 4),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.darkBackground
+                                      : AppColors.lightBackground,
+                                  width: 2,
+                                ),
                               ),
-                            if (classCode.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                classCode,
-                                style: TextStyle(fontSize: 11, color: subColor),
+                            ),
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
                               ),
-                            ],
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.1 : 0.05,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                subject,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              if (room.isNotEmpty)
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      room,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: subColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              if (classCode.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  classCode,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: subColor,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ).animate().fadeIn(delay: Duration(milliseconds: 100 * i));
             }),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../injection_container.dart';
@@ -94,13 +94,19 @@ class CourseAssignmentsTab extends StatelessWidget {
                 final isLate =
                     DateTime.now().isAfter(assignment.dueDate) &&
                     !assignment.isCompleted;
-                final statusColor = assignment.isCompleted
+                final isGraded = assignment.submissionStatus == 'graded' &&
+                    assignment.grade != null;
+                final statusColor = isGraded
                     ? Colors.green
+                    : assignment.isCompleted
+                    ? Colors.blue
                     : isLate
                     ? Colors.red
                     : Colors.orange;
-                final statusText = assignment.isCompleted
-                    ? 'Đã nộp'
+                final statusText = isGraded
+                    ? 'Điểm: ${assignment.grade}'
+                    : assignment.isCompleted
+                    ? 'Chờ chấm điểm'
                     : isLate
                     ? 'Trễ hạn'
                     : 'Chưa nộp';
@@ -129,8 +135,8 @@ class CourseAssignmentsTab extends StatelessWidget {
                   ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final result = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) => SubmitAssignmentPage(
@@ -146,6 +152,15 @@ class CourseAssignmentsTab extends StatelessWidget {
                           ),
                         ),
                       );
+                      if (result == true && context.mounted) {
+                        final authState = context.read<AuthBloc>().state;
+                        if (authState is AuthSuccess &&
+                            authState.user != null) {
+                          context.read<StudentBloc>().add(
+                            GetStudentAssignmentsEvent(authState.user!.id),
+                          );
+                        }
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(16),

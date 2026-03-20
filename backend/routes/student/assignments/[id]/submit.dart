@@ -69,6 +69,19 @@ Future<Response> onRequest(RequestContext context, String id) async {
             previousVersionId: Value(existing?.id),
           ),
         );
+    await (db.update(db.studentAssignments)
+          ..where(
+            (s) =>
+                s.assignmentId.equals(assignmentId) &
+                s.studentId.equals(studentId),
+          ))
+        .write(
+      StudentAssignmentsCompanion(
+        isCompleted: const Value(true),
+        completedAt: Value(DateTime.now()),
+      ),
+    );
+
     final student = await (db.select(db.users)
           ..where((u) => u.id.equals(studentId)))
         .getSingle();

@@ -15,14 +15,10 @@ class AppRoutes {
   static const String conversations = '/chat';
   static const String chatRoom = '/chat/room';
   static const String globalSearch = '/search';
-  static const String generateQuiz = '/quiz/generate';
   static const String takeQuiz = '/quiz/take';
   static const String quizResult = '/quiz/result';
-  static const String myQuizzes = '/quiz/my';
   static const String quizStatistics = '/quiz/statistics';
   static const String leaderboard = '/quiz/leaderboard';
-  static const String multiplayerLobby = '/quiz/multiplayer';
-  static const String multiplayerGame = '/quiz/multiplayer/game';
   static const String analytics = '/analytics';
   static const String discussions = '/discussions';
   static const String discussionThread = '/discussions/thread';

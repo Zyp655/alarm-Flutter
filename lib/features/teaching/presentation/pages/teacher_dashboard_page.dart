@@ -13,6 +13,9 @@ import 'teacher_students_page.dart';
 import 'teacher_tasks_page.dart';
 import '../bloc/teacher_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/dashboard_class_card.dart';
+import '../widgets/dashboard_quick_actions.dart';
+import '../../../../core/widgets/animations.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   final int teacherId;
@@ -29,8 +32,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
   bool _loading = true;
 
   int _pendingSubmissions = 0;
-  int _academicClassCount = 0;
-  int _academicStudentCount = 0;
   List<Map<String, dynamic>> _academicClasses = [];
 
   late AnimationController _animController;
@@ -68,15 +69,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
         '/teacher/my-classes?teacherId=${widget.teacherId}',
       );
       final classes = List<Map<String, dynamic>>.from(res is List ? res : []);
-      int students = 0;
-      for (final c in classes) {
-        students += (c['studentCount'] as int? ?? 0);
-      }
       if (mounted) {
         setState(() {
           _academicClasses = classes;
-          _academicClassCount = classes.length;
-          _academicStudentCount = students;
         });
       }
     } catch (e) {
@@ -125,50 +120,34 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
     return Scaffold(
       backgroundColor: AppColors.background(context),
       body: IndexedStack(index: _selectedIndex, children: pages),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(
-                  Icons.dashboard_outlined,
-                  Icons.dashboard_rounded,
-                  'Dashboard',
-                  0,
-                ),
-                _navItem(
-                  Icons.menu_book_outlined,
-                  Icons.menu_book_rounded,
-                  'Môn học',
-                  1,
-                ),
-                _navItem(
-                  Icons.people_outline_rounded,
-                  Icons.people_rounded,
-                  'Sinh viên',
-                  2,
-                ),
-                _navItem(
-                  Icons.settings_outlined,
-                  Icons.settings_rounded,
-                  'Cài đặt',
-                  3,
-                ),
-              ],
-            ),
+      bottomNavigationBar: _buildBottomNav(isDark),
+    );
+  }
+
+  Widget _buildBottomNav(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navItem(Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard', 0),
+              _navItem(Icons.menu_book_outlined, Icons.menu_book_rounded, 'Môn học', 1),
+              _navItem(Icons.people_outline_rounded, Icons.people_rounded, 'Sinh viên', 2),
+              _navItem(Icons.settings_outlined, Icons.settings_rounded, 'Cài đặt', 3),
+            ],
           ),
         ),
       ),
@@ -177,9 +156,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
 
   Widget _navItem(IconData icon, IconData activeIcon, String label, int index) {
     final isActive = _selectedIndex == index;
-    final color = isActive
-        ? AppColors.primary
-        : AppColors.textSecondary(context);
+    final color = isActive ? AppColors.primary : AppColors.textSecondary(context);
     return InkWell(
       onTap: () => setState(() => _selectedIndex = index),
       borderRadius: BorderRadius.circular(12),
@@ -217,11 +194,48 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          _buildGradientHeader(isDark),
+          SliverToBoxAdapter(child: _buildGradientHeader(isDark)),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
           if (!_loading && _pendingSubmissions > 0)
             SliverToBoxAdapter(child: _buildPendingAlert(isDark)),
-          SliverToBoxAdapter(child: _buildQuickActions(isDark)),
+          SliverToBoxAdapter(
+            child: DashboardQuickActions(
+              fadeAnim: _fadeAnim,
+              actions: [
+                DashboardAction(
+                  icon: Icons.people_rounded,
+                  label: 'Quản lý Sinh\nviên',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TeacherStudentsPage(teacherId: widget.teacherId),
+                    ),
+                  ),
+                ),
+                DashboardAction(
+                  icon: Icons.assignment_rounded,
+                  label: 'Bài tập',
+                  onTap: () {
+                    final bloc = context.read<TeacherBloc>();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: bloc,
+                          child: const TeacherTasksPage(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                DashboardAction(
+                  icon: Icons.chat_rounded,
+                  label: 'Chat',
+                  onTap: () => context.push(AppRoutes.conversations),
+                ),
+              ],
+            ),
+          ),
           SliverToBoxAdapter(child: _buildMyCoursesSection(isDark)),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
@@ -233,208 +247,96 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
     final cardColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
-    return SliverToBoxAdapter(
-      child: SafeArea(
-        bottom: false,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+              child: Center(
+                child: Text(
+                  _teacherName.isNotEmpty ? _teacherName[0].toUpperCase() : 'G',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: Center(
-                  child: Text(
-                    _teacherName.isNotEmpty
-                        ? _teacherName[0].toUpperCase()
-                        : 'G',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chào buổi sáng,',
+                    style: TextStyle(color: subColor, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _teacherName,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => context.push(AppRoutes.notifications),
+                icon: Stack(
                   children: [
-                    Text(
-                      'Chào buổi sáng,',
-                      style: TextStyle(color: subColor, fontSize: 13),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _teacherName,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () => context.push(AppRoutes.notifications),
-                  icon: Stack(
-                    children: [
-                      Icon(
-                        Icons.notifications_outlined,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                      if (_pendingSubmissions > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: cardColor, width: 1.5),
-                            ),
+                    Icon(Icons.notifications_outlined, color: AppColors.primary, size: 24),
+                    if (_pendingSubmissions > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: cardColor, width: 1.5),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatsSection(bool isDark) {
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: _loading
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
-                ),
-              ),
-            )
-          : FadeTransition(
-              opacity: _fadeAnim,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.1 : 0.05,
-                      ),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    _buildStatItem(
-                      Icons.school_rounded,
-                      'Môn giảng dạy',
-                      '$_academicClassCount',
-                      textColor,
-                      subColor,
-                    ),
-                    _buildStatDivider(isDark),
-                    _buildStatItem(
-                      Icons.people_rounded,
-                      'Sinh viên',
-                      '$_academicStudentCount',
-                      textColor,
-                      subColor,
-                    ),
-                    _buildStatDivider(isDark),
-                    _buildStatItem(
-                      Icons.class_rounded,
-                      'Lớp học',
-                      '$_academicClassCount',
-                      textColor,
-                      subColor,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildStatItem(
-    IconData icon,
-    String label,
-    String value,
-    Color textColor,
-    Color subColor,
-  ) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 22, color: AppColors.primary),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: subColor),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatDivider(bool isDark) {
-    return Container(
-      width: 1,
-      height: 40,
-      color: isDark ? Colors.grey[700] : Colors.grey[200],
     );
   }
 
@@ -508,134 +410,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: AppColors.warning,
-                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.warning),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(bool isDark) {
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final textColor = AppColors.textPrimary(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: FadeTransition(
-        opacity: _fadeAnim,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hành động nhanh',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _buildStitchActionItem(
-                  icon: Icons.people_rounded,
-                  label: 'Quản lý Sinh\nviên',
-                  isDark: isDark,
-                  cardColor: cardColor,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          TeacherStudentsPage(teacherId: widget.teacherId),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _buildStitchActionItem(
-                  icon: Icons.assignment_rounded,
-                  label: 'Bài tập',
-                  isDark: isDark,
-                  cardColor: cardColor,
-                  onTap: () {
-                    final bloc = context.read<TeacherBloc>();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider.value(
-                          value: bloc,
-                          child: const TeacherTasksPage(),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                _buildStitchActionItem(
-                  icon: Icons.chat_rounded,
-                  label: 'Chat',
-                  isDark: isDark,
-                  cardColor: cardColor,
-                  onTap: () => context.push(AppRoutes.conversations),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStitchActionItem({
-    required IconData icon,
-    required String label,
-    required bool isDark,
-    required Color cardColor,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border(context)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, size: 24, color: AppColors.primary),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary(context),
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -643,9 +420,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
   }
 
   Widget _buildMyCoursesSection(bool isDark) {
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final textColor = AppColors.textPrimary(context);
-    final subColor = AppColors.textSecondary(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: FadeTransition(
@@ -661,7 +435,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: textColor,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 TextButton(
@@ -688,123 +462,42 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage>
                   ),
                 ),
               )
+            else if (_academicClasses.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'Chưa có môn nào',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
             else
-              _buildCourseList(cardColor, textColor, subColor, isDark),
+              ...(_academicClasses.take(3).toList()).asMap().entries.map(
+                (entry) => StaggeredListAnimation(
+                  index: entry.key,
+                  child: DashboardClassCard(
+                    cls: entry.value,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TeacherCourseStatsPage(
+                            teacherId: widget.teacherId,
+                            courseId: entry.value['academicCourseId'] as int?,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildCourseList(
-    Color cardColor,
-    Color textColor,
-    Color subColor,
-    bool isDark,
-  ) {
-    if (_academicClasses.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Text(
-            'Chưa có môn nào',
-            style: TextStyle(color: subColor, fontSize: 14),
-          ),
-        ),
-      );
-    }
-    final displayClasses = _academicClasses.take(3).toList();
-    return Column(
-      children: displayClasses.map((cls) {
-        final courseName = cls['courseName'] ?? '';
-        final courseCode = cls['courseCode'] ?? '';
-        final studentCount = cls['studentCount'] ?? 0;
-        final classCode = cls['classCode'] ?? '';
-        final courseId = cls['academicCourseId'] as int?;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TeacherCourseStatsPage(
-                    teacherId: widget.teacherId,
-                    courseId: courseId,
-                  ),
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border(context)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.school_rounded,
-                      color: AppColors.primary,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$courseName – $courseCode',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: textColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.people_outline, size: 14, color: subColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$studentCount',
-                              style: TextStyle(fontSize: 12, color: subColor),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(Icons.class_rounded, size: 14, color: subColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              classCode,
-                              style: TextStyle(fontSize: 12, color: subColor),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right_rounded, color: subColor, size: 22),
-                ],
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

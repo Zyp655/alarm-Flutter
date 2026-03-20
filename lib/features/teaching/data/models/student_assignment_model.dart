@@ -14,6 +14,10 @@ class StudentAssignmentModel extends StudentAssignmentEntity {
     required super.rewardClaimed,
     super.className,
     required super.classId,
+    super.submissionStatus,
+    super.grade,
+    super.maxGrade,
+    super.feedback,
   });
 
   factory StudentAssignmentModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,10 @@ class StudentAssignmentModel extends StudentAssignmentEntity {
       rewardClaimed: json['rewardClaimed'] as bool? ?? false,
       className: json['className'] as String?,
       classId: json['classId'] as int,
+      submissionStatus: json['submissionStatus'] as String?,
+      grade: json['grade'] as num?,
+      maxGrade: json['maxGrade'] as num?,
+      feedback: json['feedback'] as String?,
     );
   }
 }

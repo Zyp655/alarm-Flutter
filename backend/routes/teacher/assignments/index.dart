@@ -114,7 +114,24 @@ Future<Response> _handleGet(RequestContext context) async {
           final studentAssignments = await (db.select(db.studentAssignments)
                 ..where((s) => s.assignmentId.equals(assignmentId)))
               .get();
-          final pendingCount = studentAssignments.where((s) => !s.isCompleted).length;
+
+          int completedCount = 0;
+          for (final sa in studentAssignments) {
+            if (sa.isCompleted) {
+              completedCount++;
+            } else {
+              final sub = await (db.select(db.submissions)
+                    ..where(
+                      (s) =>
+                          s.assignmentId.equals(assignmentId) &
+                          s.studentId.equals(sa.studentId),
+                    )
+                    ..limit(1))
+                  .getSingleOrNull();
+              if (sub != null) completedCount++;
+            }
+          }
+          final pendingCount = studentAssignments.length - completedCount;
 
           String? toIso(dynamic val) {
             if (val is DateTime) return val.toIso8601String();
@@ -134,7 +151,7 @@ Future<Response> _handleGet(RequestContext context) async {
             'createdAt': toIso(a['created_at']),
             'totalStudents': studentAssignments.length,
             'pendingCount': pendingCount,
-            'completedStudents': studentAssignments.length - pendingCount,
+            'completedStudents': completedCount,
           });
         }
         return Response.json(body: {'assignments': result});
@@ -180,7 +197,17 @@ Future<Response> _handleGet(RequestContext context) async {
       }
       if (studentAssignment != null) {
         assignmentMap[assignment.id]!['totalStudents'] += 1;
-        if (studentAssignment.isCompleted) {
+
+        final hasSubmission = await (db.select(db.submissions)
+              ..where(
+                (s) =>
+                    s.assignmentId.equals(assignment.id) &
+                    s.studentId.equals(studentAssignment.studentId),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+
+        if (studentAssignment.isCompleted || hasSubmission != null) {
           assignmentMap[assignment.id]!['completedStudents'] += 1;
         } else {
           assignmentMap[assignment.id]!['pendingCount'] += 1;

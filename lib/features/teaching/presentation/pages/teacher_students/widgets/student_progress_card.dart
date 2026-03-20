@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 class StudentProgressCard extends StatelessWidget {
@@ -27,18 +27,25 @@ class StudentProgressCard extends StatelessWidget {
     final lastNudgedAt = student['lastNudgedAt'] as String?;
     final quizAverage = student['quizAverage'];
     final studentEmail = student['email'] as String? ?? '';
+    final riskScore = (student['riskScore'] as num?)?.toDouble() ?? 0;
+    final warningLevel = student['warningLevel'] as int? ?? 1;
+    final absenceRate = (student['absenceRate'] as num?)?.toDouble() ?? 0;
+    final lateRate = (student['lateRate'] as num?)?.toDouble() ?? 0;
 
     final avatarColor =
         Colors.primaries[studentEmail.hashCode % Colors.primaries.length];
 
-    Color statusColor = AppColors.success;
-    String statusText = 'Tốt';
-    if (isAtRisk) {
-      statusColor = AppColors.error;
-      statusText = 'Cần chú ý';
-    } else if (progressPercent < 50) {
-      statusColor = AppColors.warning;
-      statusText = 'Trung bình';
+    Color wlColor;
+    String wlText;
+    if (warningLevel >= 3) {
+      wlColor = AppColors.error;
+      wlText = 'Mức 3';
+    } else if (warningLevel == 2) {
+      wlColor = AppColors.warning;
+      wlText = 'Mức 2';
+    } else {
+      wlColor = AppColors.success;
+      wlText = 'Mức 1';
     }
 
     return Container(
@@ -85,31 +92,60 @@ class StudentProgressCard extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: avatarColor.withAlpha(isDark ? 50 : 30),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: avatarColor.withAlpha(isDark ? 80 : 60),
+                Stack(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: avatarColor.withAlpha(isDark ? 50 : 30),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: avatarColor.withAlpha(isDark ? 80 : 60),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        studentEmail.isNotEmpty
+                            ? studentEmail[0].toUpperCase()
+                            : 'U',
+                        style: TextStyle(
+                          color: avatarColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
                     ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    studentEmail.isNotEmpty
-                        ? studentEmail[0].toUpperCase()
-                        : 'U',
-                    style: TextStyle(
-                      color: avatarColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
+                    if (riskScore >= 40)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: wlColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.cardColor(context),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            '${riskScore.round()}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,12 +154,13 @@ class StudentProgressCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              student['email'] ?? '',
+                              student['fullName'] ?? student['email'] ?? '',
                               style: TextStyle(
                                 color: AppColors.textPrimary(context),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Container(
@@ -132,16 +169,16 @@ class StudentProgressCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withAlpha(isDark ? 25 : 15),
+                              color: wlColor.withAlpha(isDark ? 25 : 15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: statusColor.withAlpha(isDark ? 50 : 30),
+                                color: wlColor.withAlpha(isDark ? 50 : 30),
                               ),
                             ),
                             child: Text(
-                              statusText,
+                              wlText,
                               style: TextStyle(
-                                color: statusColor,
+                                color: wlColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -149,8 +186,7 @@ class StudentProgressCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Expanded(
@@ -162,7 +198,11 @@ class StudentProgressCard extends StatelessWidget {
                                     ? Colors.white.withAlpha(15)
                                     : Colors.grey.shade200,
                                 valueColor: AlwaysStoppedAnimation(
-                                  isAtRisk ? AppColors.error : AppColors.accent,
+                                  warningLevel >= 3
+                                      ? AppColors.error
+                                      : warningLevel == 2
+                                          ? AppColors.warning
+                                          : AppColors.accent,
                                 ),
                                 minHeight: 5,
                               ),
@@ -172,7 +212,7 @@ class StudentProgressCard extends StatelessWidget {
                           Text(
                             '$progressPercent%',
                             style: TextStyle(
-                              color: isAtRisk
+                              color: warningLevel >= 3
                                   ? AppColors.error
                                   : AppColors.accent,
                               fontWeight: FontWeight.bold,
@@ -181,44 +221,35 @@ class StudentProgressCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(
-                            Icons.book_outlined,
-                            size: 16,
-                            color: AppColors.textSecondary(context),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${student['completedLessons'] ?? 0}/${student['totalLessons'] ?? 0}',
-                            style: TextStyle(
-                              color: AppColors.textSecondary(context),
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Icon(
-                            Icons.quiz_outlined,
-                            size: 16,
-                            color: AppColors.textSecondary(context),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            quizAverage != null
-                                ? '${(quizAverage as num).toStringAsFixed(1)}%'
+                          _MiniStat(
+                            icon: Icons.quiz_outlined,
+                            label: quizAverage != null
+                                ? '${(quizAverage as num).toStringAsFixed(0)}%'
                                 : '--',
-                            style: TextStyle(
-                              color: quizAverage != null
-                                  ? AppColors.warning
-                                  : AppColors.textSecondary(context),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            color: quizAverage != null && quizAverage < 50
+                                ? AppColors.error
+                                : AppColors.textSecondary(context),
+                          ),
+                          const SizedBox(width: 12),
+                          _MiniStat(
+                            icon: Icons.event_busy_outlined,
+                            label: '${absenceRate.toStringAsFixed(0)}%',
+                            color: absenceRate > 10
+                                ? AppColors.error
+                                : AppColors.textSecondary(context),
+                          ),
+                          const SizedBox(width: 12),
+                          _MiniStat(
+                            icon: Icons.assignment_late_outlined,
+                            label: '${lateRate.toStringAsFixed(0)}%',
+                            color: lateRate > 20
+                                ? AppColors.warning
+                                : AppColors.textSecondary(context),
                           ),
                           const Spacer(),
-
                           if (isAtRisk) ...[
                             if (lastNudgedAt != null)
                               Padding(
@@ -281,6 +312,37 @@ class StudentProgressCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _MiniStat({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' as xl;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../injection_container.dart';
 
@@ -37,6 +41,8 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
   String _sortOrder = 'asc';
   String _searchQuery = '';
   int _riskThreshold = 3;
+  int? _selectedWarningLevel;
+  int? _minRiskScore;
 
   bool _isLoading = true;
   bool _isMultiSelectMode = false;
@@ -94,6 +100,10 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
       queryParams['sortBy'] = _sortBy;
       queryParams['sortOrder'] = _sortOrder;
       queryParams['threshold'] = _riskThreshold.toString();
+      if (_selectedWarningLevel != null)
+        queryParams['warningLevel'] = _selectedWarningLevel.toString();
+      if (_minRiskScore != null)
+        queryParams['minRiskScore'] = _minRiskScore.toString();
 
       final queryString = queryParams.entries
           .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
@@ -270,71 +280,135 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
 
   void _showConfigDialog() {
     final isDark = AppColors.isDark(context);
+    int tempThreshold = _riskThreshold;
+    int tempMinRisk = _minRiskScore ?? 0;
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardColor(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.tune_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('Cấu hình cảnh báo'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ngưỡng cảnh báo vắng mặt:',
-              style: TextStyle(
-                color: AppColors.textSecondary(context),
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              value: _riskThreshold,
-              dropdownColor: AppColors.surface(context),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: isDark
-                    ? AppColors.darkSurfaceVariant
-                    : Colors.grey.shade50,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border(context)),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.cardColor(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border(context)),
+                child: Icon(
+                  Icons.tune_rounded,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
               ),
-              items: const [
-                DropdownMenuItem(value: 3, child: Text('> 3 ngày (Mặc định)')),
-                DropdownMenuItem(value: 5, child: Text('> 5 ngày')),
-                DropdownMenuItem(value: 7, child: Text('> 7 ngày')),
-                DropdownMenuItem(value: 14, child: Text('> 14 ngày')),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _riskThreshold = value);
-                  Navigator.pop(context);
-                  _loadStudents();
-                }
+              const SizedBox(width: 12),
+              const Text('Cấu hình'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ngưỡng cảnh báo vắng mặt:',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<int>(
+                value: tempThreshold,
+                dropdownColor: AppColors.surface(context),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.darkSurfaceVariant
+                      : Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border(context)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border(context)),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 3, child: Text('> 3 ngày (Mặc định)')),
+                  DropdownMenuItem(value: 5, child: Text('> 5 ngày')),
+                  DropdownMenuItem(value: 7, child: Text('> 7 ngày')),
+                  DropdownMenuItem(value: 14, child: Text('> 14 ngày')),
+                ],
+                onChanged: (v) {
+                  if (v != null) setDialogState(() => tempThreshold = v);
+                },
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Ngưỡng điểm rủi ro tối thiểu:',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Slider(
+                      value: tempMinRisk.toDouble(),
+                      min: 0,
+                      max: 100,
+                      divisions: 20,
+                      activeColor: AppColors.error,
+                      label: tempMinRisk == 0 ? 'Tắt' : '≥ $tempMinRisk',
+                      onChanged: (v) {
+                        setDialogState(() => tempMinRisk = v.round());
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      tempMinRisk == 0 ? 'Tắt' : '$tempMinRisk',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy',
+                  style: TextStyle(color: AppColors.textSecondary(context))),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                setState(() {
+                  _riskThreshold = tempThreshold;
+                  _minRiskScore = tempMinRisk > 0 ? tempMinRisk : null;
+                });
+                Navigator.pop(ctx);
+                _loadStudents();
               },
+              child:
+                  const Text('Áp dụng', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -471,8 +545,8 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
                         child: Text('Điểm', overflow: TextOverflow.ellipsis),
                       ),
                       DropdownMenuItem(
-                        value: 'risk',
-                        child: Text('Ưu tiên', overflow: TextOverflow.ellipsis),
+                        value: 'riskScore',
+                        child: Text('Rủi ro', overflow: TextOverflow.ellipsis),
                       ),
                     ],
                     onChanged: (value) {
@@ -545,7 +619,7 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
           Padding(
             padding: const EdgeInsets.only(left: 2, bottom: 8),
             child: Text(
-              'TIẾN ĐỘ',
+              'MỨC CẢNH BÁO',
               style: TextStyle(
                 color: AppColors.textSecondary(context),
                 fontSize: 11,
@@ -554,20 +628,48 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
               ),
             ),
           ),
-          FilterChipGroup<String?>(
+          FilterChipGroup<int?>(
             options: [
               FilterOption(label: 'Tất cả', value: null),
-              FilterOption(label: '0-30%', value: 'low'),
-              FilterOption(label: '31-70%', value: 'medium'),
-              FilterOption(label: '71-100%', value: 'high'),
+              FilterOption(label: 'Mức 1', value: 1),
+              FilterOption(label: 'Mức 2', value: 2),
+              FilterOption(label: 'Mức 3', value: 3),
             ],
-            selectedValue: _selectedProgress,
+            selectedValue: _selectedWarningLevel,
             onSelected: (value) {
-              setState(() => _selectedProgress = value);
+              setState(() => _selectedWarningLevel = value);
               _loadStudents();
             },
-            selectedColor: AppColors.info,
+            selectedColor: AppColors.error,
           ),
+          if (_minRiskScore != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Điểm rủi ro ≥ $_minRiskScore',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _minRiskScore = null);
+                      _loadStudents();
+                    },
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -986,6 +1088,136 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
     );
   }
 
+  Future<void> _performExcelExport() async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Đang tạo file Excel...'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      final excel = xl.Excel.createExcel();
+      final sheet = excel['Danh sách SV'];
+      excel.delete('Sheet1');
+
+      final headers = [
+        'STT', 'Họ tên', 'Email', 'Tiến độ (%)',
+        'Điểm Quiz TB', 'Điểm rủi ro', 'Mức cảnh báo',
+        'Tỷ lệ vắng (%)', 'Số buổi vắng', 'Tỷ lệ trễ BT (%)',
+        'Số BT trễ/chưa nộp', 'Tổng BT', 'Bài đã học',
+        'Tổng bài', 'Trạng thái',
+      ];
+
+      final headerStyle = xl.CellStyle(
+        bold: true,
+        backgroundColorHex: xl.ExcelColor.fromHexString('#2D3436'),
+        fontColorHex: xl.ExcelColor.fromHexString('#FFFFFF'),
+        horizontalAlign: xl.HorizontalAlign.Center,
+      );
+
+      for (var i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(
+          xl.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
+        );
+        cell.value = xl.TextCellValue(headers[i]);
+        cell.cellStyle = headerStyle;
+      }
+
+      for (var i = 0; i < _students.length; i++) {
+        final s = _students[i];
+        final wl = s['warningLevel'] ?? 1;
+        final warningText = wl == 3 ? 'Mức 3 (Cao)' : wl == 2 ? 'Mức 2 (TB)' : 'Mức 1 (Thấp)';
+        final statusText = s['status'] == 'completed'
+            ? 'Hoàn thành'
+            : s['status'] == 'in_progress'
+                ? 'Đang học'
+                : 'Chưa học';
+
+        final row = [
+          xl.IntCellValue(i + 1),
+          xl.TextCellValue(s['fullName'] ?? ''),
+          xl.TextCellValue(s['email'] ?? ''),
+          xl.IntCellValue(s['progressPercent'] ?? 0),
+          s['quizAverage'] != null
+              ? xl.DoubleCellValue((s['quizAverage'] as num).toDouble())
+              : xl.TextCellValue('--') as xl.CellValue,
+          xl.DoubleCellValue((s['riskScore'] as num?)?.toDouble() ?? 0),
+          xl.TextCellValue(warningText),
+          xl.DoubleCellValue((s['absenceRate'] as num?)?.toDouble() ?? 0),
+          xl.IntCellValue(s['absenceCount'] ?? 0),
+          xl.DoubleCellValue((s['lateRate'] as num?)?.toDouble() ?? 0),
+          xl.IntCellValue(s['lateCount'] ?? 0),
+          xl.IntCellValue(s['totalAssignments'] ?? 0),
+          xl.IntCellValue(s['completedLessons'] ?? 0),
+          xl.IntCellValue(s['totalLessons'] ?? 0),
+          xl.TextCellValue(statusText),
+        ];
+
+        for (var j = 0; j < row.length; j++) {
+          final cell = sheet.cell(
+            xl.CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1),
+          );
+          cell.value = row[j];
+
+          if (wl == 3) {
+            cell.cellStyle = xl.CellStyle(
+              backgroundColorHex: xl.ExcelColor.fromHexString('#FFEAEA'),
+            );
+          } else if (wl == 2) {
+            cell.cellStyle = xl.CellStyle(
+              backgroundColorHex: xl.ExcelColor.fromHexString('#FFF3E0'),
+            );
+          }
+        }
+      }
+
+      for (var i = 0; i < headers.length; i++) {
+        sheet.setColumnWidth(i, i <= 2 ? 20 : 14);
+      }
+
+      final dir = await getApplicationDocumentsDirectory();
+      final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+      final filePath = '${dir.path}/SV_rui_ro_$timestamp.xlsx';
+      final fileBytes = excel.save();
+      if (fileBytes == null) throw Exception('Không thể tạo file');
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          text: 'Danh sách sinh viên rủi ro',
+        ),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Xuất Excel thành công!'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xuất Excel: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
   void _exportData() {
     final isDark = AppColors.isDark(context);
     showModalBottomSheet(
@@ -1019,6 +1251,14 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
                     color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_students.length} sinh viên',
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _exportOption(
                   icon: Icons.table_chart_rounded,
@@ -1027,34 +1267,7 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
                   isDark: isDark,
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Đang xuất file Excel...'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                _exportOption(
-                  icon: Icons.description_rounded,
-                  color: AppColors.info,
-                  title: 'Xuất CSV (.csv)',
-                  isDark: isDark,
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Đang xuất file CSV...'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
+                    _performExcelExport();
                   },
                 ),
               ],

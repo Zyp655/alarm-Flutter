@@ -54,24 +54,27 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
 
     request.fields['userId'] = studentId.toString();
 
-    if (link != null) request.fields['link'] = link;
-    if (text != null) request.fields['text'] = text;
+    if (link != null) request.fields['linkUrl'] = link;
+    if (text != null) request.fields['textContent'] = text;
 
     if (file != null) {
       final fileStream = http.ByteStream(file.openRead());
       final length = await file.length();
+      final fileName = file.path.split(RegExp(r'[/\\]')).last;
+      request.fields['fileName'] = fileName;
+      request.fields['fileSize'] = length.toString();
       final multipartFile = http.MultipartFile(
         'file',
         fileStream,
         length,
-        filename: file.path.split('/').last,
+        filename: fileName,
       );
       request.files.add(multipartFile);
     }
 
     final response = await request.send();
 
-    if (response.statusCode != 200) {
+    if (response.statusCode >= 300) {
       final respStr = await response.stream.bytesToString();
       throw ServerException("Lỗi nộp bài: $respStr");
     }

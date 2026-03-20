@@ -13,6 +13,10 @@ class StudentAssignmentEntity extends Equatable {
   final bool rewardClaimed;
   final String? className;
   final int classId;
+  final String? submissionStatus;
+  final num? grade;
+  final num? maxGrade;
+  final String? feedback;
 
   const StudentAssignmentEntity({
     required this.id,
@@ -27,6 +31,10 @@ class StudentAssignmentEntity extends Equatable {
     required this.rewardClaimed,
     this.className,
     required this.classId,
+    this.submissionStatus,
+    this.grade,
+    this.maxGrade,
+    this.feedback,
   });
 
   @override
@@ -43,5 +51,9 @@ class StudentAssignmentEntity extends Equatable {
     rewardClaimed,
     className,
     classId,
+    submissionStatus,
+    grade,
+    maxGrade,
+    feedback,
   ];
 }

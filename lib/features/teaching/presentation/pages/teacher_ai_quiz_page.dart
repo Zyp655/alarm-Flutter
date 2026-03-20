@@ -10,6 +10,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/quiz_question_card.dart';
 
 class TeacherAiQuizPage extends StatefulWidget {
   final int courseId;
@@ -640,7 +641,17 @@ class _TeacherAiQuizPageState extends State<TeacherAiQuizPage> {
           child: ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: _draftQuestions.length,
-            itemBuilder: (_, i) => _buildQuestionCard(cs, isDark, i),
+            itemBuilder: (_, i) => QuizQuestionCard(
+              question: _draftQuestions[i],
+              index: i,
+              onToggleEdit: () {
+                setState(() => _draftQuestions[i]['_editing'] = !(_draftQuestions[i]['_editing'] == true));
+              },
+              onDelete: () {
+                setState(() => _draftQuestions.removeAt(i));
+              },
+              onChanged: (q) => setState(() {}),
+            ),
           ),
         ),
       ],
@@ -660,269 +671,8 @@ class _TeacherAiQuizPageState extends State<TeacherAiQuizPage> {
     });
   }
 
-  Widget _buildQuestionCard(ColorScheme cs, bool isDark, int index) {
-    final q = _draftQuestions[index];
-    final isEditing = q['_editing'] == true;
-    final correctIdx = q['correctIndex'] as int? ?? 0;
-    final options = (q['options'] as List).cast<String>();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 20 : 10),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.06),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Câu ${index + 1}',
-                    style: TextStyle(
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    isEditing ? Icons.check_circle : Icons.edit,
-                    color: isEditing ? AppColors.success : cs.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() => q['_editing'] = !isEditing);
-                  },
-                  tooltip: isEditing ? 'Xong' : 'Sửa',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(4),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: AppColors.error,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() => _draftQuestions.removeAt(index));
-                  },
-                  tooltip: 'Xóa',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(4),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isEditing)
-                  TextFormField(
-                    initialValue: q['question'] as String? ?? '',
-                    style: TextStyle(color: cs.onSurface, fontSize: 14),
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Câu hỏi',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onChanged: (v) => q['question'] = v,
-                  )
-                else
-                  Text(
-                    q['question'] as String? ?? '',
-                    style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                ...List.generate(options.length, (oi) {
-                  final isCorrect = oi == correctIdx;
-                  if (isEditing) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          Radio<int>(
-                            value: oi,
-                            groupValue: correctIdx,
-                            onChanged: (v) {
-                              setState(() => q['correctIndex'] = v);
-                            },
-                            activeColor: AppColors.success,
-                          ),
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: options[oi],
-                              style: TextStyle(
-                                color: cs.onSurface,
-                                fontSize: 13,
-                              ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onChanged: (v) {
-                                options[oi] = v;
-                                q['options'] = options;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isCorrect
-                            ? AppColors.success.withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isCorrect
-                              ? AppColors.success.withValues(alpha: 0.4)
-                              : cs.outlineVariant.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          if (isCorrect)
-                            const Icon(
-                              Icons.check_circle,
-                              color: AppColors.success,
-                              size: 16,
-                            )
-                          else
-                            Icon(
-                              Icons.circle_outlined,
-                              color: cs.onSurfaceVariant,
-                              size: 16,
-                            ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              options[oi],
-                              style: TextStyle(
-                                color: isCorrect
-                                    ? AppColors.success
-                                    : cs.onSurface,
-                                fontWeight: isCorrect
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                }),
-                if ((q['explanation'] as String?)?.isNotEmpty == true) ...[
-                  const SizedBox(height: 8),
-                  if (isEditing)
-                    TextFormField(
-                      initialValue: q['explanation'] as String? ?? '',
-                      style: TextStyle(color: cs.onSurface, fontSize: 13),
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Giải thích',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (v) => q['explanation'] = v,
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            color: AppColors.info,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              q['explanation'] as String,
-                              style: TextStyle(
-                                color: cs.onSurfaceVariant,
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   String _extractDocxText(Uint8List bytes) {
     final decoded = archive.ZipDecoder().decodeBytes(bytes);

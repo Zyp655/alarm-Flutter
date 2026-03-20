@@ -1,6 +1,7 @@
 import 'package:backend/database/database.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
+
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.get) {
     return Response(statusCode: 405);
@@ -24,11 +25,26 @@ Future<Response> onRequest(RequestContext context) async {
     ])
       ..where(db.studentAssignments.studentId.equals(studentId));
     final results = await query.get();
-    final assignments = results.map((row) {
+
+    final assignments = <Map<String, dynamic>>[];
+    for (final row in results) {
       final studentAssignment = row.readTable(db.studentAssignments);
       final assignment = row.readTable(db.assignments);
       final classInfo = row.readTableOrNull(db.classes);
-      return {
+
+      final submission = await (db.select(db.submissions)
+            ..where(
+              (s) =>
+                  s.assignmentId.equals(assignment.id) &
+                  s.studentId.equals(studentId),
+            )
+            ..orderBy([(s) => OrderingTerm.desc(s.version)])
+            ..limit(1))
+          .getSingleOrNull();
+
+      final hasSubmission = submission != null;
+
+      assignments.add({
         'id': assignment.id,
         'studentAssignmentId': studentAssignment.id,
         'title': assignment.title,
@@ -36,15 +52,22 @@ Future<Response> onRequest(RequestContext context) async {
         'dueDate': assignment.dueDate.toIso8601String(),
         'rewardPoints': assignment.rewardPoints,
         'createdAt': assignment.createdAt.toIso8601String(),
-        'isCompleted': studentAssignment.isCompleted,
+        'isCompleted': hasSubmission || studentAssignment.isCompleted,
         'completedAt': studentAssignment.completedAt?.toIso8601String(),
         'rewardClaimed': studentAssignment.rewardClaimed,
         'className': classInfo?.className,
         'classId': assignment.classId,
-      };
-    }).toList();
+        'submissionStatus': submission?.status,
+        'grade': submission?.grade,
+        'maxGrade': submission?.maxGrade,
+        'feedback': submission?.feedback,
+        'submittedAt': submission?.submittedAt.toIso8601String(),
+      });
+    }
+
     return Response.json(body: assignments);
   } catch (e) {
     return Response.json(statusCode: 500, body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'});
   }
 }
+
