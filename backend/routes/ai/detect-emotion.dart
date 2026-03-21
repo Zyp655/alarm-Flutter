@@ -11,27 +11,14 @@ Future<Response> onRequest(RequestContext context) async {
   try {
     final body = await context.request.json() as Map<String, dynamic>;
 
-    final lessonTitle = body['lessonTitle'] as String?;
-    final textContent = body['textContent'] as String?;
-    final question = body['question'] as String?;
+    final imageBase64 = body['imageBase64'] as String?;
 
-    if (lessonTitle == null || textContent == null || question == null) {
+    if (imageBase64 == null || imageBase64.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
-        body: {'error': 'lessonTitle, textContent, and question are required'},
+        body: {'error': 'imageBase64 is required'},
       );
     }
-
-    final rawHistory = body['history'] as List<dynamic>? ?? [];
-    final history = rawHistory.map((h) {
-      final m = h as Map<String, dynamic>;
-      return {
-        'role': m['role'] as String? ?? 'user',
-        'content': m['content'] as String? ?? '',
-      };
-    }).toList();
-
-    final persona = body['persona'] as String?;
 
     final env = DotEnv(includePlatformEnvironment: true)..load();
     final apiKey = env['OPENAI_API_KEY'];
@@ -43,19 +30,15 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     final aiService = AIService(openaiApiKey: apiKey);
-    final answer = await aiService.chatWithContext(
-      lessonTitle: lessonTitle,
-      textContent: textContent,
-      history: history,
-      question: question,
-      persona: persona,
+    final result = await aiService.analyzeEmotion(
+      imageBase64: imageBase64,
     );
 
-    return Response.json(body: {'answer': answer});
+    return Response.json(body: result);
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'AI chat failed: $e'},
+      body: {'error': 'Emotion detection failed: $e'},
     );
   }
 }

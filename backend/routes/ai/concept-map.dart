@@ -13,25 +13,13 @@ Future<Response> onRequest(RequestContext context) async {
 
     final lessonTitle = body['lessonTitle'] as String?;
     final textContent = body['textContent'] as String?;
-    final question = body['question'] as String?;
 
-    if (lessonTitle == null || textContent == null || question == null) {
+    if (lessonTitle == null || textContent == null) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
-        body: {'error': 'lessonTitle, textContent, and question are required'},
+        body: {'error': 'lessonTitle and textContent are required'},
       );
     }
-
-    final rawHistory = body['history'] as List<dynamic>? ?? [];
-    final history = rawHistory.map((h) {
-      final m = h as Map<String, dynamic>;
-      return {
-        'role': m['role'] as String? ?? 'user',
-        'content': m['content'] as String? ?? '',
-      };
-    }).toList();
-
-    final persona = body['persona'] as String?;
 
     final env = DotEnv(includePlatformEnvironment: true)..load();
     final apiKey = env['OPENAI_API_KEY'];
@@ -43,19 +31,16 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     final aiService = AIService(openaiApiKey: apiKey);
-    final answer = await aiService.chatWithContext(
+    final result = await aiService.generateConceptMap(
       lessonTitle: lessonTitle,
       textContent: textContent,
-      history: history,
-      question: question,
-      persona: persona,
     );
 
-    return Response.json(body: {'answer': answer});
+    return Response.json(body: result);
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'AI chat failed: $e'},
+      body: {'error': 'Concept map generation failed: $e'},
     );
   }
 }

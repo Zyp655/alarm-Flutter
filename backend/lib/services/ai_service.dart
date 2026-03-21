@@ -468,6 +468,7 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
     required String textContent,
     required List<Map<String, String>> history,
     required String question,
+    String? persona,
   }) async {
     const baseUrl = 'https://api.openai.com/v1/chat/completions';
 
@@ -481,35 +482,32 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
       }
     }
 
-    final systemPrompt = hasContent
+    final personaInstruction = _buildPersonaInstruction(persona);
+    final contentBlock = hasContent
         ? '''
-Bạn là trợ lý học tập AI thông minh. Nhiệm vụ: trả lời câu hỏi của sinh viên DỰA TRÊN nội dung bài học được cung cấp bên dưới.
-
 Bài học: "$lessonTitle"
 Nội dung bài học:
 """
 $processedContent
 """
-
-Quy tắc:
-1. LUÔN trả lời bằng tiếng Việt.
-2. Ưu tiên trả lời dựa trên nội dung bài học. Nếu câu hỏi liên quan đến chủ đề bài học nhưng không có trong nội dung, hãy dùng kiến thức chuyên môn để trả lời và ghi chú rằng đây là kiến thức bổ sung.
-3. Giải thích rõ ràng, dễ hiểu, có ví dụ khi cần.
-4. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
-5. Trả lời đầy đủ, chi tiết, không cắt ngắn.
 '''
-        : '''
-Bạn là trợ lý học tập AI thông minh. Nhiệm vụ: trả lời câu hỏi của sinh viên về bài học "$lessonTitle".
+        : '';
 
-Lưu ý: Nội dung chi tiết của bài học (transcript/văn bản) chưa có sẵn. Hãy sử dụng kiến thức chuyên môn của bạn về chủ đề "$lessonTitle" và các chủ đề liên quan để trả lời.
+    final contextNote = hasContent
+        ? 'Ưu tiên trả lời dựa trên nội dung bài học. Nếu câu hỏi liên quan đến chủ đề bài học nhưng không có trong nội dung, hãy dùng kiến thức chuyên môn để trả lời và ghi chú rằng đây là kiến thức bổ sung.'
+        : 'Nội dung chi tiết của bài học chưa có sẵn. Hãy sử dụng kiến thức chuyên môn của bạn về chủ đề "$lessonTitle" để trả lời.';
 
-Quy tắc:
+    final systemPrompt = '''
+$personaInstruction
+
+$contentBlock
+
+Ngữ cảnh: $contextNote
+
+Quy tắc chung:
 1. LUÔN trả lời bằng tiếng Việt.
-2. Trả lời mọi câu hỏi liên quan đến chủ đề bài học và các chủ đề liên quan trong khóa học (ví dụ: nếu bài học về Java fullstack thì các câu hỏi về Spring Boot, React, HTML, CSS, database, API... đều hợp lệ).
-3. Giải thích rõ ràng, dễ hiểu, có ví dụ khi cần.
-4. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
-5. Trả lời đầy đủ, chi tiết, không cắt ngắn.
-6. Chỉ từ chối các câu hỏi hoàn toàn không liên quan đến học tập.
+2. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
+3. Chỉ từ chối các câu hỏi hoàn toàn không liên quan đến học tập.
 ''';
 
     final messages = <Map<String, String>>[
@@ -537,6 +535,116 @@ Quy tắc:
     } else {
       throw Exception(
         'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  String _buildPersonaInstruction(String? persona) {
+    switch (persona) {
+      case 'socrates':
+        return '''
+Bạn là AI Tutor theo phong cách SOCRATES — một người thầy chỉ đặt câu hỏi.
+
+NGUYÊN TẮC BẮT BUỘC:
+- KHÔNG BAO GIỜ trả lời trực tiếp câu hỏi của sinh viên.
+- Thay vào đó, hãy đặt 2-3 câu hỏi gợi mở để DẪN DẮT sinh viên tự tìm ra đáp án.
+- Khen ngợi khi sinh viên suy luận đúng hướng, nhẹ nhàng điều chỉnh khi sai.
+- Chỉ tiết lộ đáp án khi sinh viên đã cố gắng trả lời ít nhất 2 lần.
+- Bắt đầu mỗi phản hồi bằng emoji 🤔 hoặc 💭.
+- Giọng văn: thân thiện, kích thích tư duy, kiên nhẫn.
+''';
+      case 'coach':
+        return '''
+Bạn là AI Tutor theo phong cách COACH — một huấn luyện viên dẫn dắt từng bước.
+
+NGUYÊN TẮC BẮT BUỘC:
+- Chia mọi giải thích thành các bước nhỏ, đánh số rõ ràng (Bước 1, Bước 2...).
+- Sau mỗi 2-3 bước, đặt câu hỏi kiểm tra: "✅ Bạn đã hiểu đến đây chưa?"
+- Sử dụng ví dụ thực tế, analogies đời thường để minh họa.
+- Khuyến khích sinh viên thực hành ngay: "💪 Bây giờ hãy thử..."
+- Bắt đầu mỗi phản hồi bằng emoji 📋 hoặc 🎯.
+- Giọng văn: năng động, khích lệ, có cấu trúc rõ ràng.
+- Cuối mỗi phản hồi, gợi ý bước tiếp theo hoặc bài tập nhỏ.
+''';
+      case 'expert':
+        return '''
+Bạn là AI Tutor theo phong cách EXPERT — một chuyên gia giảng dạy chuyên sâu.
+
+NGUYÊN TẮC BẮT BUỘC:
+- Trả lời CỰC KỲ chi tiết, đầy đủ, chuyên sâu như một giáo sư đại học.
+- Luôn bao gồm: lý thuyết nền tảng → giải thích chi tiết → ví dụ code/thực tế → so sánh với các khái niệm liên quan → cạm bẫy thường gặp.
+- Sử dụng thuật ngữ chuyên môn chính xác, kèm giải nghĩa.
+- Đưa ra code example chi tiết khi phù hợp.
+- Bắt đầu mỗi phản hồi bằng emoji 🎓 hoặc 📚.
+- Giọng văn: học thuật, chuyên nghiệp, toàn diện.
+- Cuối phản hồi, đưa 2-3 chủ đề nên tìm hiểu thêm.
+''';
+      default:
+        return '''
+Bạn là trợ lý học tập AI thông minh. Giải thích rõ ràng, dễ hiểu, có ví dụ khi cần. Trả lời đầy đủ, chi tiết, không cắt ngắn.
+''';
+    }
+  }
+
+  Future<Map<String, dynamic>> analyzeEmotion({
+    required String imageBase64,
+  }) async {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $openaiApiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o',
+        'messages': [
+          {
+            'role': 'system',
+            'content':
+                'You are an emotion detection system for an e-learning platform. '
+                    'Analyze the student\'s facial expression and return ONLY valid JSON. '
+                    'Do not include markdown or any other text.',
+          },
+          {
+            'role': 'user',
+            'content': [
+              {
+                'type': 'text',
+                'text': '''
+Phân tích biểu cảm khuôn mặt sinh viên trong ảnh.
+Trả về JSON (CHỈ JSON):
+{
+  "emotion": "một trong: confused, frustrated, bored, focused, happy, neutral",
+  "confidence": 0.0-1.0,
+  "details": "mô tả ngắn biểu cảm bằng tiếng Việt"
+}
+Nếu không thấy khuôn mặt rõ ràng, trả về: {"emotion": "unknown", "confidence": 0, "details": "Không nhận diện được khuôn mặt"}
+''',
+              },
+              {
+                'type': 'image_url',
+                'image_url': {
+                  'url': 'data:image/jpeg;base64,$imageBase64',
+                  'detail': 'low',
+                },
+              },
+            ],
+          },
+        ],
+        'max_tokens': 150,
+        'temperature': 0.3,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final text = _extractChatContent(response.body);
+      final jsonStr = _extractJson(text);
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } else {
+      throw Exception(
+        'OpenAI Vision API Error: ${response.statusCode} - ${response.body}',
       );
     }
   }
@@ -688,6 +796,87 @@ Yêu cầu:
             'role': 'system',
             'content':
                 'You are a lecture summarizer. Always respond with valid JSON only, no markdown.',
+          },
+          {'role': 'user', 'content': prompt},
+        ],
+        'temperature': 0.5,
+        'max_tokens': 2048,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final text = _extractChatContent(response.body);
+      final jsonStr = _extractJson(text);
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } else {
+      throw Exception(
+        'OpenAI API Error: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> generateConceptMap({
+    required String lessonTitle,
+    required String textContent,
+  }) async {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+
+    final wordCount = textContent.split(RegExp(r'\s+')).length;
+    var contentForMap = textContent;
+    if (wordCount > 3000) {
+      contentForMap = await _condenseTranscript(textContent);
+    }
+
+    final prompt = '''
+Phân tích nội dung bài học "$lessonTitle" và tạo bản đồ khái niệm (concept map).
+
+Nội dung bài học:
+"""
+$contentForMap
+"""
+
+Trả về JSON (CHỈ JSON, KHÔNG text khác):
+{
+  "nodes": [
+    {
+      "id": "node_1",
+      "label": "Tên khái niệm ngắn gọn",
+      "description": "Mô tả chi tiết 1-2 câu",
+      "type": "core"
+    }
+  ],
+  "edges": [
+    {
+      "from": "node_1",
+      "to": "node_2",
+      "label": "quan hệ (vd: bao gồm, dẫn đến, là loại của)"
+    }
+  ]
+}
+
+Yêu cầu:
+- Tạo 6-12 nodes tùy độ phức tạp nội dung
+- type: "core" (khái niệm chính, 2-4 nodes), "sub" (khái niệm phụ), "example" (ví dụ minh họa)
+- Mỗi edge PHẢI có label mô tả mối quan hệ
+- Node id phải unique, format: node_1, node_2...
+- edges.from và edges.to phải tham chiếu đến id của nodes đã định nghĩa
+- Đảm bảo graph connected (không có node cô lập)
+- Bằng tiếng Việt
+''';
+
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $openaiApiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4o-mini',
+        'messages': [
+          {
+            'role': 'system',
+            'content':
+                'You are a concept map generator for educational content. Always respond with valid JSON only, no markdown.',
           },
           {'role': 'user', 'content': prompt},
         ],

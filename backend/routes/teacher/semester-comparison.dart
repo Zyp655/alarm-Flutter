@@ -66,9 +66,8 @@ Future<Response> onRequest(RequestContext context) async {
     final result = <Map<String, dynamic>>[];
 
     for (final semester in semesters) {
-      final semClasses = teacherClasses
-          .where((c) => c.semesterId == semester.id)
-          .toList();
+      final semClasses =
+          teacherClasses.where((c) => c.semesterId == semester.id).toList();
       if (semClasses.isEmpty) continue;
 
       final semClassIds = semClasses.map((c) => c.id).toList();
@@ -81,9 +80,9 @@ Future<Response> onRequest(RequestContext context) async {
           semEnrollments.map((e) => e.studentId).toSet().length;
       if (totalStudents == 0) continue;
 
-      final avgProgress = semEnrollments.fold<double>(
-              0, (sum, e) => sum + e.progressPercent) /
-          semEnrollments.length;
+      final avgProgress =
+          semEnrollments.fold<double>(0, (sum, e) => sum + e.progressPercent) /
+              semEnrollments.length;
 
       final completedCount =
           semEnrollments.where((e) => e.completedAt != null).length;
@@ -166,14 +165,13 @@ Future<Response> onRequest(RequestContext context) async {
       final courseBreakdown = <Map<String, dynamic>>[];
       for (final cls in semClasses) {
         final course = courseMap[cls.academicCourseId];
-        final classEnrollments = semEnrollments
-            .where((e) => e.courseClassId == cls.id)
-            .toList();
+        final classEnrollments =
+            semEnrollments.where((e) => e.courseClassId == cls.id).toList();
         if (classEnrollments.isEmpty) continue;
 
-        final cAvg = classEnrollments.fold<double>(
-                0, (s, e) => s + e.progressPercent) /
-            classEnrollments.length;
+        final cAvg =
+            classEnrollments.fold<double>(0, (s, e) => s + e.progressPercent) /
+                classEnrollments.length;
 
         courseBreakdown.add({
           'courseId': cls.academicCourseId,
@@ -197,9 +195,8 @@ Future<Response> onRequest(RequestContext context) async {
         'totalClasses': semClasses.length,
         'avgProgress': (avgProgress * 10).round() / 10,
         'completionRate': (completionRate * 10).round() / 10,
-        'avgQuizScore': quizCount > 0
-            ? (avgQuiz / quizCount * 10).round() / 10
-            : null,
+        'avgQuizScore':
+            quizCount > 0 ? (avgQuiz / quizCount * 10).round() / 10 : null,
         'avgAbsenceRate': absenceDataCount > 0
             ? (avgAbsenceRate / absenceDataCount * 10).round() / 10
             : null,
@@ -213,7 +210,7 @@ Future<Response> onRequest(RequestContext context) async {
     if (result.length == 1) {
       final current = result.first;
       final currentCourses =
-          List<Map<String, dynamic>>.from(current['courses'] ?? []);
+          List<Map<String, dynamic>>.from(current['courses'] as List? ?? []);
 
       final mockCourses = currentCourses.map((c) {
         final mockStudents = ((c['studentCount'] as int) * 1.2).round();
@@ -234,8 +231,7 @@ Future<Response> onRequest(RequestContext context) async {
         'year': 2024,
         'term': 2,
         'isActive': false,
-        'totalStudents':
-            ((current['totalStudents'] as int) * 1.3).round(),
+        'totalStudents': ((current['totalStudents'] as int) * 1.3).round(),
         'totalClasses': current['totalClasses'],
         'avgProgress': 62.5,
         'completionRate': 58.3,
