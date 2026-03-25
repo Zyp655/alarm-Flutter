@@ -36,6 +36,8 @@ import '../widgets/verify_quiz_overlay.dart';
 import '../widgets/emotion_camera_widget.dart';
 import '../widgets/ai_chat_sheet.dart';
 import '../services/confusion_detector.dart';
+import '../services/confusion_data_logger.dart';
+import '../widgets/self_report_widget.dart';
 
 class LessonPlayerPage extends StatelessWidget {
   final LessonEntity lesson;
@@ -143,6 +145,11 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   late final ConfusionDetector _confusionDetector;
   bool _showConfusionPopup = false;
 
+  late final ConfusionDataLogger _confusionLogger;
+  bool _showSelfReport = false;
+  Timer? _selfReportTimer;
+  int _selfReportIntervalMinutes = 5;
+
   @override
   void initState() {
     super.initState();
@@ -153,6 +160,14 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     _learningPlayerBloc = context.read<LearningPlayerBloc>();
     _confusionDetector = ConfusionDetector(
       onConfusionDetected: _onConfusionDetected,
+    );
+    _confusionLogger = ConfusionDataLogger(
+      userId: widget.userId,
+      lessonId: widget.lesson.id,
+    );
+    _selfReportTimer = Timer.periodic(
+      Duration(minutes: _selfReportIntervalMinutes),
+      (_) => _triggerSelfReport(),
     );
 
     final now = DateTime.now();
@@ -357,6 +372,10 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
 
     if (_previousPosition - currentPos > const Duration(seconds: 3) && !_isSeeking) {
       _seekBackwardCount++;
+      _confusionLogger.onRewind(
+        _previousPosition.inSeconds,
+        currentPos.inSeconds,
+      );
     }
     if (_previousPosition != Duration.zero &&
         !_videoController!.value.isPlaying &&
@@ -366,7 +385,9 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         _previousPosition != Duration.zero &&
         (_videoController!.value.position - _previousPosition).abs() < const Duration(seconds: 1)) {
       _pauseCount++;
+      _confusionLogger.onPause(currentPos.inSeconds);
     }
+    _confusionLogger.updatePosition(currentPos.inSeconds);
     _previousPosition = currentPos;
 
     if (!_hasMarkedComplete && totalDuration.inSeconds > 0) {
@@ -593,18 +614,82 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   }
 
   void _onConfusionDetected() {
-    if (_showConfusionPopup || _showQuizOverlay || _showVerifyOverlay) return;
+    if (_showConfusionPopup || _showQuizOverlay || _showVerifyOverlay || _showSelfReport) return;
     _videoController?.pause();
     setState(() => _showConfusionPopup = true);
+    _fetchConfusionExplanation();
+  }
+
+  String? _confusionExplanation;
+  bool _isLoadingExplanation = false;
+
+  Future<void> _fetchConfusionExplanation() async {
+    setState(() {
+      _isLoadingExplanation = true;
+      _confusionExplanation = null;
+    });
+
+    try {
+      final api = sl<ApiClient>();
+      final timestamp = _videoController?.value.position.inSeconds ?? 0;
+      final response = await api.post('/confusion/explain', {
+        'lessonTitle': widget.lesson.title,
+        'textContent': widget.lesson.textContent ?? '',
+        'timestamp': timestamp,
+        'transcript': widget.lesson.textContent ?? '',
+        'confusionSignals': {
+          'pauseCount': _pauseCount,
+          'rewindCount': _seekBackwardCount,
+          'emotion': _confusionDetector.lastEmotion,
+        },
+      });
+
+      if (mounted && response != null && response['success'] == true) {
+        setState(() {
+          _confusionExplanation = response['explanation'] as String?;
+          _isLoadingExplanation = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingExplanation = false);
+      }
+    }
+  }
+
+  void _triggerSelfReport() {
+    if (_showSelfReport || _showConfusionPopup || _showQuizOverlay || _showVerifyOverlay) return;
+    if (_videoController == null || !_videoController!.value.isPlaying) return;
+    _videoController?.pause();
+    setState(() => _showSelfReport = true);
+  }
+
+  void _onSelfReport(int level) {
+    final pos = _videoController?.value.position.inSeconds ?? 0;
+    _confusionLogger.addSelfReport(pos, level);
+    setState(() => _showSelfReport = false);
+    _videoController?.play();
+  }
+
+  void _dismissSelfReport() {
+    setState(() => _showSelfReport = false);
+    _videoController?.play();
   }
 
   void _dismissConfusionPopup() {
-    setState(() => _showConfusionPopup = false);
+    setState(() {
+      _showConfusionPopup = false;
+      _confusionExplanation = null;
+    });
     _videoController?.play();
   }
 
   void _openAiFromConfusion() {
-    setState(() => _showConfusionPopup = false);
+    final prefilledMessage = _confusionExplanation;
+    setState(() {
+      _showConfusionPopup = false;
+      _confusionExplanation = null;
+    });
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -617,6 +702,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
           contentUrl: widget.lesson.contentUrl,
           lessonId: widget.lesson.id,
           userId: widget.userId,
+          initialMessage: prefilledMessage,
         ),
       ),
     );
@@ -709,6 +795,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     );
 
     _reportWatchTime();
+    final totalSec = _videoController?.value.duration.inSeconds ?? 0;
+    _confusionLogger.flush(totalSec);
 
     if (_videoController != null) {
       _videoController!.removeListener(_onVideoPositionChanged);
@@ -723,6 +811,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     _progressTimer?.cancel();
     _watchTimeReportTimer?.cancel();
     _verifyTimer?.cancel();
+    _selfReportTimer?.cancel();
     _chewieController?.dispose();
     _videoController?.dispose();
     _tabController.dispose();
@@ -991,6 +1080,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         EmotionCameraWidget(
           onEmotionDetected: (emotion, confidence) {
             _confusionDetector.updateEmotion(emotion, confidence);
+            final pos = _videoController?.value.position.inSeconds ?? 0;
+            _confusionLogger.addEmotionSnapshot(pos, emotion, confidence);
           },
         ),
         if (_showConfusionPopup)
@@ -1019,14 +1110,61 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'AI có thể giải thích lại cho bạn dễ hiểu hơn',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      if (_isLoadingExplanation)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'AI đang phân tích...',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (_confusionExplanation != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 120),
+                          child: SingleChildScrollView(
+                            child: Text(
+                              _confusionExplanation!.length > 200
+                                  ? '${_confusionExplanation!.substring(0, 200)}...'
+                                  : _confusionExplanation!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Text(
+                          'AI có thể giải thích lại cho bạn dễ hiểu hơn',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -1061,6 +1199,16 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
                   ),
                 ),
               ),
+            ),
+          ),
+        if (_showSelfReport)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SelfReportWidget(
+              onDismiss: _dismissSelfReport,
+              onReport: _onSelfReport,
             ),
           ),
       ],

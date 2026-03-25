@@ -20,6 +20,7 @@ class AiChatSheet extends StatefulWidget {
   final String? contentUrl;
   final int? lessonId;
   final int? userId;
+  final String? initialMessage;
 
   const AiChatSheet({
     super.key,
@@ -28,6 +29,7 @@ class AiChatSheet extends StatefulWidget {
     this.contentUrl,
     this.lessonId,
     this.userId,
+    this.initialMessage,
   });
 
   @override

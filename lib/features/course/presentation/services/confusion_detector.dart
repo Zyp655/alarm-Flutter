@@ -12,6 +12,8 @@ class ConfusionDetector {
 
   ConfusionDetector({required this.onConfusionDetected});
 
+  String get lastEmotion => _lastEmotion;
+
   void updateVideoBehavior({
     required int pauseCount,
     required int rewindCount,
