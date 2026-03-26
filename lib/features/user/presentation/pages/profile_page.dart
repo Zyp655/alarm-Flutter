@@ -7,10 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import '../../../profile/presentation/bloc/achievement_bloc.dart';
-import '../../../profile/presentation/bloc/achievement_event.dart';
-import '../../../profile/presentation/bloc/achievement_state.dart';
-import '../../../profile/domain/entities/achievement_entity.dart';
+
 import '../../domain/entities/user_entity_extended.dart';
 import '../bloc/user_bloc.dart';
 import '../bloc/user_event.dart';
@@ -24,11 +21,8 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(create: (context) => di.sl<UserBloc>()),
-        BlocProvider(create: (context) => di.sl<AchievementBloc>()),
-      ],
+    return BlocProvider(
+      create: (context) => di.sl<UserBloc>(),
       child: const ProfileView(),
     );
   }
@@ -64,7 +58,6 @@ class _ProfileViewState extends State<ProfileView>
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess && authState.user != null) {
       context.read<UserBloc>().add(LoadUserProfile(authState.user!.id));
-      context.read<AchievementBloc>().add(LoadAchievements(authState.user!.id));
     }
   }
 
@@ -172,20 +165,7 @@ class _ProfileViewState extends State<ProfileView>
                           children: [
                             const SizedBox(height: 20),
 
-                            if (!isTeacher) ...[
-                              _buildStatsRow(isDark, textColor),
-                              const SizedBox(height: 20),
-                            ],
 
-                            if (!isTeacher) ...[
-                              _buildAchievementsPreview(
-                                isDark: isDark,
-                                cardColor: cardColor,
-                                textColor: textColor,
-                                theme: theme,
-                              ),
-                              const SizedBox(height: 20),
-                            ],
 
                             _buildInfoSection(
                               isTeacher: isTeacher,
@@ -452,316 +432,7 @@ class _ProfileViewState extends State<ProfileView>
     );
   }
 
-  Widget _buildStatsRow(bool isDark, Color textColor) {
-    return BlocBuilder<AchievementBloc, AchievementState>(
-      builder: (context, achieveState) {
-        int achievePoints = 0;
-        int earnedCount = 0;
-        int totalAchieve = 0;
 
-        if (achieveState is AchievementsLoaded) {
-          achievePoints = achieveState.totalPoints;
-          earnedCount = achieveState.earnedCount;
-          totalAchieve = achieveState.achievements.length;
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.emoji_events,
-                label: 'Thành tích',
-                value: '$earnedCount/$totalAchieve',
-                color: AppColors.warning,
-                isDark: isDark,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.stars,
-                label: 'Điểm tích lũy',
-                value: '$achievePoints',
-                color: AppColors.primary,
-                isDark: isDark,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.local_fire_department,
-                label: 'Hoạt động',
-                value: earnedCount > 5
-                    ? 'Pro'
-                    : earnedCount > 2
-                    ? 'Tốt'
-                    : 'Mới',
-                color: AppColors.error,
-                isDark: isDark,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievementsPreview({
-    required bool isDark,
-    required Color cardColor,
-    required Color textColor,
-    required ThemeData theme,
-  }) {
-    return BlocBuilder<AchievementBloc, AchievementState>(
-      builder: (context, state) {
-        List<AchievementEntity> earned = [];
-
-        if (state is AchievementsLoaded) {
-          earned = state.achievements.where((a) => a.earned).take(6).toList();
-        }
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border(context)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.workspace_premium,
-                    size: 18,
-                    color: AppColors.warning,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Huy hiệu đạt được',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppColors.warning,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => context.push(AppRoutes.achievements),
-                    child: Text(
-                      'Xem tất cả →',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (state is AchievementLoading)
-                const Center(
-                  child: SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              else if (earned.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.emoji_events_outlined,
-                          size: 40,
-                          color: textColor.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Chưa có huy hiệu nào',
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.5),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Học tập để mở khóa thành tích!',
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.35),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: earned.map((a) => _buildBadge(a, isDark)).toList(),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBadge(AchievementEntity achievement, bool isDark) {
-    final color = _badgeColor(achievement.iconName);
-    return Tooltip(
-      message: '${achievement.name}\n+${achievement.points} điểm',
-      child: Column(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color, color.withValues(alpha: 0.7)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(
-              _getIcon(achievement.iconName),
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: 56,
-            child: Text(
-              achievement.name,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _badgeColor(String iconName) {
-    switch (iconName) {
-      case 'emoji_events':
-        return AppColors.warning;
-      case 'local_fire_department':
-      case 'whatshot':
-        return AppColors.error;
-      case 'military_tech':
-        return AppColors.primaryDark;
-      case 'bolt':
-        return AppColors.info;
-      case 'school':
-        return AppColors.primary;
-      case 'leaderboard':
-        return AppColors.secondary;
-      default:
-        return AppColors.primary;
-    }
-  }
-
-  IconData _getIcon(String iconName) {
-    switch (iconName) {
-      case 'emoji_events':
-        return Icons.emoji_events;
-      case 'local_fire_department':
-        return Icons.local_fire_department;
-      case 'whatshot':
-        return Icons.whatshot;
-      case 'military_tech':
-        return Icons.military_tech;
-      case 'bolt':
-        return Icons.bolt;
-      case 'school':
-        return Icons.school;
-      case 'emoji_flags':
-        return Icons.emoji_flags;
-      case 'leaderboard':
-        return Icons.leaderboard;
-      default:
-        return Icons.emoji_events;
-    }
-  }
 
   Widget _buildInfoSection({
     required bool isTeacher,

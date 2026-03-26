@@ -144,6 +144,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
 
   late final ConfusionDetector _confusionDetector;
   bool _showConfusionPopup = false;
+  bool _isFullScreen = false;
 
   late final ConfusionDataLogger _confusionLogger;
   bool _showSelfReport = false;
@@ -286,7 +287,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         autoPlay: true,
         looping: false,
         aspectRatio: _videoController!.value.aspectRatio,
-        allowFullScreen: true,
+        allowFullScreen: false,
         allowMuting: true,
         showControls: true,
         materialProgressColors: ChewieProgressColors(
@@ -819,7 +820,26 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _enterFullScreen() {
+    setState(() => _isFullScreen = true);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  void _exitFullScreen() {
+    setState(() => _isFullScreen = false);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   List<LessonEntity> get _allLessons {
@@ -835,6 +855,20 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    if (_isFullScreen) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _exitFullScreen();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: _buildVideoStack(fullScreen: true),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: cs.surfaceDim,
       body: SafeArea(
@@ -951,77 +985,128 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
       );
     }
 
+    return _buildVideoStack(fullScreen: false);
+  }
+
+  Widget _buildVideoStack({required bool fullScreen}) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.3,
-            minHeight: 180,
-          ),
-          color: Colors.black,
-          child: _isInitialized
-              ? Chewie(controller: _chewieController!)
-              : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          color: AppColors.accent,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            height: 1.4,
+        if (fullScreen)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: _isInitialized
+                  ? Center(
+                      child: AspectRatio(
+                        aspectRatio: _videoController!.value.aspectRatio,
+                        child: Chewie(controller: _chewieController!),
+                      ),
+                    )
+                  : const Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
+            ),
+          )
+        else
+          Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.3,
+              minHeight: 180,
+            ),
+            color: Colors.black,
+            child: _isInitialized
+                ? Chewie(controller: _chewieController!)
+                : _errorMessage != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.accent,
+                            size: 48,
                           ),
-                        ),
-                        if (_canRetry) ...[
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: _retryPlayer,
-                            icon: Icon(Icons.refresh_rounded),
-                            label: const Text('Thử lại'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.accent,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.4,
                             ),
                           ),
+                          if (_canRetry) ...[
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _retryPlayer,
+                              icon: Icon(Icons.refresh_rounded),
+                              label: const Text('Thử lại'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent),
                   ),
-                )
-              : const Center(
-                  child: CircularProgressIndicator(color: AppColors.accent),
-                ),
-        ),
+          ),
         Positioned(
-          top: 16,
+          top: fullScreen ? 16 : 16,
           left: 16,
           child: GestureDetector(
-            onTap: () => context.pop(),
+            onTap: () {
+              if (fullScreen) {
+                _exitFullScreen();
+              } else {
+                context.pop();
+              }
+            },
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              child: Icon(
+                fullScreen ? Icons.fullscreen_exit : Icons.arrow_back,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
           ),
         ),
+        if (!fullScreen)
+          Positioned(
+            top: 16,
+            right: 12,
+            child: GestureDetector(
+              onTap: _enterFullScreen,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.fullscreen,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
         if (_showQuizOverlay && _currentQuiz != null)
           Positioned.fill(
             child: Container(
