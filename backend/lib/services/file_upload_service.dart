@@ -10,6 +10,10 @@ class FileUploadService {
   static const int maxVideoSizeBytes = 500 * 1024 * 1024;
   static const int maxDocSizeBytes = 50 * 1024 * 1024;
 
+  static String get _storagePath {
+    return Platform.environment['STORAGE_PATH'] ?? 'uploads';
+  }
+
   void validateFileSize(int sizeBytes, String fileType) {
     final maxSize = fileType == 'video' ? maxVideoSizeBytes : maxDocSizeBytes;
     if (sizeBytes > maxSize) {
@@ -32,12 +36,12 @@ class FileUploadService {
     final uploadDir = fileType == 'video' ? 'videos' : 'documents';
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-    final relativePath = 'uploads/$uploadDir/$timestamp-$safeFileName';
+    final relativePath = '$_storagePath/$uploadDir/$timestamp-$safeFileName';
 
     final ext = fileName.split('.').last.toLowerCase();
     final mimeType = getMimeType(ext);
 
-    final dir = Directory('uploads/$uploadDir');
+    final dir = Directory('$_storagePath/$uploadDir');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -71,7 +75,7 @@ class FileUploadService {
   }) async {
     final uploadDir = fileType == 'video' ? 'videos' : 'documents';
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = '/uploads/$uploadDir/$timestamp-$fileName';
+    final filePath = '/$_storagePath/$uploadDir/$timestamp-$fileName';
     final resolvedMime = mimeType ?? 'application/octet-stream';
 
     final record = await db.into(db.courseFiles).insertReturning(
