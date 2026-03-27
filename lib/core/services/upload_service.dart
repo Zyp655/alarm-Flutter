@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_constants.dart';
 
@@ -11,8 +12,9 @@ class UploadService {
 
   String? get _token => _prefs.getString('token');
 
-  Future<Map<String, dynamic>> uploadFile(
-    File file, {
+  Future<Map<String, dynamic>> uploadFileBytes(
+    Uint8List fileBytes,
+    String fileName, {
     int? lessonId,
     String fileType = 'document',
   }) async {
@@ -31,7 +33,27 @@ class UploadService {
       request.fields['lessonId'] = lessonId.toString();
     }
 
-    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+    final ext = fileName.split('.').last.toLowerCase();
+    const mimeMap = {
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'avi': 'video/x-msvideo',
+      'webm': 'video/webm',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed',
+      'txt': 'text/plain',
+    };
+    final mime = mimeMap[ext] ?? 'application/octet-stream';
+
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      fileBytes,
+      filename: fileName,
+      contentType: MediaType.parse(mime),
+    ));
 
     final streamed = await request.send();
     final responseBody = await streamed.stream.bytesToString();

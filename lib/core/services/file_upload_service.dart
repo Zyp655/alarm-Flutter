@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_constants.dart';
 
@@ -44,6 +45,7 @@ class FileUploadService {
         'file',
         fileBytes,
         filename: fileName,
+        contentType: MediaType.parse(_mimeType(fileName, fileType)),
       );
       request.files.add(multipartFile);
 
@@ -65,6 +67,20 @@ class FileUploadService {
     } catch (e) {
       return FileUploadResult.failure('Lỗi upload: $e');
     }
+  }
+
+  String _mimeType(String fileName, String fileType) {
+    final ext = fileName.split('.').last.toLowerCase();
+    const mimeMap = {
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'avi': 'video/x-msvideo',
+      'webm': 'video/webm',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    return mimeMap[ext] ?? (fileType == 'video' ? 'video/mp4' : 'application/octet-stream');
   }
 
   List<String> getAllowedExtensions(String fileType) {

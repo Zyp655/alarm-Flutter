@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
@@ -10,7 +11,8 @@ abstract class StudentRemoteDataSource {
   Future<void> submitAssignment({
     required int assignmentId,
     required int studentId,
-    File? file,
+    Uint8List? fileBytes,
+    String? fileName,
     String? link,
     String? text,
   });
@@ -36,7 +38,8 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
   Future<void> submitAssignment({
     required int assignmentId,
     required int studentId,
-    File? file,
+    Uint8List? fileBytes,
+    String? fileName,
     String? link,
     String? text,
   }) async {
@@ -57,17 +60,26 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
     if (link != null) request.fields['linkUrl'] = link;
     if (text != null) request.fields['textContent'] = text;
 
-    if (file != null) {
-      final fileStream = http.ByteStream(file.openRead());
-      final length = await file.length();
-      final fileName = file.path.split(RegExp(r'[/\\]')).last;
+    if (fileBytes != null && fileName != null) {
       request.fields['fileName'] = fileName;
-      request.fields['fileSize'] = length.toString();
-      final multipartFile = http.MultipartFile(
+      request.fields['fileSize'] = fileBytes.length.toString();
+
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'zip': 'application/zip',
+        'rar': 'application/x-rar-compressed',
+        'txt': 'text/plain',
+      };
+      final mime = mimeMap[ext] ?? 'application/octet-stream';
+
+      final multipartFile = http.MultipartFile.fromBytes(
         'file',
-        fileStream,
-        length,
+        fileBytes,
         filename: fileName,
+        contentType: MediaType.parse(mime),
       );
       request.files.add(multipartFile);
     }

@@ -1,8 +1,10 @@
 import os
+import sys
 import cv2
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from face_crop_utils import detect_and_crop_face
 
 DAISEE_ROOT = "D:/DAiSEE/DAiSEE"
 DATASET_DIR = f"{DAISEE_ROOT}/DataSet"
@@ -10,7 +12,7 @@ LABELS_DIR = f"{DAISEE_ROOT}/Labels"
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frames")
 
 FRAME_SIZE = (224, 224)
-FRAMES_PER_CLIP = 5
+FRAMES_PER_CLIP = 15
 
 def extract_frames_from_clip(video_path, output_path, n_frames=FRAMES_PER_CLIP):
     cap = cv2.VideoCapture(str(video_path))
@@ -31,10 +33,10 @@ def extract_frames_from_clip(video_path, output_path, n_frames=FRAMES_PER_CLIP):
         if not ret:
             continue
 
-        frame = cv2.resize(frame, FRAME_SIZE)
+        face = detect_and_crop_face(frame, FRAME_SIZE)
         fname = f"{Path(video_path).stem}_f{i}.jpg"
         fpath = os.path.join(output_path, fname)
-        cv2.imwrite(fpath, frame)
+        cv2.imwrite(fpath, face)
         saved.append(fpath)
 
     cap.release()

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,7 +44,8 @@ class SubmitAssignmentView extends StatefulWidget {
 
 class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
   String _submissionType = 'link';
-  File? _selectedFile;
+  Uint8List? _selectedFileBytes;
+  String? _selectedFileName;
   final _linkController = TextEditingController();
   final _textController = TextEditingController();
   Map<String, dynamic>? _existingSubmission;
@@ -99,9 +100,13 @@ class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx', 'zip', 'rar', 'txt'],
+        withData: true,
       );
-      if (result != null && result.files.single.path != null) {
-        setState(() => _selectedFile = File(result.files.single.path!));
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _selectedFileBytes = result.files.single.bytes;
+          _selectedFileName = result.files.single.name;
+        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,7 +116,7 @@ class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
   }
 
   void _submit() {
-    if (_submissionType == 'file' && _selectedFile == null) {
+    if (_submissionType == 'file' && _selectedFileBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn file')),
       );
@@ -136,7 +141,8 @@ class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
       SubmitAssignmentEvent(
         assignmentId: widget.assignment.id!,
         studentId: authState.user!.id,
-        file: _submissionType == 'file' ? _selectedFile : null,
+        fileBytes: _submissionType == 'file' ? _selectedFileBytes : null,
+        fileName: _submissionType == 'file' ? _selectedFileName : null,
         link: _submissionType == 'link' ? _linkController.text.trim() : null,
         text: _submissionType == 'text' ? _textController.text.trim() : null,
       ),
@@ -510,7 +516,10 @@ class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
             onSelectionChanged: (Set<String> selected) {
               setState(() {
                 _submissionType = selected.first;
-                if (_submissionType != 'file') _selectedFile = null;
+                if (_submissionType != 'file') {
+                  _selectedFileBytes = null;
+                  _selectedFileName = null;
+                }
                 if (_submissionType != 'link') _linkController.clear();
                 if (_submissionType != 'text') _textController.clear();
               });
@@ -526,18 +535,21 @@ class _SubmitAssignmentViewState extends State<SubmitAssignmentView> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
-            if (_selectedFile != null) ...[
+            if (_selectedFileBytes != null) ...[
               const SizedBox(height: 12),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.insert_drive_file),
-                  title: Text(_selectedFile!.path.split('/').last),
+                  title: Text(_selectedFileName ?? 'File'),
                   subtitle: Text(
-                    '${(_selectedFile!.lengthSync() / 1024).toStringAsFixed(2)} KB',
+                    '${(_selectedFileBytes!.length / 1024).toStringAsFixed(2)} KB',
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _selectedFile = null),
+                    onPressed: () => setState(() {
+                      _selectedFileBytes = null;
+                      _selectedFileName = null;
+                    }),
                   ),
                 ),
               ),

@@ -24,7 +24,8 @@ class StudentBloc extends Bloc<StudentEvent, StudentState> {
     final result = await submitAssignment(
       assignmentId: event.assignmentId,
       studentId: event.studentId,
-      file: event.file,
+      fileBytes: event.fileBytes,
+      fileName: event.fileName,
       link: event.link,
       text: event.text,
     );

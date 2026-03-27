@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../repositories/student_repository.dart';
@@ -11,14 +11,16 @@ class SubmitAssignmentUseCase {
   Future<Either<Failure, void>> call({
     required int assignmentId,
     required int studentId,
-    File? file,
+    Uint8List? fileBytes,
+    String? fileName,
     String? link,
     String? text,
   }) async {
     return await repository.submitAssignment(
       assignmentId: assignmentId,
       studentId: studentId,
-      file: file,
+      fileBytes: fileBytes,
+      fileName: fileName,
       link: link,
       text: text,
     );
