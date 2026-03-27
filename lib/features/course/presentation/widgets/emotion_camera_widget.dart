@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'emotion_camera_web.dart' if (dart.library.io) 'emotion_camera_native.dart';
 
 class EmotionCameraWidget extends StatefulWidget {
   final void Function(String emotion, double confidence) onEmotionDetected;
@@ -17,17 +18,17 @@ class EmotionCameraWidget extends StatefulWidget {
 }
 
 class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
-  CameraController? _cameraController;
   bool _isEnabled = false;
   bool _isInitializing = false;
   bool _isAnalyzing = false;
   String _currentEmotion = 'neutral';
   Timer? _captureTimer;
+  PlatformCamera? _platformCamera;
 
   @override
   void dispose() {
     _captureTimer?.cancel();
-    _cameraController?.dispose();
+    _platformCamera?.dispose();
     super.dispose();
   }
 
@@ -36,24 +37,8 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
     setState(() => _isInitializing = true);
 
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        debugPrint('[EmotionCamera] No cameras available');
-        if (mounted) setState(() { _isInitializing = false; _isEnabled = false; });
-        return;
-      }
-      final frontCamera = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
-      );
-
-      _cameraController = CameraController(
-        frontCamera,
-        ResolutionPreset.low,
-        enableAudio: false,
-      );
-
-      await _cameraController!.initialize();
+      _platformCamera = PlatformCamera();
+      await _platformCamera!.initialize();
 
       _captureTimer = Timer.periodic(
         const Duration(seconds: 30),
@@ -75,8 +60,8 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
   Future<void> _stopCamera() async {
     _captureTimer?.cancel();
     _captureTimer = null;
-    await _cameraController?.dispose();
-    _cameraController = null;
+    _platformCamera?.dispose();
+    _platformCamera = null;
   }
 
   Future<void> _toggle() async {
@@ -93,15 +78,16 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
   }
 
   Future<void> _captureAndAnalyze() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isInitialized ||
-        _isAnalyzing) return;
+    if (_platformCamera == null || !_platformCamera!.isInitialized || _isAnalyzing) return;
 
     _isAnalyzing = true;
 
     try {
-      final image = await _cameraController!.takePicture();
-      final bytes = await image.readAsBytes();
+      final bytes = await _platformCamera!.captureImage();
+      if (bytes == null || bytes.isEmpty) {
+        _isAnalyzing = false;
+        return;
+      }
       final base64Image = base64Encode(bytes);
 
       final prefs = await SharedPreferences.getInstance();
@@ -126,7 +112,9 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
           widget.onEmotionDetected(emotion, confidence);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[EmotionCamera] Analyze error: $e');
+    }
 
     _isAnalyzing = false;
   }
@@ -155,10 +143,10 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
                   width: 2,
                 ),
               ),
-              child: _isEnabled && _cameraController != null && _cameraController!.value.isInitialized
+              child: _isEnabled && _platformCamera != null && _platformCamera!.isInitialized
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: CameraPreview(_cameraController!),
+                      child: _platformCamera!.buildPreview(),
                     )
                   : _isInitializing
                       ? const Center(
