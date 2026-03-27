@@ -23,6 +23,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
   String _currentEmotion = 'neutral';
   PlatformCamera? _platformCamera;
   Timer? _confirmTimer;
+  Offset _offset = Offset.zero;
 
   @override
   void dispose() {
@@ -122,10 +123,18 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final defaultTop = MediaQuery.of(context).padding.top + 50;
+    const defaultRight = 12.0;
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 50,
-      right: 12,
-      child: Column(
+      top: defaultTop + _offset.dy,
+      right: defaultRight - _offset.dx,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _offset += details.delta;
+          });
+        },
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           GestureDetector(
@@ -186,6 +195,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
             ),
           ],
         ],
+      ),
       ),
     );
   }
