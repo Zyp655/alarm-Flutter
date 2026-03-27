@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:archive/archive.dart' as archive;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -72,7 +73,8 @@ class _TeacherAiQuizPageState extends State<TeacherAiQuizPage> {
 
       if (ext == 'pdf') {
         Uint8List? bytes = file.bytes;
-        bytes ??= await File(file.path!).readAsBytes();
+        bytes ??= !kIsWeb ? await File(file.path!).readAsBytes() : null;
+        if (bytes == null) throw Exception('Không đọc được tệp');
         final pdfDoc = PdfDocument(inputBytes: bytes);
         final extractor = PdfTextExtractor(pdfDoc);
         text = extractor.extractText();
@@ -96,14 +98,15 @@ class _TeacherAiQuizPageState extends State<TeacherAiQuizPage> {
         } catch (_) {}
       } else if (ext == 'docx') {
         Uint8List? bytes = file.bytes;
-        bytes ??= await File(file.path!).readAsBytes();
+        bytes ??= !kIsWeb ? await File(file.path!).readAsBytes() : null;
+        if (bytes == null) throw Exception('Không đọc được tệp');
         text = _extractDocxText(bytes);
         images = _extractDocxImages(bytes);
       } else {
         if (file.bytes != null) {
           text = utf8.decode(file.bytes!, allowMalformed: true);
         } else if (file.path != null) {
-          text = await File(file.path!).readAsString();
+          text = !kIsWeb ? await File(file.path!).readAsString() : '';
         }
       }
 

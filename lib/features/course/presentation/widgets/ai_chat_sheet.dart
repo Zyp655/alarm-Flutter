@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -197,6 +198,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   }
 
   Future<void> _startRecording() async {
+    if (kIsWeb) return;
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) return;
 
@@ -248,8 +250,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
     setState(() => _isTranscribing = false);
 
     try {
-      final file = File(path);
-      if (await file.exists()) await file.delete();
+      if (!kIsWeb) {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      }
     } catch (_) {}
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -148,6 +149,7 @@ class _AiAssistantPageState extends State<AiAssistantPage>
   }
 
   Future<void> _startRecording() async {
+    if (kIsWeb) return;
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) return;
 
@@ -204,8 +206,10 @@ class _AiAssistantPageState extends State<AiAssistantPage>
     setState(() => _isTranscribing = false);
 
     try {
-      final file = File(path);
-      if (await file.exists()) await file.delete();
+      if (!kIsWeb) {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      }
     } catch (_) {}
   }
 

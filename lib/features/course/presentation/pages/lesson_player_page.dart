@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../../../../core/utils/platform_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
@@ -262,7 +263,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     }
 
     try {
-      if (!kIsWeb && Platform.isAndroid && finalUrl.contains('localhost')) {
+      if (!kIsWeb && isAndroidDevice && finalUrl.contains('localhost')) {
         finalUrl = finalUrl.replaceFirst('localhost', '10.0.2.2');
       }
 

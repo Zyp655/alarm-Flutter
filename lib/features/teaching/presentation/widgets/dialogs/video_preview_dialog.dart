@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import '../../../../../core/utils/platform_helper.dart';
 
 class VideoPreviewDialog extends StatefulWidget {
   final String videoUrl;
@@ -24,7 +24,7 @@ class _VideoPreviewDialogState extends State<VideoPreviewDialog> {
 
   Future<void> _initializePlayer() async {
     var url = widget.videoUrl;
-    if (!kIsWeb && Platform.isAndroid && url.contains('localhost')) {
+    if (!kIsWeb && isAndroidDevice && url.contains('localhost')) {
       url = url.replaceFirst('localhost', '10.0.2.2');
     }
     _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));

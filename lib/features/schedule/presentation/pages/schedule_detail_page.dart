@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart'; 
 import 'package:image_picker/image_picker.dart';
@@ -200,7 +201,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                           Text("Chụp bảng / Đính kèm ảnh"),
                         ],
                       )
-                    : Image.file(File(_imagePath!), fit: BoxFit.cover),
+                    : kIsWeb
+                        ? Image.network(_imagePath!, fit: BoxFit.cover)
+                        : Image.file(File(_imagePath!), fit: BoxFit.cover),
               ),
             ),
           ],

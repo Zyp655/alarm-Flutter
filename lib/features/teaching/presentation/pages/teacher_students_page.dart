@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' as xl;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/utils/platform_helper.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../injection_container.dart';
 
@@ -1184,21 +1187,25 @@ class _TeacherStudentsPageState extends State<TeacherStudentsPage> {
         sheet.setColumnWidth(i, i <= 2 ? 20 : 14);
       }
 
-      final dir = await getApplicationDocumentsDirectory();
-      final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      final filePath = '${dir.path}/SV_rui_ro_$timestamp.xlsx';
       final fileBytes = excel.save();
       if (fileBytes == null) throw Exception('Không thể tạo file');
 
-      final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
+      if (kIsWeb) {
+        downloadFileWeb(Uint8List.fromList(fileBytes), 'SV_rui_ro.xlsx');
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+        final filePath = '${dir.path}/SV_rui_ro_$timestamp.xlsx';
+        final file = File(filePath);
+        await file.writeAsBytes(fileBytes);
 
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(filePath)],
-          text: 'Danh sách sinh viên rủi ro',
-        ),
-      );
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(filePath)],
+            text: 'Danh sách sinh viên rủi ro',
+          ),
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

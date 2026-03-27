@@ -1,11 +1,13 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../../core/utils/platform_helper.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/teacher_bloc.dart';
@@ -72,13 +74,19 @@ class _TeacherEnrollmentImportPageState
       final bytes = excel.save();
       if (bytes == null) throw Exception('Không thể tạo tệp');
 
-      final dir = await getApplicationDocumentsDirectory();
-      final filePath = '${dir.path}/MauGhiDanh_${widget.className}.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      if (kIsWeb) {
+        downloadFileWeb(Uint8List.fromList(bytes), 'MauGhiDanh_${widget.className}.xlsx');
+        if (!mounted) return;
+        _snack('Đã tải tệp mẫu thành công!');
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        final filePath = '${dir.path}/MauGhiDanh_${widget.className}.xlsx';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-      if (!mounted) return;
-      _snack('Đã lưu tệp mẫu tại:\n$filePath');
+        if (!mounted) return;
+        _snack('Đã lưu tệp mẫu tại:\n$filePath');
+      }
     } catch (e) {
       _snack('Lỗi tạo tệp mẫu: $e', isError: true);
     } finally {
@@ -102,7 +110,7 @@ class _TeacherEnrollmentImportPageState
     try {
       final file = result.files.first;
       Uint8List? bytes = file.bytes;
-      if (bytes == null && file.path != null) {
+      if (bytes == null && file.path != null && !kIsWeb) {
         bytes = await File(file.path!).readAsBytes();
       }
       if (bytes == null) throw Exception('Không đọc được tệp');

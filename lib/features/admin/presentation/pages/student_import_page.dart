@@ -1,6 +1,8 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/utils/platform_helper.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/admin_bloc.dart';
@@ -156,22 +159,28 @@ class _StudentImportPageState extends State<StudentImportPage> {
       final bytes = excel.save();
       if (bytes == null) throw Exception('Không thể tạo tệp');
 
-      final dir = Directory('/storage/emulated/0/Download');
-      final savePath = dir.existsSync()
-          ? dir.path
-          : (await getApplicationDocumentsDirectory()).path;
-      final filePath = '$savePath/MauImportSinhVien.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      if (kIsWeb) {
+        downloadFileWeb(Uint8List.fromList(bytes), 'MauImportSinhVien.xlsx');
+        if (!mounted) return;
+        _snack('Đã tạo tệp mẫu thành công!');
+      } else {
+        final dir = Directory('/storage/emulated/0/Download');
+        final savePath = dir.existsSync()
+            ? dir.path
+            : (await getApplicationDocumentsDirectory()).path;
+        final filePath = '$savePath/MauImportSinhVien.xlsx';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-      if (!mounted) return;
-      _snack('Đã tạo tệp mẫu thành công!');
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(filePath)],
-          title: 'Tệp mẫu Import Sinh Viên',
-        ),
-      );
+        if (!mounted) return;
+        _snack('Đã tạo tệp mẫu thành công!');
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(filePath)],
+            title: 'Tệp mẫu Import Sinh Viên',
+          ),
+        );
+      }
     } catch (e) {
       _snack('Lỗi tạo tệp mẫu: $e', isError: true);
     } finally {
@@ -195,7 +204,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
     try {
       final file = result.files.first;
       Uint8List? bytes = file.bytes;
-      if (bytes == null && file.path != null) {
+      if (bytes == null && file.path != null && !kIsWeb) {
         bytes = await File(file.path!).readAsBytes();
       }
       if (bytes == null) throw Exception('Không đọc được tệp');
@@ -381,26 +390,31 @@ class _StudentImportPageState extends State<StudentImportPage> {
       final bytes = excel.save();
       if (bytes == null) throw Exception('Không thể tạo tệp');
 
-      final dir = Directory('/storage/emulated/0/Download');
-      final savePath = dir.existsSync()
-          ? dir.path
-          : (await getApplicationDocumentsDirectory()).path;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '$savePath/KetQuaImport_$timestamp.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      if (kIsWeb) {
+        downloadFileWeb(Uint8List.fromList(bytes), 'KetQuaImportSV.xlsx');
+        _snack('Đã xuất tệp kết quả thành công!');
+      } else {
+        final dir = Directory('/storage/emulated/0/Download');
+        final savePath = dir.existsSync()
+            ? dir.path
+            : (await getApplicationDocumentsDirectory()).path;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filePath = '$savePath/KetQuaImport_$timestamp.xlsx';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-      setState(() {
-        _exportedFilePath = filePath;
-      });
+        setState(() {
+          _exportedFilePath = filePath;
+        });
 
-      _snack('Đã xuất tệp kết quả thành công!');
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(filePath)],
-          title: 'Kết quả Import Sinh Viên',
-        ),
-      );
+        _snack('Đã xuất tệp kết quả thành công!');
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(filePath)],
+            title: 'Kết quả Import Sinh Viên',
+          ),
+        );
+      }
     } catch (e) {
       _snack('Lỗi xuất tệp: $e', isError: true);
     } finally {
