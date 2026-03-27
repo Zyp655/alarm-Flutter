@@ -129,6 +129,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
       top: defaultTop + _offset.dy,
       right: defaultRight - _offset.dx,
       child: GestureDetector(
+        onTap: _toggle,
         onPanUpdate: (details) {
           setState(() {
             _offset += details.delta;
@@ -137,9 +138,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          GestureDetector(
-            onTap: _toggle,
-            child: AnimatedContainer(
+          AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: _isEnabled ? 80 : 36,
               height: _isEnabled ? 65 : 36,
@@ -175,7 +174,6 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
                           color: Colors.white54,
                         ),
             ),
-          ),
           if (_isEnabled) ...[
             const SizedBox(height: 4),
             Container(
