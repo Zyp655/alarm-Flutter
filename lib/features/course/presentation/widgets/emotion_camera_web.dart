@@ -8,19 +8,22 @@ import 'dart:ui_web' as ui_web;
 @JS('initFaceApi')
 external JSPromise<JSBoolean?> _jsInitFaceApi();
 
-@JS('detectExpression')
-external JSPromise<JSString?> _jsDetectExpression(JSObject video);
+@JS('EmotionCam.init')
+external JSPromise<JSBoolean?> _jsCamInit();
 
-@JS('captureFrame')
-external JSPromise<JSString?> _jsCaptureFrame(JSObject video);
+@JS('EmotionCam.getVideo')
+external JSObject? _jsCamGetVideo();
 
-@JS('document.createElement')
-external JSObject _createElement(JSString tag);
+@JS('EmotionCam.detect')
+external JSPromise<JSString?> _jsCamDetect();
 
+@JS('EmotionCam.capture')
+external JSString? _jsCamCapture();
+
+@JS('EmotionCam.stop')
+external void _jsCamStop();
 
 class PlatformCamera {
-  JSObject? _videoElement;
-  JSObject? _mediaStream;
   bool _initialized = false;
   bool _faceApiReady = false;
   String? _viewId;
@@ -40,24 +43,22 @@ class PlatformCamera {
   void resetConfirmationFlag() => _needsConfirmation = false;
 
   Future<void> initialize() async {
-    final constraints = {
-      'video': {'facingMode': 'user', 'width': 160, 'height': 120},
-      'audio': false,
-    }.jsify() as JSObject;
+    final camOk = await _jsCamInit().toDart;
+    if (camOk?.toDart != true) {
+      throw Exception('Camera init failed');
+    }
 
-    _mediaStream = await (_callGetUserMedia(constraints).toDart);
+    final videoEl = _jsCamGetVideo();
+    if (videoEl == null) {
+      throw Exception('No video element');
+    }
 
-    _viewId = 'emotion-camera-${DateTime.now().millisecondsSinceEpoch}';
-    _videoElement = _createElement('video'.toJS);
-
-    _setVideoProps(_videoElement!, _mediaStream!);
-
+    _viewId = 'emotion-cam-${DateTime.now().millisecondsSinceEpoch}';
     ui_web.platformViewRegistry.registerViewFactory(
       _viewId!,
-      (int viewId) => _videoElement!,
+      (int viewId) => videoEl,
     );
 
-    _playVideo(_videoElement!);
     _initialized = true;
 
     try {
@@ -78,10 +79,10 @@ class PlatformCamera {
   }
 
   Future<void> _detectLocal() async {
-    if (_videoElement == null || !_faceApiReady) return;
+    if (!_faceApiReady || !_initialized) return;
 
     try {
-      final result = await _jsDetectExpression(_videoElement!).toDart;
+      final result = await _jsCamDetect().toDart;
       if (result == null) return;
 
       final data = jsonDecode(result.toDart) as Map<String, dynamic>;
@@ -132,10 +133,9 @@ class PlatformCamera {
   }
 
   Future<Uint8List?> captureImage() async {
-    if (_videoElement == null || !_initialized) return null;
-
+    if (!_initialized) return null;
     try {
-      final result = await _jsCaptureFrame(_videoElement!).toDart;
+      final result = _jsCamCapture();
       if (result == null) return null;
       return base64Decode(result.toDart);
     } catch (e) {
@@ -152,47 +152,8 @@ class PlatformCamera {
   void dispose() {
     _detectTimer?.cancel();
     _detectTimer = null;
-    if (_mediaStream != null) {
-      _stopTracks(_mediaStream!);
-    }
-    _mediaStream = null;
-    if (_videoElement != null) {
-      _pauseVideo(_videoElement!);
-    }
-    _videoElement = null;
+    _jsCamStop();
     _initialized = false;
     _faceApiReady = false;
   }
 }
-
-@JS('navigator.mediaDevices.getUserMedia')
-external JSPromise<JSObject> _callGetUserMedia(JSObject constraints);
-
-
-void _setVideoProps(JSObject video, JSObject stream) {
-  _jsSetVideoProps(video, stream);
-}
-
-@JS('_setVideoPropsHelper')
-external void _jsSetVideoProps(JSObject video, JSObject stream);
-
-void _playVideo(JSObject video) {
-  _jsPlayVideo(video);
-}
-
-@JS('_playVideoHelper')
-external void _jsPlayVideo(JSObject video);
-
-void _pauseVideo(JSObject video) {
-  _jsPauseVideo(video);
-}
-
-@JS('_pauseVideoHelper')
-external void _jsPauseVideo(JSObject video);
-
-void _stopTracks(JSObject stream) {
-  _jsStopTracks(stream);
-}
-
-@JS('_stopTracksHelper')
-external void _jsStopTracks(JSObject stream);

@@ -79,23 +79,69 @@
         return null;
       }
     }
-    function _setVideoPropsHelper(video, stream) {
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.muted = true;
-      video.setAttribute('playsinline', '');
-      video.style.width = '100%';
-      video.style.height = '100%';
-      video.style.objectFit = 'cover';
-      video.style.transform = 'scaleX(-1)';
-    }
-    function _playVideoHelper(video) { video.play(); }
-    function _pauseVideoHelper(video) { video.pause(); video.srcObject = null; }
-    function _stopTracksHelper(stream) {
-      if (stream && stream.getTracks) {
-        stream.getTracks().forEach(function(t) { t.stop(); });
+    var EmotionCam = {
+      video: null,
+      stream: null,
+      init: async function() {
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            video: {facingMode: 'user', width: {ideal: 160}, height: {ideal: 120}},
+            audio: false
+          });
+          this.video = document.createElement('video');
+          this.video.srcObject = this.stream;
+          this.video.autoplay = true;
+          this.video.muted = true;
+          this.video.setAttribute('playsinline', '');
+          this.video.style.width = '100%';
+          this.video.style.height = '100%';
+          this.video.style.objectFit = 'cover';
+          this.video.style.transform = 'scaleX(-1)';
+          await this.video.play();
+          console.log('[EmotionCam] Camera initialized');
+          return true;
+        } catch(e) {
+          console.error('[EmotionCam] Init error:', e);
+          return false;
+        }
+      },
+      getVideo: function() { return this.video; },
+      detect: async function() {
+        if (!_faceApiReady || !this.video) return null;
+        try {
+          var det = await faceapi
+            .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({inputSize: 160, scoreThreshold: 0.3}))
+            .withFaceExpressions();
+          if (!det) return null;
+          var expr = det.expressions;
+          var maxE = 'neutral', maxC = 0;
+          for (var k in expr) { if (expr[k] > maxC) { maxC = expr[k]; maxE = k; } }
+          return JSON.stringify({emotion: maxE, confidence: maxC});
+        } catch(e) { return null; }
+      },
+      capture: function() {
+        if (!this.video) return null;
+        try {
+          var c = document.createElement('canvas');
+          c.width = this.video.videoWidth || 160;
+          c.height = this.video.videoHeight || 120;
+          c.getContext('2d').drawImage(this.video, 0, 0);
+          return c.toDataURL('image/jpeg', 0.7).split(',')[1];
+        } catch(e) { return null; }
+      },
+      stop: function() {
+        if (this.stream) {
+          this.stream.getTracks().forEach(function(t) { t.stop(); });
+          this.stream = null;
+        }
+        if (this.video) {
+          this.video.pause();
+          this.video.srcObject = null;
+          this.video = null;
+        }
+        console.log('[EmotionCam] Stopped');
       }
-    }
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
