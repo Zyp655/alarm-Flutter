@@ -37,6 +37,11 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
 
     try {
       final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        debugPrint('[EmotionCamera] No cameras available');
+        if (mounted) setState(() { _isInitializing = false; _isEnabled = false; });
+        return;
+      }
       final frontCamera = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -46,7 +51,6 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
         frontCamera,
         ResolutionPreset.low,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
       );
 
       await _cameraController!.initialize();
@@ -58,6 +62,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
 
       if (mounted) setState(() => _isInitializing = false);
     } catch (e) {
+      debugPrint('[EmotionCamera] Init error: $e');
       if (mounted) {
         setState(() {
           _isInitializing = false;

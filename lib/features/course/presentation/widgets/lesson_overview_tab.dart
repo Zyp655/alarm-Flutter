@@ -5,7 +5,6 @@ import 'package:video_player/video_player.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../bloc/ai_assistant_bloc.dart';
 import '../widgets/ai_chat_sheet.dart';
-import '../widgets/ai_concept_map_sheet.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -97,28 +96,6 @@ class LessonOverviewTab extends StatelessWidget {
           },
         ),
 
-        const SizedBox(height: 8),
-
-        _buildAiButton(
-          cs,
-          icon: Icons.account_tree_rounded,
-          label: 'Concept Map',
-          color: AppColors.primary,
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => BlocProvider.value(
-                value: context.read<AiAssistantBloc>(),
-                child: AiConceptMapSheet(
-                  lessonTitle: lesson.title,
-                  textContent: lesson.textContent ?? '',
-                ),
-              ),
-            );
-          },
-        ),
 
         const SizedBox(height: 16),
         Text(
