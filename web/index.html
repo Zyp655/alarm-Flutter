@@ -110,13 +110,18 @@
         if (!_faceApiReady || !this.video) return null;
         try {
           var det = await faceapi
-            .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({inputSize: 160, scoreThreshold: 0.3}))
+            .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({inputSize: 160, scoreThreshold: 0.2}))
             .withFaceExpressions();
           if (!det) return null;
-          var expr = det.expressions;
-          var maxE = 'neutral', maxC = 0;
-          for (var k in expr) { if (expr[k] > maxC) { maxC = expr[k]; maxE = k; } }
-          return JSON.stringify({emotion: maxE, confidence: maxC});
+          var e = det.expressions;
+          var confusionScore = (e.sad || 0) * 1.2 + (e.fearful || 0) * 1.0 + (e.surprised || 0) * 0.8 + (e.angry || 0) * 0.6 + (e.disgusted || 0) * 0.5;
+          var neutralScore = e.neutral || 0;
+          var happyScore = e.happy || 0;
+          if (happyScore > 0.5) return JSON.stringify({emotion: 'happy', confidence: happyScore});
+          if (confusionScore > 0.25 && neutralScore < 0.7) return JSON.stringify({emotion: 'confused', confidence: Math.min(confusionScore * 1.5, 1.0)});
+          if ((e.angry || 0) > 0.3) return JSON.stringify({emotion: 'angry', confidence: e.angry});
+          if (confusionScore > 0.15 && neutralScore < 0.5) return JSON.stringify({emotion: 'confused', confidence: confusionScore * 1.2});
+          return JSON.stringify({emotion: 'neutral', confidence: neutralScore});
         } catch(e) { return null; }
       },
       capture: function() {
