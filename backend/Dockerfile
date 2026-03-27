@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 WORKDIR /app
 COPY --from=build /app/build/bin/server /app/bin/server
 
-RUN mkdir -p /app/uploads/documents /app/uploads/videos
+RUN mkdir -p /app/uploads/documents /app/uploads/videos /data/uploads/documents /data/uploads/videos
 
 EXPOSE 8080
 

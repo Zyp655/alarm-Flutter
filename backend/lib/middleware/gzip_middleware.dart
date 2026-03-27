@@ -7,6 +7,9 @@ Middleware gzipMiddleware() {
     return (context) async {
       final response = await handler(context);
 
+      if (context.request.headers['range'] != null) return response;
+      if (response.statusCode == 206) return response;
+
       final acceptEncoding =
           context.request.headers['Accept-Encoding'] ?? '';
       if (!acceptEncoding.contains('gzip')) return response;

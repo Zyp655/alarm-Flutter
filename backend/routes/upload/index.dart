@@ -86,7 +86,7 @@ Future<Response> _handleMultipart(
         'fileType': record.fileType,
         'fileSizeBytes': record.fileSizeBytes,
         'mimeType': record.mimeType,
-        'uploadUrl': 'http://localhost:8080/files/${record.id}',
+        'uploadUrl': '/files/${record.id}',
       },
     },
   );

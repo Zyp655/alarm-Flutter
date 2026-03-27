@@ -34,9 +34,10 @@ Future<Response> _getFile(RequestContext context, int fileId) async {
     }
     final file = File(fileRecord.filePath);
     if (!await file.exists()) {
+      print('[Files] NOT FOUND on disk: ${fileRecord.filePath}');
       return Response.json(
         statusCode: HttpStatus.notFound,
-        body: {'error': 'File not found on disk'},
+        body: {'error': 'File not found on disk: ${fileRecord.filePath}'},
       );
     }
 

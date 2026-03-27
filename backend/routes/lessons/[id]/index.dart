@@ -99,9 +99,67 @@ Future<Response> _updateLesson(RequestContext context, int lessonId) async {
 Future<Response> _deleteLesson(RequestContext context, int lessonId) async {
   try {
     final db = context.read<AppDatabase>();
-    await (db.delete(db.lessonProgress)
-          ..where((tbl) => tbl.lessonId.equals(lessonId)))
+
+    final segmentIds = await (db.select(db.videoSegments)
+          ..where((s) => s.lessonId.equals(lessonId)))
+        .get();
+    for (final seg in segmentIds) {
+      await (db.delete(db.segmentQuizAttempts)
+            ..where((a) => a.segmentId.equals(seg.id)))
+          .go();
+    }
+    await (db.delete(db.videoSegments)
+          ..where((s) => s.lessonId.equals(lessonId)))
         .go();
+
+    final commentIds = await (db.select(db.comments)
+          ..where((c) => c.lessonId.equals(lessonId)))
+        .get();
+    for (final comment in commentIds) {
+      await (db.delete(db.commentVotes)
+            ..where((v) => v.commentId.equals(comment.id)))
+          .go();
+      await (db.delete(db.commentMentions)
+            ..where((m) => m.commentId.equals(comment.id)))
+          .go();
+    }
+    await (db.delete(db.comments)
+          ..where((c) => c.lessonId.equals(lessonId)))
+        .go();
+
+    final nodeIds = await (db.select(db.roadmapNodes)
+          ..where((n) => n.lessonId.equals(lessonId)))
+        .get();
+    for (final node in nodeIds) {
+      await (db.delete(db.roadmapEdges)
+            ..where((e) =>
+                e.fromNodeId.equals(node.id) | e.toNodeId.equals(node.id)))
+          .go();
+    }
+    await (db.update(db.roadmapNodes)
+          ..where((n) => n.lessonId.equals(lessonId)))
+        .write(const RoadmapNodesCompanion(lessonId: Value(null)));
+
+    await (db.delete(db.courseFiles)
+          ..where((f) => f.lessonId.equals(lessonId)))
+        .go();
+    await (db.delete(db.scheduledLessons)
+          ..where((s) => s.lessonId.equals(lessonId)))
+        .go();
+    await (db.delete(db.confusionLogs)
+          ..where((c) => c.lessonId.equals(lessonId)))
+        .go();
+    await (db.delete(db.lessonProgress)
+          ..where((p) => p.lessonId.equals(lessonId)))
+        .go();
+
+    await (db.update(db.learningActivities)
+          ..where((a) => a.lessonId.equals(lessonId)))
+        .write(const LearningActivitiesCompanion(lessonId: Value(null)));
+    await (db.update(db.studentActivityLogs)
+          ..where((a) => a.lessonId.equals(lessonId)))
+        .write(const StudentActivityLogsCompanion(lessonId: Value(null)));
+
     final count = await (db.delete(db.lessons)
           ..where((tbl) => tbl.id.equals(lessonId)))
         .go();
@@ -113,9 +171,10 @@ Future<Response> _deleteLesson(RequestContext context, int lessonId) async {
     }
     return Response.json(body: {'message': 'Lesson deleted successfully'});
   } catch (e) {
+    print('[Lessons] Delete error: $e');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'error': 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'},
+      body: {'error': 'Không thể xóa bài học: $e'},
     );
   }
 }
