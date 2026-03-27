@@ -111,6 +111,10 @@ class PlatformCamera {
 
   String _mapEmotion(String faceApiEmotion) {
     switch (faceApiEmotion) {
+      case 'confused':
+        return 'confused';
+      case 'frustrated':
+        return 'frustrated';
       case 'sad':
       case 'fearful':
       case 'surprised':
