@@ -224,9 +224,9 @@ Future<Response> onRequest(RequestContext context, String id) async {
       riskScore = (riskScore * 10).round() / 10;
 
       int warningLevel;
-      if (riskScore >= 60) {
+      if (riskScore >= 50) {
         warningLevel = 3;
-      } else if (riskScore >= 40) {
+      } else if (riskScore >= 25) {
         warningLevel = 2;
       } else {
         warningLevel = 1;

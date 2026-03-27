@@ -112,6 +112,366 @@ class _AssignmentSectionState extends State<AssignmentSection> {
     }
   }
 
+  Future<void> _deleteQuiz(int quizId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa Quiz'),
+        content: const Text('Bạn có chắc chắn muốn xóa quiz này? Tất cả dữ liệu liên quan sẽ bị mất.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final api = sl<ApiClient>();
+      await api.delete('/quiz/details/$quizId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã xóa quiz!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        _loadQuizzes();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xóa quiz: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditQuizDialog(Map<String, dynamic> quiz) async {
+    final quizId = quiz['id'] as int;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Map<String, dynamic>? fullQuiz;
+    try {
+      final api = sl<ApiClient>();
+      final data = await api.get('/quiz/details/$quizId');
+      fullQuiz = data['quiz'] as Map<String, dynamic>?;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải quiz: $e'), backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
+    if (fullQuiz == null || !mounted) return;
+
+    final topicController = TextEditingController(text: fullQuiz['topic'] as String? ?? '');
+    String difficulty = fullQuiz['difficulty'] as String? ?? 'medium';
+    final questions = List<Map<String, dynamic>>.from(
+      (fullQuiz['questions'] as List).map((q) => Map<String, dynamic>.from(q as Map)),
+    );
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: AppColors.accent, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('Chỉnh sửa Quiz')),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: MediaQuery.of(ctx).size.width * 0.9,
+              height: MediaQuery.of(ctx).size.height * 0.65,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: topicController,
+                    decoration: InputDecoration(
+                      labelText: 'Tên Quiz',
+                      filled: true,
+                      fillColor: isDark ? AppColors.darkSurfaceVariant : Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text('Độ khó: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      ...['easy', 'medium', 'hard'].map((d) {
+                        final labels = {'easy': 'Dễ', 'medium': 'TB', 'hard': 'Khó'};
+                        final colors = {'easy': AppColors.success, 'medium': AppColors.warning, 'hard': AppColors.error};
+                        final selected = difficulty == d;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ChoiceChip(
+                            label: Text(labels[d]!, style: TextStyle(fontSize: 12, color: selected ? Colors.white : colors[d])),
+                            selected: selected,
+                            selectedColor: colors[d],
+                            onSelected: (_) => setDialogState(() => difficulty = d),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: questions.length,
+                      itemBuilder: (_, i) {
+                        final q = questions[i];
+                        final options = List<String>.from((q['options'] as List).map((o) => o.toString()));
+                        final correctIdx = q['correctIndex'] as int? ?? 0;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent.withAlpha(20),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text('Câu ${i + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.accent)),
+                                    ),
+                                    const Spacer(),
+                                    InkWell(
+                                      onTap: () {
+                                        _showEditSingleQuestion(ctx, questions, i, setDialogState);
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(Icons.edit_rounded, size: 18, color: AppColors.accent),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    InkWell(
+                                      onTap: () {
+                                        setDialogState(() => questions.removeAt(i));
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  q['question'] as String? ?? '',
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                const SizedBox(height: 6),
+                                ...List.generate(options.length, (oi) {
+                                  final isCorrect = oi == correctIdx;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isCorrect ? Icons.check_circle : Icons.radio_button_unchecked,
+                                          size: 16,
+                                          color: isCorrect ? AppColors.success : Colors.grey,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            options[oi],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary(ctx))),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(ctx, true),
+                icon: const Icon(Icons.save_rounded, size: 18),
+                label: const Text('Lưu'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (result != true) return;
+
+    try {
+      final api = sl<ApiClient>();
+      final updatedQuestions = questions.map((q) {
+        final options = (q['options'] as List).cast<String>();
+        final correctIdx = q['correctIndex'] as int? ?? 0;
+        return {
+          'question': q['question'],
+          'options': options,
+          'correctAnswer': correctIdx < options.length ? options[correctIdx] : '',
+          'correctIndex': correctIdx,
+          'explanation': q['explanation'] ?? '',
+          'questionType': q['questionType'] ?? 'multiple_choice',
+        };
+      }).toList();
+
+      await api.put('/quiz/details/$quizId', {
+        'topic': topicController.text.trim(),
+        'difficulty': difficulty,
+        'questions': updatedQuestions,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật quiz!'), backgroundColor: AppColors.success),
+        );
+        _loadQuizzes();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi cập nhật quiz: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  void _showEditSingleQuestion(
+    BuildContext parentCtx,
+    List<Map<String, dynamic>> questions,
+    int index,
+    void Function(void Function()) setParentState,
+  ) {
+    final q = questions[index];
+    final questionCtrl = TextEditingController(text: q['question'] as String? ?? '');
+    final explanationCtrl = TextEditingController(text: q['explanation'] as String? ?? '');
+    final optionCtrls = (q['options'] as List)
+        .map((o) => TextEditingController(text: o.toString()))
+        .toList();
+    int correctIndex = q['correctIndex'] as int? ?? 0;
+
+    showDialog(
+      context: parentCtx,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Sửa câu ${index + 1}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: questionCtrl,
+                  decoration: const InputDecoration(labelText: 'Câu hỏi', border: OutlineInputBorder()),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(optionCtrls.length, (i) {
+                  return RadioListTile<int>(
+                    title: TextField(
+                      controller: optionCtrls[i],
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.all(8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    value: i,
+                    groupValue: correctIndex,
+                    onChanged: (val) => setDialogState(() => correctIndex = val!),
+                    activeColor: AppColors.accent,
+                  );
+                }),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: explanationCtrl,
+                  decoration: const InputDecoration(labelText: 'Giải thích', border: OutlineInputBorder()),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            ElevatedButton(
+              onPressed: () {
+                setParentState(() {
+                  questions[index] = {
+                    ...q,
+                    'question': questionCtrl.text,
+                    'options': optionCtrls.map((c) => c.text).toList(),
+                    'correctIndex': correctIndex,
+                    'explanation': explanationCtrl.text,
+                  };
+                });
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white),
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showCreateAssignmentDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -488,19 +848,24 @@ class _AssignmentSectionState extends State<AssignmentSection> {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withAlpha(20),
-                        borderRadius: BorderRadius.circular(8),
+                    InkWell(
+                      onTap: () => _showEditQuizDialog(q),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.edit_rounded, size: 18, color: AppColors.accent),
                       ),
-                      child: Text(
-                        '✓ Đã tạo',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    const SizedBox(width: 2),
+                    InkWell(
+                      onTap: () {
+                        final quizId = q['id'] as int?;
+                        if (quizId != null) _deleteQuiz(quizId);
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
                       ),
                     ),
                   ],
@@ -559,3 +924,4 @@ class _AssignmentSectionState extends State<AssignmentSection> {
     );
   }
 }
+
