@@ -8,7 +8,7 @@ class ConfusionDetector {
   final void Function() onConfusionDetected;
 
   static const _cooldownMinutes = 5;
-  static const _threshold = 60;
+  static const _threshold = 35;
 
   ConfusionDetector({required this.onConfusionDetected});
 
@@ -44,7 +44,7 @@ class ConfusionDetector {
     if (_rewindCount >= 1 && _pauseCount >= 2) score += 10;
     if (_skipCount == 0 && _pauseCount >= 2) score += 10;
 
-    if (_lastEmotionConfidence >= 0.5) {
+    if (_lastEmotionConfidence >= 0.3) {
       switch (_lastEmotion) {
         case 'confused':
           score += 40;

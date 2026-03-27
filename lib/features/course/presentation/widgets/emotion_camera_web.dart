@@ -94,13 +94,13 @@ class PlatformCamera {
 
       onLocalDetection?.call(_lastEmotion, _lastConfidence);
 
-      if (_isNegativeEmotion(_lastEmotion) && _lastConfidence >= 0.5) {
+      if (_isNegativeEmotion(_lastEmotion) && _lastConfidence >= 0.3) {
         _negativeStreak++;
       } else {
         _negativeStreak = 0;
       }
 
-      if (_negativeStreak >= 4) {
+      if (_negativeStreak >= 2) {
         _needsConfirmation = true;
         _negativeStreak = 0;
       }
@@ -113,16 +113,13 @@ class PlatformCamera {
     switch (faceApiEmotion) {
       case 'sad':
       case 'fearful':
+      case 'surprised':
         return 'confused';
       case 'angry':
       case 'disgusted':
         return 'frustrated';
-      case 'neutral':
-        return 'neutral';
       case 'happy':
         return 'happy';
-      case 'surprised':
-        return 'focused';
       default:
         return 'neutral';
     }
