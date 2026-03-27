@@ -69,11 +69,19 @@ class AddLessonDialog {
             );
           }
         }
-      } catch (_) {
+      } catch (e) {
         setState(() {
           isUploading = false;
           selectedFileName = null;
         });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
       isPicking = false;
     }

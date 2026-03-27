@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +30,8 @@ class FileUploadService {
         return FileUploadResult.failure('File quá lớn. Tối đa ${maxMB}MB');
       }
 
+      debugPrint('[Upload] Starting upload: $fileName (${fileBytes.length} bytes) kIsWeb=$kIsWeb');
+
       final url = Uri.parse('${ApiConstants.baseUrl}/upload');
       final request = http.MultipartRequest('POST', url);
 
@@ -49,10 +53,22 @@ class FileUploadService {
       );
       request.files.add(multipartFile);
 
-      final streamedResponse = await request.send();
+      debugPrint('[Upload] Sending request...');
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(minutes: 10),
+        onTimeout: () {
+          throw TimeoutException('Upload timed out after 10 minutes');
+        },
+      );
+
+      debugPrint('[Upload] Response status: ${streamedResponse.statusCode}');
+
       final response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 201) {
+      debugPrint('[Upload] Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final body = response.body;
         final uploadUrlMatch = RegExp(
           r'"uploadUrl":"([^"]+)"',
@@ -61,10 +77,15 @@ class FileUploadService {
         return FileUploadResult.success(uploadUrl);
       } else {
         return FileUploadResult.failure(
-          'Upload thất bại: ${response.statusCode}',
+          'Upload thất bại (${response.statusCode}): ${response.body}',
         );
       }
+    } on TimeoutException {
+      return FileUploadResult.failure(
+        'Upload quá lâu. Vui lòng thử file nhỏ hơn hoặc kiểm tra kết nối mạng.',
+      );
     } catch (e) {
+      debugPrint('[Upload] Error: $e');
       return FileUploadResult.failure('Lỗi upload: $e');
     }
   }

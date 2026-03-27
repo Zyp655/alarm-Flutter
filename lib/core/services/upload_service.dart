@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
@@ -55,7 +56,12 @@ class UploadService {
       contentType: MediaType.parse(mime),
     ));
 
-    final streamed = await request.send();
+    final streamed = await request.send().timeout(
+      const Duration(minutes: 10),
+      onTimeout: () {
+        throw TimeoutException('Upload timed out after 10 minutes');
+      },
+    );
     final responseBody = await streamed.stream.bytesToString();
 
     if (streamed.statusCode == 201) {
