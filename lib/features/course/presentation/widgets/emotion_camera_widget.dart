@@ -1,10 +1,5 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'emotion_camera_web.dart' if (dart.library.io) 'emotion_camera_native.dart';
 
@@ -22,12 +17,10 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
   bool _isInitializing = false;
   String _currentEmotion = 'neutral';
   PlatformCamera? _platformCamera;
-  Timer? _confirmTimer;
   Offset _offset = Offset.zero;
 
   @override
   void dispose() {
-    _confirmTimer?.cancel();
     _platformCamera?.dispose();
     super.dispose();
   }
@@ -48,14 +41,13 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
 
       await _platformCamera!.initialize();
 
-      _confirmTimer = Timer.periodic(
-        const Duration(seconds: 3),
-        (_) => _checkAndConfirm(),
-      );
-
-      if (mounted) setState(() => _isInitializing = false);
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
     } catch (e) {
-      debugPrint('[EmotionCamera] Init error: $e');
+      debugPrint('[EmotionCamera] init error: $e');
       if (mounted) {
         setState(() {
           _isInitializing = false;
@@ -65,45 +57,7 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
     }
   }
 
-  Future<void> _checkAndConfirm() async {
-    if (_platformCamera == null || !_platformCamera!.needsOpenAiConfirmation) return;
-    _platformCamera!.resetConfirmationFlag();
-
-    try {
-      final bytes = await _platformCamera!.captureImage();
-      if (bytes == null || bytes.isEmpty) return;
-      final base64Image = base64Encode(bytes);
-
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/ai/detect-emotion'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'imageBase64': base64Image}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final emotion = data['emotion'] as String? ?? 'neutral';
-        final confidence = (data['confidence'] as num?)?.toDouble() ?? 0;
-
-        if (mounted) {
-          setState(() => _currentEmotion = emotion);
-          widget.onEmotionDetected(emotion, confidence);
-        }
-      }
-    } catch (e) {
-      debugPrint('[EmotionCamera] OpenAI confirm error: $e');
-    }
-  }
-
   Future<void> _stopCamera() async {
-    _confirmTimer?.cancel();
-    _confirmTimer = null;
     _platformCamera?.dispose();
     _platformCamera = null;
   }
