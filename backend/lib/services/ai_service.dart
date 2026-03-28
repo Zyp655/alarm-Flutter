@@ -19,7 +19,8 @@ class AIService {
         'messages': [
           {
             'role': 'system',
-            'content': 'Bạn là gia sư AI chuyên giải thích các khái niệm phức tạp một cách đơn giản. Trả lời bằng tiếng Việt.',
+            'content':
+                'Bạn là gia sư AI chuyên giải thích các khái niệm phức tạp một cách đơn giản. Trả lời bằng tiếng Việt.',
           },
           {'role': 'user', 'content': prompt},
         ],
@@ -500,7 +501,7 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
   }) async {
     const baseUrl = 'https://api.openai.com/v1/chat/completions';
 
-    final hasContent = textContent.trim().isNotEmpty;
+    final hasContent = textContent.trim().length > 10;
 
     var processedContent = textContent;
     if (hasContent) {

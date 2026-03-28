@@ -56,7 +56,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   ];
 
   String get _effectiveTextContent {
-    if (widget.textContent.isNotEmpty) return widget.textContent;
+    if (widget.textContent.length > 10) return widget.textContent;
     if (_videoTranscript.isNotEmpty) return _videoTranscript;
     return '';
   }
@@ -69,7 +69,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
         LoadChatHistory(userId: widget.userId!, lessonId: widget.lessonId),
       );
     }
-    if (widget.textContent.isEmpty && widget.contentUrl != null) {
+    if (widget.textContent.length <= 10 && widget.contentUrl != null) {
       _extractContent();
     }
   }
