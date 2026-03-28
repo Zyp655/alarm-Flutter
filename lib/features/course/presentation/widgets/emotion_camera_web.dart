@@ -100,7 +100,7 @@ class PlatformCamera {
         _negativeStreak = 0;
       }
 
-      if (_negativeStreak >= 2) {
+      if (_negativeStreak >= 6) {
         _needsConfirmation = true;
         _negativeStreak = 0;
       }

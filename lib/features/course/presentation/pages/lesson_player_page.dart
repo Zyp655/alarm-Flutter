@@ -1168,29 +1168,29 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         if (_showConfusionPopup)
           Positioned.fill(
             child: Container(
-              color: Colors.black.withValues(alpha: 0.7),
+              color: Colors.black.withValues(alpha: 0.5),
               child: Center(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  padding: const EdgeInsets.all(24),
+                  width: 280,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('💭', style: TextStyle(fontSize: 40)),
-                      const SizedBox(height: 12),
+                      Text('💭', style: TextStyle(fontSize: 28)),
+                      const SizedBox(height: 8),
                       Text(
                         'Có vẻ đoạn này hơi khó?',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       if (_isLoadingExplanation)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
