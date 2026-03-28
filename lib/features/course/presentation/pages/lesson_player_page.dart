@@ -625,11 +625,13 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     try {
       final api = sl<ApiClient>();
       final timestamp = _videoController?.value.position.inSeconds ?? 0;
+      final totalDuration = _videoController?.value.duration.inSeconds ?? 0;
       final response = await api.post('/confusion/explain', {
         'lessonTitle': widget.lesson.title,
-        'textContent': widget.lesson.textContent ?? '',
+        'lessonId': widget.lesson.id,
+        'contentUrl': widget.lesson.contentUrl ?? '',
         'timestamp': timestamp,
-        'transcript': widget.lesson.textContent ?? '',
+        'totalDuration': totalDuration,
         'confusionSignals': {
           'pauseCount': _pauseCount,
           'rewindCount': _seekBackwardCount,
@@ -642,6 +644,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
           _confusionExplanation = response['explanation'] as String?;
           _isLoadingExplanation = false;
         });
+      } else {
+        if (mounted) setState(() => _isLoadingExplanation = false);
       }
     } catch (_) {
       if (mounted) {
