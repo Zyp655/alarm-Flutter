@@ -62,3 +62,7 @@ scripts/confusion_model/frames_v2/
 scripts/confusion_model/output/
 scripts/confusion_model/output_v3/
 scripts/confusion_model/*.zip
+scripts/confusion_model/output_gnn/
+scripts/confusion_model/*.task
+scripts/confusion_model/*.pt
+scripts/confusion_model/*.npz

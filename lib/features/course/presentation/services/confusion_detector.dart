@@ -9,6 +9,10 @@ class ConfusionDetector {
   DateTime? _lastTriggerTime;
   final void Function() onConfusionDetected;
 
+  // Sliding window to track recent emotions (avoid false positives)
+  final List<String> _emotionWindow = [];
+  static const int _windowSize = 3;
+
   static const _cooldownMinutes = 5;
   static const _threshold = 35;
 
@@ -32,6 +36,17 @@ class ConfusionDetector {
     _lastEmotionConfidence = confidence;
     _gazeStill = gazeStill;
     _eyeLocked = eyeLocked;
+
+    if (confidence >= 0.3) {
+      _emotionWindow.add(emotion);
+    } else {
+      _emotionWindow.add('neutral');
+    }
+
+    if (_emotionWindow.length > _windowSize) {
+      _emotionWindow.removeAt(0);
+    }
+
     _evaluate();
   }
 
@@ -48,14 +63,19 @@ class ConfusionDetector {
     if (_rewindCount >= 1 && _pauseCount >= 2) score += 10;
     if (_skipCount == 0 && _pauseCount >= 2) score += 10;
 
+    // Evaluate sliding window for confused/frustrated
+    int negativeEmotionCount = _emotionWindow.where((e) => e == 'confused' || e == 'frustrated').length;
+    
+    if (negativeEmotionCount == 3) {
+      score += 40; // Triggers AI Assistant immediately
+    } else if (negativeEmotionCount == 2) {
+      score += 15; // Needs additional video interaction or gaze to trigger
+    } else if (negativeEmotionCount == 1) {
+      score += 5;  // Needs more video interaction
+    }
+
     if (_lastEmotionConfidence >= 0.3) {
       switch (_lastEmotion) {
-        case 'confused':
-          score += 40;
-          break;
-        case 'frustrated':
-          score += 35;
-          break;
         case 'bored':
           score += 20;
           break;
@@ -83,6 +103,7 @@ class ConfusionDetector {
       _pauseCount = 0;
       _rewindCount = 0;
       _skipCount = 0;
+      _emotionWindow.clear();
       onConfusionDetected();
     }
   }
@@ -96,5 +117,6 @@ class ConfusionDetector {
     _gazeStill = false;
     _eyeLocked = false;
     _lastTriggerTime = null;
+    _emotionWindow.clear();
   }
 }
