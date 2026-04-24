@@ -1,252 +1,196 @@
-<p align="center">
-  <h1 align="center">🎓 Alarmm — Learning Management System</h1>
-  <p align="center">
-    Nền tảng học tập trực tuyến toàn diện cho <strong>Sinh viên</strong>, <strong>Giảng viên</strong> và <strong>Quản trị viên</strong>.
-    <br />
-    Xây dựng bằng <strong>Flutter</strong> &times; <strong>Dart Frog</strong> theo kiến trúc <strong>Clean Architecture</strong>.
-  </p>
-</p>
+# ALARMM (AI-Powered LMS) - Hệ thống Quản lý Học tập Thông minh
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Flutter-3.9.2-02569B?logo=flutter&logoColor=white" />
-  <img src="https://img.shields.io/badge/Dart_Frog-Backend-00D2B8?logo=dart&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/SQLite-Offline-003B57?logo=sqlite&logoColor=white" />
-  <img src="https://img.shields.io/badge/Firebase-FCM-FFCA28?logo=firebase&logoColor=black" />
-  <img src="https://img.shields.io/badge/OpenAI-GPT--4o-412991?logo=openai&logoColor=white" />
-</p>
+ALARMM là một nền tảng Học trực tuyến (LMS) toàn diện được phát triển bằng **Flutter** (Frontend) và **Dart Frog** (Backend). Dự án tích hợp sâu các công nghệ Trí tuệ Nhân tạo (AI) tiên tiến nhất để mang lại trải nghiệm học tập cá nhân hóa, giám sát tự động và tương tác đa phương thức (Multi-modal).
 
 ---
 
-## 📖 Giới thiệu
+## 🌟 TÍNH NĂNG NỔI BẬT (Core AI Features)
 
-**Alarmm** là ứng dụng di động LMS hỗ trợ toàn bộ quy trình giảng dạy và học tập trực tuyến tại môi trường đại học. Hệ thống cung cấp:
+### 1. Giám sát Biểu cảm & Cảnh báo Bối rối (GNN Confusion Detection)
+Thay vì giám sát thủ công, hệ thống sử dụng mạng đồ thị không gian-thời gian (Landmark GNN) để phân tích biểu cảm sinh viên:
+- **Công nghệ:** PyTorch (Backend/Scripts), Google MediaPipe Face Mesh.
+- **Cách hoạt động:** Trích xuất 478 tọa độ không gian 3D trên khuôn mặt, phân tích chuỗi chuyển động qua mạng Landmark Transformer + BiLSTM để phát hiện trạng thái "Bối rối" (Confusion).
+- **Độ chính xác:** Đạt AUC 0.71 trên tập dữ liệu DAiSEE. Sử dụng cơ chế *Sliding Window* (yêu cầu 3 lần bối rối liên tục tại ngưỡng tự tin >85%) để loại bỏ 100% cảnh báo giả.
+- **Tích hợp Frontend:** Tự động kích hoạt Assistant Popup khi sinh viên gặp khó khăn.
 
-- **Quản lý khóa học & bài giảng** với video player, tiến độ học tập, bình luận.
-- **Quiz multiplayer** real-time qua WebSocket, bảng xếp hạng.
-- **AI Academic Mentor** — chatbot GPT-4o hỗ trợ giải đáp, tóm tắt bài giảng, đề xuất cá nhân hóa.
-- **Chống gian lận** — xác minh người học bằng AI Quiz tự động khi xem video.
-- **Học offline** — tải nội dung, đồng bộ khi có mạng.
-- **Push Notifications** — qua Firebase Cloud Messaging.
-- **Hệ thống phân tích** với heatmap, velocity, benchmark.
-- **Admin dashboard** quản lý người dùng, khóa học, cấu trúc học thuật.
+### 2. Định danh Sinh viên bằng AI (On-Device Face Verification)
+Đảm bảo tính trung thực trong quá trình học tập và thi cử:
+- **Công nghệ:** MobileFaceNet (Chạy trực tiếp trên thiết bị bằng TensorFlow Lite), Drift SQLite.
+- **Cách hoạt động:** Liên tục quét khuôn mặt người đang xem video. So khớp vector đặc trưng (Embeddings) của khuôn mặt hiện tại với khuôn mặt chủ tài khoản đã đăng ký.
+- **Xử lý Vi phạm:** Nếu phát hiện vắng mặt hoặc có người lạ học hộ, video sẽ **tự động tạm dừng** ngay lập tức và yêu cầu sinh viên chính chủ xác thực lại. Mọi vi phạm được lưu lịch sử xuống Database.
 
----
+### 3. Gia sư AI Đa phương thức (Multi-Modal Video RAG)
+Trợ lý học tập không chỉ nghe hiểu văn bản mà còn "nhìn" được bài giảng:
+- **Công nghệ:** GPT-4o Vision API, `video_thumbnail`.
+- **Cách hoạt động:** Sinh viên có thể chụp lại chính xác khung hình video đang xem và gửi cho AI. AI sẽ phân tích hình ảnh (ví dụ: một đoạn code, một đồ thị toán học) kết hợp với ngữ cảnh bài học để giải đáp thắc mắc chuyên sâu.
 
-## ✨ Tính năng theo vai trò
+### 4. Tương tác Giọng nói Thời gian thực (Real-Time Voice Streaming)
+Trò chuyện với AI mượt mà như người thật với độ trễ gần như bằng 0 (Zero-latency):
+- **Công nghệ:** WebSockets, OpenAI Whisper (Speech-to-Text), GPT-4o (Text Streaming), OpenAI TTS Chunking.
+- **Cách hoạt động:** 
+  - Ghi âm giọng nói sinh viên (Chunking audio).
+  - Gửi qua WebSocket để Whisper dịch sang text tức thì.
+  - GPT-4o trả lời kiểu Streaming (từng từ một).
+  - OpenAI TTS đọc các đoạn text ngay khi chúng được sinh ra, tạo cảm giác giao tiếp không ngắt quãng.
 
-### 👨‍🎓 Sinh viên
-
-| Module | Mô tả |
-|---|---|
-| **Course** | Catalog, xem bài giảng video (Chewie), theo dõi tiến độ, bình luận |
-| **Quiz** | Làm quiz, multiplayer real-time (WebSocket), bảng xếp hạng |
-| **Schedule** | Thời khóa biểu (Syncfusion Calendar), nhập từ Excel |
-| **Analytics** | Dashboard cá nhân: heatmap, velocity, benchmark |
-| **Task** | Quản lý công việc cá nhân (CRUD) |
-| **Offline** | Tải nội dung, học không cần mạng, tự đồng bộ |
-| **Chat** | Chatbot AI Academic Mentor (GPT-4o), Speech-to-Text (Whisper) |
-| **Roadmap** | Lộ trình học Backend / Frontend Developer |
-| **Discussion** | Thảo luận bài học theo luồng |
-| **Profile** | Thành tích, bảng điểm, cài đặt cá nhân |
-
-### 👨‍🏫 Giảng viên
-
-| Module | Mô tả |
-|---|---|
-| **Teaching** | Dashboard riêng, quản lý lớp/môn, tạo bài giảng, upload video |
-| **Quiz** | Tạo quiz, xem kết quả sinh viên |
-| **Attendance** | Điểm danh, quản lý submissions |
-| **Discussion** | Trả lời thảo luận sinh viên |
-| **Notifications** | Push thông báo đến lớp |
-
-### 🛡️ Quản trị viên
-
-| Module | Mô tả |
-|---|---|
-| **Admin** | Dashboard tổng quát, quản lý user (ban/unban) |
-| **Academic** | Quản lý khoa, bộ môn, lớp, môn học |
-| **Import** | Nhập sinh viên/giảng viên/môn học từ Excel |
-| **Course Mgmt** | Gán giảng viên, tạo/xóa lớp môn học |
-| **Tools** | Seed data, migrate, trigger cron jobs |
+### 5. Cá nhân hóa Trải nghiệm Học (Hyper-Personalized AI)
+- Dữ liệu học thuật (Chuyên ngành, Năm học) được cấu hình trên Profile và đồng bộ liên tục giữa Postgres/Drift.
+- AI tự động điều chỉnh giọng văn (Sư phạm, Vui vẻ, Nghiêm túc) và độ phức tạp của câu trả lời sao cho phù hợp nhất với trình độ của người học (Ví dụ: Trả lời sinh viên năm 1 sẽ dễ hiểu hơn, trả lời sinh viên năm 4 sẽ đi sâu vào thuật toán học thuật).
 
 ---
 
-## 🏗️ Kiến trúc
+## 📚 TỔNG QUAN TÍNH NĂNG LMS (Core Modules)
 
-```
-Clean Architecture + BLoC/Cubit
-│
+### 👨‍🎓 Dành cho Sinh viên (Student Role)
+| Tính năng | Mô tả chi tiết |
+|---|---|
+| **Course & Video** | Xem bài giảng Video (Sử dụng `chewie` và `video_player`), lưu tiến độ học tập (Progress Tracking). |
+| **Offline Mode** | Tải trước nội dung bài giảng, lưu DB vào SQLite qua Drift để học khi không có mạng. Đồng bộ trạng thái tự động khi có kết nối lại. |
+| **Schedule/Calendar** | Xem Thời khóa biểu bằng giao diện Syncfusion Calendar, hỗ trợ Import trực tiếp từ file Excel của trường. |
+| **Task Management** | Quản lý công việc cá nhân, Kanban board, To-do list. |
+| **Analytics Dashboard** | Thống kê học tập cá nhân: Biểu đồ Heatmap (Tần suất học), Velocity (Tốc độ học), Benchmark (So sánh với lớp). |
+| **Roadmap** | Cung cấp lộ trình học theo từng ngành (Ví dụ: Backend Developer, Frontend Developer). |
+
+### 👨‍🏫 Dành cho Giảng viên (Teacher Role)
+| Tính năng | Mô tả chi tiết |
+|---|---|
+| **Teaching Dashboard** | Quản lý tổng quan các lớp môn học đang phụ trách. |
+| **Content Management**| Tạo bài giảng mới, Upload Video, tài liệu đính kèm. |
+| **Quiz & Assessment** | Tạo bài thi trắc nghiệm trực tuyến. Hỗ trợ hệ thống thi Real-time (Nhiều sinh viên thi cùng lúc qua WebSocket). |
+| **Attendance & Submissions** | Điểm danh tự động qua AI hoặc thủ công, thu thập và chấm điểm bài tập. |
+| **Notifications** | Gửi Push Notifications (FCM) thông báo đột xuất cho toàn bộ lớp học. |
+
+### 👮‍♂️ Dành cho Quản trị viên (Admin Role)
+| Tính năng | Mô tả chi tiết |
+|---|---|
+| **User Management** | Quản lý Sinh viên/Giảng viên (Cấp quyền, Ban/Unban tài khoản). |
+| **Academic Structure** | Xây dựng hệ thống đào tạo: Quản lý Khoa -> Bộ Môn -> Lớp Hành Chính -> Môn Học. |
+| **Import Tool** | Nhập danh sách sinh viên, giảng viên và môn học hàng loạt từ file Excel. |
+
+---
+
+## 🏗️ KIẾN TRÚC HỆ THỐNG (Architecture)
+
+Dự án áp dụng **Clean Architecture** kết hợp với **BLoC/Cubit** Pattern cho Frontend, giúp phân tách logic và giao diện một cách hoàn hảo.
+
+```text
 ├── lib/
-│   ├── core/                    # Shared: API, theme, routing, utils, widgets
-│   │   ├── api/                 # HTTP client, interceptors
-│   │   ├── route/               # GoRouter config
-│   │   ├── theme/               # Design tokens, app theme
-│   │   ├── services/            # FCM, local notifications
+│   ├── core/                    # Shared logic
+│   │   ├── api/                 # HTTP client, interceptors, error handling
+│   │   ├── route/               # GoRouter configuration
+│   │   ├── theme/               # Design tokens, màu sắc, font chữ
+│   │   ├── services/            # FCM, local notifications, IdentityGuard
 │   │   ├── widgets/             # Reusable UI components
-│   │   └── utils/               # Helpers, formatters
+│   │   └── utils/               # Formatters, Helpers
 │   │
-│   ├── features/                # 18 feature modules
-│   │   └── [feature]/
-│   │       ├── data/            # Models, DataSources, Repository Impl
+│   ├── features/                # 18 Feature Modules (Course, Chat, Quiz, Auth...)
+│   │   └── [feature_name]/
+│   │       ├── data/            # Models, DataSources (Drift/REST), Repositories Impl
 │   │       ├── domain/          # Entities, Repositories (abstract), UseCases
-│   │       └── presentation/    # BLoC/Cubit, Pages, Widgets
+│   │       └── presentation/    # BLoC/Cubit, Pages, Screens
 │   │
-│   ├── di/                      # Dependency injection setup
-│   └── main.dart                # Entry point
+│   ├── di/                      # Dependency Injection (GetIt) setup
+│   └── main.dart                # Entry point ứng dụng
 │
 ├── backend/                     # Dart Frog API Server
-│   ├── routes/                  # ~160 REST endpoints (34 route groups)
-│   │   ├── auth/                # Login, signup, password reset, FCM
-│   │   ├── courses/             # CRUD courses, enrollment
-│   │   ├── teaching/            # Teacher-specific APIs
-│   │   ├── quiz/                # Quiz CRUD, multiplayer WebSocket
-│   │   ├── ai/                  # GPT chat, summarize, verify-watching, STT
-│   │   ├── analytics/           # Heatmap, velocity, benchmark, tracking
-│   │   ├── admin/               # User mgmt, import, seed, migration
-│   │   ├── notifications/       # Push notification dispatch
-│   │   └── ...                  # 26 more route groups
-│   └── lib/                     # Shared backend logic, DB access
+│   ├── routes/                  # ~160 REST endpoints (chia làm 34 route groups)
+│   │   ├── auth/                # Login, signup, password reset, JWT
+│   │   ├── ai/                  # WebSockets, RAG, OpenAI integration
+│   │   ├── courses/             # Quản lý khóa học, enrollment
+│   │   ├── notifications/       # Gửi và lưu lịch sử Push Notification FCM
+│   │   └── ...
+│   ├── lib/                     # Database Prisma/PostgreSQL, Middleware
+│   └── prisma/                  # Prisma Schema cho Database
 │
-└── test/                        # Unit & Widget tests
+├── scripts/
+│   └── confusion_model/         # PyTorch Workspace (Huấn luyện Landmark GNN)
+│
+└── test/                        # Unit tests & Widget tests cho Frontend
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ TECH STACK CHI TIẾT
 
-| Layer | Công nghệ |
-|---|---|
-| **Framework** | Flutter (Dart SDK ^3.9.2) |
-| **State Management** | flutter_bloc, Cubit |
-| **Routing** | GoRouter |
-| **DI** | GetIt |
-| **Backend** | Dart Frog |
-| **Database** | PostgreSQL (server), SQLite via sqflite (offline) |
-| **Auth** | JWT (custom) |
-| **Push Notifications** | Firebase Cloud Messaging (FCM) |
-| **AI** | OpenAI GPT-4o-mini, Whisper (STT) |
-| **Real-time** | WebSocket (web_socket_channel) |
-| **Video** | video_player + Chewie |
-| **Calendar** | Syncfusion Flutter Calendar |
-| **Charts** | fl_chart, percent_indicator |
-| **Animations** | flutter_animate, animated_text_kit, shimmer, Rive |
-| **Networking** | http |
-| **Offline** | sqflite, connectivity_plus, path_provider |
-| **Caching** | cached_network_image, shared_preferences |
-| **Testing** | flutter_test, mocktail, bloc_test |
+| Lớp (Layer) | Công nghệ / Package cốt lõi |
+| :--- | :--- |
+| **Frontend Framework** | Flutter (Dart SDK ^3.9.2) |
+| **State Management** | `flutter_bloc`, `cubit` |
+| **Routing & DI** | `go_router`, `get_it` |
+| **Database (Offline)** | `drift` (SQLite), `shared_preferences` |
+| **Backend Server** | Dart Frog |
+| **Database (Online)** | PostgreSQL (via Prisma ORM / Dart SQL) |
+| **Networking** | `http`, `web_socket_channel` |
+| **Video Player** | `video_player`, `chewie`, `video_thumbnail` |
+| **AI / ML (Local)** | TensorFlow Lite (`tflite_flutter`), Google MediaPipe |
+| **AI / ML (Cloud)**| OpenAI API (GPT-4o, Whisper, TTS-1) |
+| **Push Notifications** | `firebase_messaging`, Firebase HTTP v1 API |
+| **UI & Animations** | `flutter_animate`, `rive`, `fl_chart`, `syncfusion_flutter_calendar` |
 
 ---
 
-## 🚀 Cài đặt & Chạy
+## 🚀 HƯỚNG DẪN CÀI ĐẶT & CHẠY DỰ ÁN
 
-### Yêu cầu
-
+### Yêu cầu hệ thống
 - Flutter SDK `^3.9.2`
-- Dart SDK `^3.9.2`
-- PostgreSQL (cho backend)
-- Docker (tùy chọn — có sẵn `docker-compose.yaml`)
+- PostgreSQL (Cài đặt local hoặc Docker)
+- Python 3.10+ (Nếu có nhu cầu nghiên cứu/train AI model)
 
-### 1. Frontend (Mobile App)
+### 1. Cấu hình & Khởi chạy Backend (Dart Frog)
 
-```bash
-flutter pub get
-flutter run
-```
-
-### 2. Backend (Dart Frog Server)
+Backend chịu trách nhiệm xử lý logic nghiệp vụ và bảo mật API qua JWT.
 
 ```bash
 cd backend
 dart pub get
 
-# Tạo file .env từ mẫu, cấu hình:
-#   DATABASE_URL, JWT_SECRET, OPENAI_API_KEY, ...
+# Tạo file .env dựa trên cấu hình dự án
+# DATABASE_URL=postgresql://user:password@localhost:5432/alarmm
+# JWT_SECRET=chuoi_ki_tu_bi_mat_cua_ban
+# OPENAI_API_KEY=sk-...
 
+# Khởi chạy server tại localhost:8080
 dart_frog dev
 ```
 
-### 3. Database (Docker)
+### 2. Cấu hình & Khởi chạy Frontend (Mobile App)
 
 ```bash
-cd backend
-docker-compose up -d
+# Trở về thư mục gốc của dự án
+flutter pub get
+
+# Generate lại các file liên quan đến Drift Database, Freezed và JSON Serializable
+dart run build_runner build -d
+
+# Khởi chạy ứng dụng trên Emulator hoặc Device
+flutter run
 ```
 
-### 4. Chạy Tests
+### 3. (Tùy chọn) Chạy Hệ thống AI Confusion Detection (Local Python)
+
+Đây là hệ thống thử nghiệm mô hình GNN độc lập trước khi build ra file TorchScript/TFLite.
 
 ```bash
-flutter test
+cd scripts/confusion_model
+# Cài đặt môi trường Python
+pip install torch torchvision torchaudio
+pip install mediapipe opencv-python pandas scikit-learn
+
+# Chạy hệ thống Test Webcam Realtime (Yêu cầu có Webcam)
+# AI sẽ phân tích 478 điểm trên mặt bạn để cảnh báo "Bối rối"
+python test_webcam_v3.py
 ```
 
 ---
 
-## 📂 Feature Modules
+## 🛡️ HỆ THỐNG DATABASE & ĐỒNG BỘ CỤC BỘ (Offline-First)
 
-| # | Module | Layers | Vai trò |
-|---|---|---|---|
-| 1 | `admin` | data · domain · presentation | 🛡️ Admin |
-| 2 | `analytics` | data · domain · presentation | 👨‍🎓 👨‍🏫 |
-| 3 | `auth` | data · domain · presentation | Tất cả |
-| 4 | `chat` | data · domain · presentation | 👨‍🎓 |
-| 5 | `course` | data · domain · presentation | 👨‍🎓 |
-| 6 | `discussion` | data · domain · presentation | Tất cả |
-| 7 | `home` | presentation | Tất cả |
-| 8 | `notifications` | data · domain · presentation | Tất cả |
-| 9 | `offline` | data · domain · presentation | 👨‍🎓 |
-| 10 | `profile` | presentation | 👨‍🎓 |
-| 11 | `quiz` | data · domain · presentation | Tất cả |
-| 12 | `roadmap` | presentation | 👨‍🎓 |
-| 13 | `schedule` | data · domain · presentation | 👨‍🎓 |
-| 14 | `search` | data · domain · presentation | Tất cả |
-| 15 | `social` | data · domain · presentation | 👨‍🎓 |
-| 16 | `task` | data · domain · presentation | 👨‍🎓 |
-| 17 | `teaching` | data · domain · presentation | 👨‍🏫 |
-| 18 | `user` | data · domain · presentation | Tất cả |
+Ứng dụng sử dụng kiến trúc **Offline-First**. 
+Toàn bộ dữ liệu bài giảng, khóa học và thông báo được tải về và lưu trữ vào SQLite thông qua thư viện `Drift`. 
+Khi sinh viên ngắt kết nối mạng, họ vẫn có thể xem được nội dung. Khi có mạng trở lại, ứng dụng sẽ đồng bộ tiến trình học (Progress Sync) và các Task lên Server PostgreSQL một cách tự động và trong suốt.
 
 ---
 
-## 🔐 Phân quyền
+## 📜 GIẤY PHÉP (License)
 
-| Role | Giá trị | Màn hình chính |
-|---|---|---|
-| Sinh viên | `0` | `MainWrapperPage` — 6 tab bottom navigation |
-| Giảng viên | `1` | `TeacherHomePage` — dashboard riêng |
-| Admin | `2` | `AdminHomePage` — quản trị hệ thống |
-
----
-
-## 🌐 Backend API Overview
-
-34 route groups, ~160 endpoints:
-
-```
-auth/        → login, signup, forgot-password, change-password, fcm-token
-courses/     → CRUD, enrollment, progress tracking
-teaching/    → Teacher dashboard, class management
-quiz/        → CRUD, sessions, multiplayer WebSocket, leaderboard
-ai/          → chat, summarize, verify-watching, speech-to-text, extract-document
-analytics/   → summary, heatmap, velocity, benchmark, track
-admin/       → users, import, seed, migration, ban, academic mgmt
-schedule/    → CRUD events, calendar sync
-notifications/ → send, history, mark-read
-discussions/ → threads, replies
-comments/    → lesson comments
-tasks/       → personal task CRUD
-content/     → file management, uploads
-search/      → full-text search
-roadmaps/    → learning path progression
-enrollments/ → student enrollment
-```
-
----
-
-## 🌍 Đa ngôn ngữ
-
-Hỗ trợ **Tiếng Việt** và **Tiếng Anh** thông qua Flutter Intl (ARB files). Người dùng chuyển đổi ngôn ngữ trong trang Profile.
-
----
-
-## 📄 License
-
-Private project — All rights reserved.
+Dự án bản quyền cá nhân. Không được sao chép hoặc tái sử dụng mục đích thương mại mà không có sự cho phép.
