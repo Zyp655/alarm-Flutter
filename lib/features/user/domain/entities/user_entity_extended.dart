@@ -5,6 +5,8 @@ class UserEntityExtended extends UserEntity {
   final String? studentId;
   final String? department;
   final String? teacherId;
+  final String? major;
+  final String? academicYear;
 
   const UserEntityExtended({
     required int id,
@@ -16,6 +18,8 @@ class UserEntityExtended extends UserEntity {
     this.studentId,
     this.department,
     this.teacherId,
+    this.major,
+    this.academicYear,
   }) : super(
          id: id,
          email: email,
@@ -35,5 +39,7 @@ class UserEntityExtended extends UserEntity {
     studentId,
     department,
     teacherId,
+    major,
+    academicYear,
   ];
 }

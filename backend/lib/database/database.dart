@@ -678,61 +678,16 @@ class ConfusionLogs extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
-@DriftDatabase(tables: [
-  Users,
-  StudentProfiles,
-  Schedules,
-  Classes,
-  Subjects,
-  Assignments,
-  StudentAssignments,
-  Notifications,
-  Submissions,
-  Attendances,
-  Tasks,
-  Quizzes,
-  QuizQuestions,
-  QuizAttempts,
-  QuizStatistics,
-  QuizRooms,
-  RoomPlayers,
-  Leaderboards,
-  UserStreaks,
-  Achievements,
-  UserAchievements,
-  QuizCache,
-  Courses,
-  Modules,
-  Lessons,
-  Enrollments,
-  LessonProgress,
-  CourseFiles,
-  Comments,
-  Roadmaps,
-  RoadmapNodes,
-  RoadmapEdges,
-  StudentActivityLogs,
-  CourseReviews,
-  Majors,
-  StudyPlans,
-  ScheduledLessons,
-  LearningActivities,
-  CommentVotes,
-  CommentMentions,
-  ChatConversations,
-  ChatMessages,
-  TeacherApplications,
-  Departments,
-  Semesters,
-  AcademicCourses,
-  CourseClasses,
-  CourseClassEnrollments,
-  EnrollmentImports,
-  PersonalRoadmaps,
-  PersonalRoadmapItems,
-  BehaviorReports,
-  ConfusionLogs,
-])
+class FaceEmbeddings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('faceEmbeddingUser')
+  IntColumn get userId => integer().unique().references(Users, #id)();
+  TextColumn get frontData => text()();
+  TextColumn get leftData => text()();
+  TextColumn get rightData => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
 class DailyLearningLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
   @ReferenceName('dailyLogStudent')
@@ -846,6 +801,7 @@ class SegmentQuizAttempts extends Table {
   SegmentQuizAttempts,
   BehaviorReports,
   ConfusionLogs,
+  FaceEmbeddings,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_createDatabase());
@@ -866,7 +822,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 39;
+  int get schemaVersion => 41;
 
   @override
   MigrationStrategy get migration {
@@ -1270,6 +1226,45 @@ class AppDatabase extends _$AppDatabase {
           ''');
           await m.issueCustomQuery(
             'CREATE INDEX IF NOT EXISTS idx_confusion_logs_lesson ON confusion_logs(lesson_id, user_id)',
+          );
+        }
+
+        if (from < 40) {
+          await m.issueCustomQuery('CREATE EXTENSION IF NOT EXISTS vector');
+          await m.issueCustomQuery(
+            'ALTER TABLE courses ADD COLUMN IF NOT EXISTS embedding vector(1536)',
+          );
+          await m.issueCustomQuery(
+            'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS embedding vector(1536)',
+          );
+          await m.issueCustomQuery(
+            'ALTER TABLE video_segments ADD COLUMN IF NOT EXISTS embedding vector(1536)',
+          );
+          await m.issueCustomQuery(
+            'CREATE INDEX IF NOT EXISTS idx_courses_embedding ON courses USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10)',
+          );
+          await m.issueCustomQuery(
+            'CREATE INDEX IF NOT EXISTS idx_lessons_embedding ON lessons USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10)',
+          );
+          await m.issueCustomQuery(
+            'CREATE INDEX IF NOT EXISTS idx_segments_embedding ON video_segments USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10)',
+          );
+        }
+
+        if (from < 41) {
+          await m.issueCustomQuery('''
+            CREATE TABLE IF NOT EXISTS face_embeddings (
+              id SERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+              front_data TEXT NOT NULL,
+              left_data TEXT NOT NULL,
+              right_data TEXT NOT NULL,
+              created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+              updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+          ''');
+          await m.issueCustomQuery(
+            'CREATE INDEX IF NOT EXISTS idx_face_embeddings_user ON face_embeddings(user_id)',
           );
         }
       },

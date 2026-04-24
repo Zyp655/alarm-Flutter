@@ -26156,6 +26156,382 @@ class ConfusionLogsCompanion extends UpdateCompanion<ConfusionLog> {
   }
 }
 
+class $FaceEmbeddingsTable extends FaceEmbeddings
+    with TableInfo<$FaceEmbeddingsTable, FaceEmbedding> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FaceEmbeddingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('UNIQUE REFERENCES users (id)'));
+  static const VerificationMeta _frontDataMeta =
+      const VerificationMeta('frontData');
+  @override
+  late final GeneratedColumn<String> frontData = GeneratedColumn<String>(
+      'front_data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _leftDataMeta =
+      const VerificationMeta('leftData');
+  @override
+  late final GeneratedColumn<String> leftData = GeneratedColumn<String>(
+      'left_data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _rightDataMeta =
+      const VerificationMeta('rightData');
+  @override
+  late final GeneratedColumn<String> rightData = GeneratedColumn<String>(
+      'right_data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, userId, frontData, leftData, rightData, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'face_embeddings';
+  @override
+  VerificationContext validateIntegrity(Insertable<FaceEmbedding> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('front_data')) {
+      context.handle(_frontDataMeta,
+          frontData.isAcceptableOrUnknown(data['front_data']!, _frontDataMeta));
+    } else if (isInserting) {
+      context.missing(_frontDataMeta);
+    }
+    if (data.containsKey('left_data')) {
+      context.handle(_leftDataMeta,
+          leftData.isAcceptableOrUnknown(data['left_data']!, _leftDataMeta));
+    } else if (isInserting) {
+      context.missing(_leftDataMeta);
+    }
+    if (data.containsKey('right_data')) {
+      context.handle(_rightDataMeta,
+          rightData.isAcceptableOrUnknown(data['right_data']!, _rightDataMeta));
+    } else if (isInserting) {
+      context.missing(_rightDataMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FaceEmbedding map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FaceEmbedding(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}user_id'])!,
+      frontData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}front_data'])!,
+      leftData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}left_data'])!,
+      rightData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}right_data'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $FaceEmbeddingsTable createAlias(String alias) {
+    return $FaceEmbeddingsTable(attachedDatabase, alias);
+  }
+}
+
+class FaceEmbedding extends DataClass implements Insertable<FaceEmbedding> {
+  final int id;
+  final int userId;
+  final String frontData;
+  final String leftData;
+  final String rightData;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const FaceEmbedding(
+      {required this.id,
+      required this.userId,
+      required this.frontData,
+      required this.leftData,
+      required this.rightData,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<int>(userId);
+    map['front_data'] = Variable<String>(frontData);
+    map['left_data'] = Variable<String>(leftData);
+    map['right_data'] = Variable<String>(rightData);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  FaceEmbeddingsCompanion toCompanion(bool nullToAbsent) {
+    return FaceEmbeddingsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      frontData: Value(frontData),
+      leftData: Value(leftData),
+      rightData: Value(rightData),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory FaceEmbedding.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FaceEmbedding(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<int>(json['userId']),
+      frontData: serializer.fromJson<String>(json['frontData']),
+      leftData: serializer.fromJson<String>(json['leftData']),
+      rightData: serializer.fromJson<String>(json['rightData']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<int>(userId),
+      'frontData': serializer.toJson<String>(frontData),
+      'leftData': serializer.toJson<String>(leftData),
+      'rightData': serializer.toJson<String>(rightData),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  FaceEmbedding copyWith(
+          {int? id,
+          int? userId,
+          String? frontData,
+          String? leftData,
+          String? rightData,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      FaceEmbedding(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        frontData: frontData ?? this.frontData,
+        leftData: leftData ?? this.leftData,
+        rightData: rightData ?? this.rightData,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  FaceEmbedding copyWithCompanion(FaceEmbeddingsCompanion data) {
+    return FaceEmbedding(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      frontData: data.frontData.present ? data.frontData.value : this.frontData,
+      leftData: data.leftData.present ? data.leftData.value : this.leftData,
+      rightData: data.rightData.present ? data.rightData.value : this.rightData,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FaceEmbedding(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('frontData: $frontData, ')
+          ..write('leftData: $leftData, ')
+          ..write('rightData: $rightData, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, userId, frontData, leftData, rightData, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FaceEmbedding &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.frontData == this.frontData &&
+          other.leftData == this.leftData &&
+          other.rightData == this.rightData &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class FaceEmbeddingsCompanion extends UpdateCompanion<FaceEmbedding> {
+  final Value<int> id;
+  final Value<int> userId;
+  final Value<String> frontData;
+  final Value<String> leftData;
+  final Value<String> rightData;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const FaceEmbeddingsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.frontData = const Value.absent(),
+    this.leftData = const Value.absent(),
+    this.rightData = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  FaceEmbeddingsCompanion.insert({
+    this.id = const Value.absent(),
+    required int userId,
+    required String frontData,
+    required String leftData,
+    required String rightData,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  })  : userId = Value(userId),
+        frontData = Value(frontData),
+        leftData = Value(leftData),
+        rightData = Value(rightData),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<FaceEmbedding> custom({
+    Expression<int>? id,
+    Expression<int>? userId,
+    Expression<String>? frontData,
+    Expression<String>? leftData,
+    Expression<String>? rightData,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (frontData != null) 'front_data': frontData,
+      if (leftData != null) 'left_data': leftData,
+      if (rightData != null) 'right_data': rightData,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  FaceEmbeddingsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? userId,
+      Value<String>? frontData,
+      Value<String>? leftData,
+      Value<String>? rightData,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt}) {
+    return FaceEmbeddingsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      frontData: frontData ?? this.frontData,
+      leftData: leftData ?? this.leftData,
+      rightData: rightData ?? this.rightData,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
+    }
+    if (frontData.present) {
+      map['front_data'] = Variable<String>(frontData.value);
+    }
+    if (leftData.present) {
+      map['left_data'] = Variable<String>(leftData.value);
+    }
+    if (rightData.present) {
+      map['right_data'] = Variable<String>(rightData.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FaceEmbeddingsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('frontData: $frontData, ')
+          ..write('leftData: $leftData, ')
+          ..write('rightData: $rightData, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -26234,6 +26610,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BehaviorReportsTable behaviorReports =
       $BehaviorReportsTable(this);
   late final $ConfusionLogsTable confusionLogs = $ConfusionLogsTable(this);
+  late final $FaceEmbeddingsTable faceEmbeddings = $FaceEmbeddingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -26295,7 +26672,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         videoSegments,
         segmentQuizAttempts,
         behaviorReports,
-        confusionLogs
+        confusionLogs,
+        faceEmbeddings
       ];
 }
 
@@ -27497,6 +27875,21 @@ final class $$UsersTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$FaceEmbeddingsTable, List<FaceEmbedding>>
+      _faceEmbeddingUserTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.faceEmbeddings,
+              aliasName:
+                  $_aliasNameGenerator(db.users.id, db.faceEmbeddings.userId));
+
+  $$FaceEmbeddingsTableProcessedTableManager get faceEmbeddingUser {
+    final manager = $$FaceEmbeddingsTableTableManager($_db, $_db.faceEmbeddings)
+        .filter((f) => f.userId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_faceEmbeddingUserTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
@@ -28477,6 +28870,27 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
             $$ConfusionLogsTableFilterComposer(
               $db: $db,
               $table: $db.confusionLogs,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> faceEmbeddingUser(
+      Expression<bool> Function($$FaceEmbeddingsTableFilterComposer f) f) {
+    final $$FaceEmbeddingsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.faceEmbeddings,
+        getReferencedColumn: (t) => t.userId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FaceEmbeddingsTableFilterComposer(
+              $db: $db,
+              $table: $db.faceEmbeddings,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -29546,6 +29960,27 @@ class $$UsersTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> faceEmbeddingUser<T extends Object>(
+      Expression<T> Function($$FaceEmbeddingsTableAnnotationComposer a) f) {
+    final $$FaceEmbeddingsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.faceEmbeddings,
+        getReferencedColumn: (t) => t.userId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FaceEmbeddingsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.faceEmbeddings,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$UsersTableTableManager extends RootTableManager<
@@ -29604,7 +30039,8 @@ class $$UsersTableTableManager extends RootTableManager<
         bool dailyLogStudent,
         bool aiNotifStudent,
         bool segmentQuizStudent,
-        bool confusionLogUser})> {
+        bool confusionLogUser,
+        bool faceEmbeddingUser})> {
   $$UsersTableTableManager(_$AppDatabase db, $UsersTable table)
       : super(TableManagerState(
           db: db,
@@ -29716,7 +30152,8 @@ class $$UsersTableTableManager extends RootTableManager<
               dailyLogStudent = false,
               aiNotifStudent = false,
               segmentQuizStudent = false,
-              confusionLogUser = false}) {
+              confusionLogUser = false,
+              faceEmbeddingUser = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
@@ -29763,7 +30200,8 @@ class $$UsersTableTableManager extends RootTableManager<
                 if (dailyLogStudent) db.dailyLearningLogs,
                 if (aiNotifStudent) db.aiNotificationLogs,
                 if (segmentQuizStudent) db.segmentQuizAttempts,
-                if (confusionLogUser) db.confusionLogs
+                if (confusionLogUser) db.confusionLogs,
+                if (faceEmbeddingUser) db.faceEmbeddings
               ],
               addJoins: <
                   T extends TableManagerState<
@@ -30325,6 +30763,18 @@ class $$UsersTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.userId == item.id),
+                        typedResults: items),
+                  if (faceEmbeddingUser)
+                    await $_getPrefetchedData<User, $UsersTable, FaceEmbedding>(
+                        currentTable: table,
+                        referencedTable:
+                            $$UsersTableReferences._faceEmbeddingUserTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$UsersTableReferences(db, table, p0)
+                                .faceEmbeddingUser,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.userId == item.id),
                         typedResults: items)
                 ];
               },
@@ -30389,7 +30839,8 @@ typedef $$UsersTableProcessedTableManager = ProcessedTableManager<
         bool dailyLogStudent,
         bool aiNotifStudent,
         bool segmentQuizStudent,
-        bool confusionLogUser})>;
+        bool confusionLogUser,
+        bool faceEmbeddingUser})>;
 typedef $$StudentProfilesTableCreateCompanionBuilder = StudentProfilesCompanion
     Function({
   Value<int> id,
@@ -55704,6 +56155,306 @@ typedef $$ConfusionLogsTableProcessedTableManager = ProcessedTableManager<
     (ConfusionLog, $$ConfusionLogsTableReferences),
     ConfusionLog,
     PrefetchHooks Function({bool userId, bool lessonId})>;
+typedef $$FaceEmbeddingsTableCreateCompanionBuilder = FaceEmbeddingsCompanion
+    Function({
+  Value<int> id,
+  required int userId,
+  required String frontData,
+  required String leftData,
+  required String rightData,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+});
+typedef $$FaceEmbeddingsTableUpdateCompanionBuilder = FaceEmbeddingsCompanion
+    Function({
+  Value<int> id,
+  Value<int> userId,
+  Value<String> frontData,
+  Value<String> leftData,
+  Value<String> rightData,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+});
+
+final class $$FaceEmbeddingsTableReferences
+    extends BaseReferences<_$AppDatabase, $FaceEmbeddingsTable, FaceEmbedding> {
+  $$FaceEmbeddingsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $UsersTable _userIdTable(_$AppDatabase db) => db.users
+      .createAlias($_aliasNameGenerator(db.faceEmbeddings.userId, db.users.id));
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<int>('user_id')!;
+
+    final manager = $$UsersTableTableManager($_db, $_db.users)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$FaceEmbeddingsTableFilterComposer
+    extends Composer<_$AppDatabase, $FaceEmbeddingsTable> {
+  $$FaceEmbeddingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get frontData => $composableBuilder(
+      column: $table.frontData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get leftData => $composableBuilder(
+      column: $table.leftData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get rightData => $composableBuilder(
+      column: $table.rightData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.userId,
+        referencedTable: $db.users,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UsersTableFilterComposer(
+              $db: $db,
+              $table: $db.users,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$FaceEmbeddingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FaceEmbeddingsTable> {
+  $$FaceEmbeddingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get frontData => $composableBuilder(
+      column: $table.frontData, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get leftData => $composableBuilder(
+      column: $table.leftData, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get rightData => $composableBuilder(
+      column: $table.rightData, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.userId,
+        referencedTable: $db.users,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UsersTableOrderingComposer(
+              $db: $db,
+              $table: $db.users,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$FaceEmbeddingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FaceEmbeddingsTable> {
+  $$FaceEmbeddingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get frontData =>
+      $composableBuilder(column: $table.frontData, builder: (column) => column);
+
+  GeneratedColumn<String> get leftData =>
+      $composableBuilder(column: $table.leftData, builder: (column) => column);
+
+  GeneratedColumn<String> get rightData =>
+      $composableBuilder(column: $table.rightData, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.userId,
+        referencedTable: $db.users,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UsersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.users,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$FaceEmbeddingsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FaceEmbeddingsTable,
+    FaceEmbedding,
+    $$FaceEmbeddingsTableFilterComposer,
+    $$FaceEmbeddingsTableOrderingComposer,
+    $$FaceEmbeddingsTableAnnotationComposer,
+    $$FaceEmbeddingsTableCreateCompanionBuilder,
+    $$FaceEmbeddingsTableUpdateCompanionBuilder,
+    (FaceEmbedding, $$FaceEmbeddingsTableReferences),
+    FaceEmbedding,
+    PrefetchHooks Function({bool userId})> {
+  $$FaceEmbeddingsTableTableManager(
+      _$AppDatabase db, $FaceEmbeddingsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FaceEmbeddingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FaceEmbeddingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FaceEmbeddingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> userId = const Value.absent(),
+            Value<String> frontData = const Value.absent(),
+            Value<String> leftData = const Value.absent(),
+            Value<String> rightData = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+          }) =>
+              FaceEmbeddingsCompanion(
+            id: id,
+            userId: userId,
+            frontData: frontData,
+            leftData: leftData,
+            rightData: rightData,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int userId,
+            required String frontData,
+            required String leftData,
+            required String rightData,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+          }) =>
+              FaceEmbeddingsCompanion.insert(
+            id: id,
+            userId: userId,
+            frontData: frontData,
+            leftData: leftData,
+            rightData: rightData,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$FaceEmbeddingsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({userId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (userId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.userId,
+                    referencedTable:
+                        $$FaceEmbeddingsTableReferences._userIdTable(db),
+                    referencedColumn:
+                        $$FaceEmbeddingsTableReferences._userIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$FaceEmbeddingsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $FaceEmbeddingsTable,
+    FaceEmbedding,
+    $$FaceEmbeddingsTableFilterComposer,
+    $$FaceEmbeddingsTableOrderingComposer,
+    $$FaceEmbeddingsTableAnnotationComposer,
+    $$FaceEmbeddingsTableCreateCompanionBuilder,
+    $$FaceEmbeddingsTableUpdateCompanionBuilder,
+    (FaceEmbedding, $$FaceEmbeddingsTableReferences),
+    FaceEmbedding,
+    PrefetchHooks Function({bool userId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -55823,4 +56574,6 @@ class $AppDatabaseManager {
       $$BehaviorReportsTableTableManager(_db, _db.behaviorReports);
   $$ConfusionLogsTableTableManager get confusionLogs =>
       $$ConfusionLogsTableTableManager(_db, _db.confusionLogs);
+  $$FaceEmbeddingsTableTableManager get faceEmbeddings =>
+      $$FaceEmbeddingsTableTableManager(_db, _db.faceEmbeddings);
 }

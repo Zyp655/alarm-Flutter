@@ -4,6 +4,8 @@ class ConfusionDetector {
   int _skipCount = 0;
   String _lastEmotion = 'neutral';
   double _lastEmotionConfidence = 0;
+  bool _gazeStill = false;
+  bool _eyeLocked = false;
   DateTime? _lastTriggerTime;
   final void Function() onConfusionDetected;
 
@@ -25,9 +27,11 @@ class ConfusionDetector {
     _evaluate();
   }
 
-  void updateEmotion(String emotion, double confidence) {
+  void updateEmotion(String emotion, double confidence, {bool gazeStill = false, bool eyeLocked = false}) {
     _lastEmotion = emotion;
     _lastEmotionConfidence = confidence;
+    _gazeStill = gazeStill;
+    _eyeLocked = eyeLocked;
     _evaluate();
   }
 
@@ -64,6 +68,16 @@ class ConfusionDetector {
       }
     }
 
+    if (_gazeStill && _eyeLocked) {
+      if (_lastEmotion == 'confused' || _lastEmotion == 'frustrated') {
+        score += 15;
+      }
+    } else if (_gazeStill) {
+      if (_lastEmotion == 'confused' || _lastEmotion == 'frustrated') {
+        score += 8;
+      }
+    }
+
     if (score >= _threshold) {
       _lastTriggerTime = DateTime.now();
       _pauseCount = 0;
@@ -79,6 +93,8 @@ class ConfusionDetector {
     _skipCount = 0;
     _lastEmotion = 'neutral';
     _lastEmotionConfidence = 0;
+    _gazeStill = false;
+    _eyeLocked = false;
     _lastTriggerTime = null;
   }
 }

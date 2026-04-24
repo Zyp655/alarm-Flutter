@@ -60,6 +60,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
             'role': user.role,
             'studentId': studentProfile?.studentId,
             'major': studentProfile?.major,
+            'academicYear': studentProfile?.academicYear,
             'avatarUrl': studentProfile?.avatarUrl,
             'className': className,
           },
@@ -133,6 +134,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
               StudentProfilesCompanion(
                 studentId: Value(body['studentId'] as String?),
                 major: Value(body['major'] as String?),
+                academicYear: Value(body['academicYear'] as String?),
                 avatarUrl: Value(body['avatarUrl'] as String?),
               ),
             );
@@ -143,6 +145,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
                     fullName: body['fullName'] as String? ?? '',
                     studentId: Value(body['studentId'] as String?),
                     major: Value(body['major'] as String?),
+                    academicYear: Value(body['academicYear'] as String?),
                     avatarUrl: Value(body['avatarUrl'] as String?),
                   ),
                 );

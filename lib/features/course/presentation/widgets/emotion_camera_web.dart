@@ -14,8 +14,8 @@ external JSPromise<JSBoolean?> _jsCamInit();
 @JS('EmotionCam.getVideo')
 external JSObject? _jsCamGetVideo();
 
-@JS('EmotionCam.detect')
-external JSPromise<JSString?> _jsCamDetect();
+@JS('EmotionCam.startLoop')
+external void _jsCamStartLoop();
 
 @JS('EmotionCam.capture')
 external JSString? _jsCamCapture();
@@ -23,24 +23,51 @@ external JSString? _jsCamCapture();
 @JS('EmotionCam.stop')
 external void _jsCamStop();
 
+@JS('window.addEventListener')
+external void _jsAddEventListener(JSString type, JSFunction callback);
+
+@JS('window.removeEventListener')
+external void _jsRemoveEventListener(JSString type, JSFunction callback);
+
+extension type _EmotionEvent(JSObject _) implements JSObject {
+  external JSString? get type;
+  external JSObject? get data;
+}
+
+extension type _EmotionData(JSObject _) implements JSObject {
+  external JSString? get type;
+  external JSString? get emotion;
+  external JSNumber? get confidence;
+  external JSBoolean? get gazeStill;
+  external JSBoolean? get eyeLocked;
+}
+
 class PlatformCamera {
   bool _initialized = false;
   bool _faceApiReady = false;
   String? _viewId;
-  Timer? _detectTimer;
+  JSFunction? _jsListener;
 
   String _lastEmotion = 'neutral';
   double _lastConfidence = 0;
   int _negativeStreak = 0;
   bool _needsConfirmation = false;
+  bool _gazeStill = false;
+  bool _eyeLocked = false;
   void Function(String emotion, double confidence)? onLocalDetection;
+  void Function(bool isOwner)? onIdentityCheck;
 
   bool get isInitialized => _initialized;
   bool get needsOpenAiConfirmation => _needsConfirmation;
   String get lastEmotion => _lastEmotion;
   double get lastConfidence => _lastConfidence;
+  bool get gazeStill => _gazeStill;
+  bool get eyeLocked => _eyeLocked;
 
   void resetConfirmationFlag() => _needsConfirmation = false;
+  void setupVerificationGuard(int userId) {}
+  void startVerificationStream() {}
+  void stopVerificationStream() {}
 
   Future<void> initialize() async {
     final camOk = await _jsCamInit().toDart;
@@ -71,41 +98,59 @@ class PlatformCamera {
     }
 
     if (_faceApiReady) {
-      _detectTimer = Timer.periodic(
-        const Duration(milliseconds: 500),
-        (_) => _detectLocal(),
-      );
+      _listenToJsEvents();
+      _jsCamStartLoop();
+      debugPrint('[EmotionCamera] Real-time JS loop started');
     }
   }
 
-  Future<void> _detectLocal() async {
-    if (!_faceApiReady || !_initialized) return;
+  void _listenToJsEvents() {
+    _jsListener = ((JSObject event) {
+      try {
+        final msgEvent = event as _EmotionEvent;
+        final data = msgEvent.data;
+        if (data == null) return;
 
-    try {
-      final result = await _jsCamDetect().toDart;
-      if (result == null) return;
+        final emotionData = data as _EmotionData;
+        final type = emotionData.type?.toDart;
+        if (type != 'emotion_event') return;
 
-      final data = jsonDecode(result.toDart) as Map<String, dynamic>;
-      final emotion = data['emotion'] as String? ?? 'neutral';
-      final confidence = (data['confidence'] as num?)?.toDouble() ?? 0;
+        final emotion = emotionData.emotion?.toDart ?? 'neutral';
+        final confidence = emotionData.confidence?.toDartDouble ?? 0.0;
+        _gazeStill = emotionData.gazeStill?.toDart ?? false;
+        _eyeLocked = emotionData.eyeLocked?.toDart ?? false;
 
-      _lastEmotion = _mapEmotion(emotion);
-      _lastConfidence = confidence;
+        _processEmotion(emotion, confidence);
+      } catch (_) {}
+    }).toJS;
 
-      onLocalDetection?.call(_lastEmotion, _lastConfidence);
+    _jsAddEventListener('message'.toJS, _jsListener!);
+  }
 
-      if (_isNegativeEmotion(_lastEmotion) && _lastConfidence >= 0.3) {
-        _negativeStreak++;
-      } else {
-        _negativeStreak = 0;
-      }
+  void _processEmotion(String emotion, double confidence) {
+    if (!_initialized) return;
 
-      if (_negativeStreak >= 6) {
-        _needsConfirmation = true;
-        _negativeStreak = 0;
-      }
-    } catch (e) {
-      debugPrint('[EmotionCamera] Detection error: $e');
+    if (emotion == 'no_face') {
+      _lastEmotion = 'no_face';
+      _lastConfidence = 0;
+      onLocalDetection?.call('no_face', 0);
+      return;
+    }
+
+    _lastEmotion = _mapEmotion(emotion);
+    _lastConfidence = confidence;
+
+    onLocalDetection?.call(_lastEmotion, _lastConfidence);
+
+    if (_isNegativeEmotion(_lastEmotion) && _lastConfidence >= 0.3) {
+      _negativeStreak++;
+    } else {
+      _negativeStreak = 0;
+    }
+
+    if (_negativeStreak >= 6) {
+      _needsConfirmation = true;
+      _negativeStreak = 0;
     }
   }
 
@@ -151,8 +196,10 @@ class PlatformCamera {
   }
 
   void dispose() {
-    _detectTimer?.cancel();
-    _detectTimer = null;
+    if (_jsListener != null) {
+      _jsRemoveEventListener('message'.toJS, _jsListener!);
+      _jsListener = null;
+    }
     _jsCamStop();
     _initialized = false;
     _faceApiReady = false;

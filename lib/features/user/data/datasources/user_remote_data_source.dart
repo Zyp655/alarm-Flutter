@@ -53,6 +53,8 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       studentId: user.studentId,
       department: user.department,
       teacherId: user.teacherId,
+      major: user.major,
+      academicYear: user.academicYear,
     );
 
     final headers = await _getHeaders();

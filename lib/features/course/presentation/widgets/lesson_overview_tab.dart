@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../bloc/ai_assistant_bloc.dart';
 import '../widgets/ai_chat_sheet.dart';
@@ -77,7 +79,26 @@ class LessonOverviewTab extends StatelessWidget {
           icon: Icons.smart_toy_rounded,
           label: 'Hỏi AI',
           color: AppColors.accent,
-          onTap: () {
+          onTap: () async {
+            String? imageBase64;
+            if (videoController != null && lesson.contentUrl != null) {
+              try {
+                final timeMs = videoController!.value.position.inMilliseconds;
+                final uint8list = await VideoThumbnail.thumbnailData(
+                  video: lesson.contentUrl!,
+                  imageFormat: ImageFormat.JPEG,
+                  maxWidth: 800,
+                  quality: 50,
+                  timeMs: timeMs,
+                );
+                if (uint8list != null) {
+                  imageBase64 = base64Encode(uint8list);
+                }
+              } catch (_) {}
+            }
+
+            if (!context.mounted) return;
+
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
@@ -90,6 +111,7 @@ class LessonOverviewTab extends StatelessWidget {
                   contentUrl: lesson.contentUrl,
                   lessonId: lesson.id,
                   userId: userId,
+                  imageBase64: imageBase64,
                 ),
               ),
             );

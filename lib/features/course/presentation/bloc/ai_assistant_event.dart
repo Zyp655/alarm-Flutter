@@ -14,6 +14,7 @@ class AskAiQuestion extends AiAssistantEvent {
   final int? userId;
   final int? lessonId;
   final String? persona;
+  final String? imageBase64;
 
   const AskAiQuestion({
     required this.lessonTitle,
@@ -22,10 +23,11 @@ class AskAiQuestion extends AiAssistantEvent {
     this.userId,
     this.lessonId,
     this.persona,
+    this.imageBase64,
   });
 
   @override
-  List<Object?> get props => [lessonTitle, textContent, question, userId, lessonId, persona];
+  List<Object?> get props => [lessonTitle, textContent, question, userId, lessonId, persona, imageBase64];
 }
 
 class SummarizeLesson extends AiAssistantEvent {

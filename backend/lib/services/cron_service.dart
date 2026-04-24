@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:backend/database/database.dart';
 import 'package:backend/helpers/log.dart';
+import 'package:backend/helpers/env_helper.dart';
 import 'package:backend/services/attendance_engine.dart';
 import 'package:backend/services/notification_engine.dart';
+import 'package:backend/services/embedding_service.dart';
 
 class CronService {
   final AppDatabase db;
@@ -56,6 +58,9 @@ class CronService {
       final yesterday = now.subtract(const Duration(days: 1));
       await _runJob('finalize_attendance',
           () => _attendanceEngine.finalizeDay(yesterday));
+    } else if (hour == 3 && minute < 5) {
+      _lastHourRun = hour;
+      await _runJob('embed_sync', _runEmbeddingSync);
     }
   }
 
@@ -82,8 +87,22 @@ class CronService {
         await _notificationEngine.sendUrgentReminder(now);
       case 'finalize_attendance':
         await _attendanceEngine.finalizeDay(now);
+      case 'embed_sync':
+        await _runEmbeddingSync();
       default:
         throw ArgumentError('Unknown job: $jobName');
     }
+  }
+
+  Future<void> _runEmbeddingSync() async {
+    final env = loadEnv();
+    final apiKey = env['OPENAI_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      Log.warning('Cron', 'embed_sync skipped: no OPENAI_API_KEY');
+      return;
+    }
+    final embeddingService = EmbeddingService(openaiApiKey: apiKey, db: db);
+    final result = await embeddingService.embedAllMissing();
+    Log.info('Cron', 'embed_sync done: $result');
   }
 }

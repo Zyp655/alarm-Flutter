@@ -11,11 +11,12 @@ import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class _ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
   final DateTime timestamp;
+  bool isStreaming;
 
-  _ChatMessage({required this.text, required this.isUser})
+  _ChatMessage({required this.text, required this.isUser, this.isStreaming = false})
     : timestamp = DateTime.now();
 }
 
@@ -37,6 +38,7 @@ class _AiAssistantPageState extends State<AiAssistantPage>
   bool _isLoading = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
+  StreamSubscription? _streamSub;
   late AnimationController _pulseController;
 
   @override
@@ -58,6 +60,7 @@ class _AiAssistantPageState extends State<AiAssistantPage>
 
   @override
   void dispose() {
+    _streamSub?.cancel();
     _pulseController.dispose();
     _messageController.dispose();
     _scrollController.dispose();
@@ -66,11 +69,11 @@ class _AiAssistantPageState extends State<AiAssistantPage>
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 50), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent + 80,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -91,51 +94,116 @@ class _AiAssistantPageState extends State<AiAssistantPage>
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/ai/assistant'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'question': text, 'history': _history}),
+
+      final aiMessage = _ChatMessage(text: '', isUser: false, isStreaming: true);
+      setState(() => _messages.add(aiMessage));
+      _scrollToBottom();
+
+      final request = http.Request(
+        'POST',
+        Uri.parse('${ApiConstants.baseUrl}/ai/stream-assistant'),
       );
+      request.headers['Content-Type'] = 'application/json';
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      request.body = jsonEncode({'question': text, 'history': _history});
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final answer = data['answer'] as String;
+      final client = http.Client();
+      final streamedResponse = await client.send(request);
 
-        _history.add({'role': 'user', 'content': text});
-        _history.add({'role': 'assistant', 'content': answer});
+      if (streamedResponse.statusCode == 200) {
+        final completer = Completer<void>();
+        var buffer = '';
 
-        if (_history.length > 20) {
-          _history.removeRange(0, 2);
-        }
+        _streamSub = streamedResponse.stream
+            .transform(utf8.decoder)
+            .listen(
+          (chunk) {
+            buffer += chunk;
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast();
 
+            for (final line in lines) {
+              final trimmed = line.trim();
+              if (trimmed.isEmpty || !trimmed.startsWith('data: ')) continue;
+              final data = trimmed.substring(6);
+
+              if (data == '[DONE]') {
+                setState(() {
+                  aiMessage.isStreaming = false;
+                  _isLoading = false;
+                });
+                _history.add({'role': 'user', 'content': text});
+                _history.add({'role': 'assistant', 'content': aiMessage.text});
+                if (_history.length > 20) _history.removeRange(0, 2);
+                return;
+              }
+
+              try {
+                final json = jsonDecode(data) as Map<String, dynamic>;
+                if (json.containsKey('token')) {
+                  setState(() {
+                    aiMessage.text += json['token'] as String;
+                  });
+                  _scrollToBottom();
+                }
+              } catch (_) {}
+            }
+          },
+          onDone: () {
+            if (aiMessage.isStreaming) {
+              setState(() {
+                aiMessage.isStreaming = false;
+                _isLoading = false;
+              });
+              if (aiMessage.text.isNotEmpty) {
+                _history.add({'role': 'user', 'content': text});
+                _history.add({'role': 'assistant', 'content': aiMessage.text});
+                if (_history.length > 20) _history.removeRange(0, 2);
+              }
+            }
+            client.close();
+            if (!completer.isCompleted) completer.complete();
+          },
+          onError: (e) {
+            setState(() {
+              aiMessage.text = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.';
+              aiMessage.isStreaming = false;
+              _isLoading = false;
+            });
+            client.close();
+            if (!completer.isCompleted) completer.complete();
+          },
+        );
+
+        await completer.future;
+      } else {
         setState(() {
-          _messages.add(_ChatMessage(text: answer, isUser: false));
+          aiMessage.text = 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.';
+          aiMessage.isStreaming = false;
+          _isLoading = false;
+        });
+        client.close();
+      }
+    } catch (e) {
+      if (_messages.isNotEmpty && _messages.last.isStreaming) {
+        setState(() {
+          _messages.last.text = 'Không thể kết nối đến server. Kiểm tra lại mạng.';
+          _messages.last.isStreaming = false;
           _isLoading = false;
         });
       } else {
         setState(() {
           _messages.add(
             _ChatMessage(
-              text: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
+              text: 'Không thể kết nối đến server. Kiểm tra lại mạng.',
               isUser: false,
             ),
           );
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _messages.add(
-          _ChatMessage(
-            text: 'Không thể kết nối đến server. Kiểm tra lại mạng.',
-            isUser: false,
-          ),
-        );
-        _isLoading = false;
-      });
     }
     _scrollToBottom();
   }
@@ -259,7 +327,7 @@ class _AiAssistantPageState extends State<AiAssistantPage>
                   ),
                   Text(
                     _isLoading
-                        ? 'Đang suy nghĩ...'
+                        ? 'Đang trả lời...'
                         : _isTranscribing
                         ? 'Đang nhận diện giọng nói...'
                         : 'Sẵn sàng hỗ trợ',
@@ -282,9 +350,11 @@ class _AiAssistantPageState extends State<AiAssistantPage>
           IconButton(
             icon: Icon(Icons.delete_outline, color: subTextColor),
             onPressed: () {
+              _streamSub?.cancel();
               setState(() {
                 _messages.clear();
                 _history.clear();
+                _isLoading = false;
                 _messages.add(
                   _ChatMessage(
                     text:
@@ -304,12 +374,12 @@ class _AiAssistantPageState extends State<AiAssistantPage>
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
+              itemCount: _messages.length,
               itemBuilder: (context, index) {
-                if (index == _messages.length && _isLoading) {
+                final msg = _messages[index];
+                if (msg.isStreaming && msg.text.isEmpty) {
                   return _buildTypingIndicator(isDark);
                 }
-                final msg = _messages[index];
                 return _buildMessageBubble(
                   msg,
                   isDark,
@@ -486,7 +556,7 @@ class _AiAssistantPageState extends State<AiAssistantPage>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   SelectableText(
-                    msg.text,
+                    msg.text + (msg.isStreaming ? '▊' : ''),
                     style: TextStyle(
                       color: isMe ? Colors.white : textColor,
                       fontSize: 15,

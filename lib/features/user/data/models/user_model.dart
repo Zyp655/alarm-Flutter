@@ -11,6 +11,8 @@ class UserModel extends UserEntityExtended {
     String? studentId,
     String? department,
     String? teacherId,
+    String? major,
+    String? academicYear,
   }) : super(
          id: id,
          email: email,
@@ -21,6 +23,8 @@ class UserModel extends UserEntityExtended {
          studentId: studentId,
          department: department,
          teacherId: teacherId,
+         major: major,
+         academicYear: academicYear,
        );
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +38,8 @@ class UserModel extends UserEntityExtended {
       studentId: json['studentId'],
       department: json['department'],
       teacherId: json['teacherId'],
+      major: json['major'],
+      academicYear: json['academicYear'],
     );
   }
 
@@ -48,6 +54,8 @@ class UserModel extends UserEntityExtended {
       'studentId': studentId,
       'department': department,
       'teacherId': teacherId,
+      'major': major,
+      'academicYear': academicYear,
     };
   }
 }

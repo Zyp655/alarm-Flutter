@@ -43,6 +43,7 @@ Future<Response> onRequest(RequestContext context) async {
         'fullName': profile.fullName,
         'studentId': profile.studentId,
         'major': profile.major,
+        'academicYear': profile.academicYear,
         'avatarUrl': profile.avatarUrl,
       });
     }
@@ -82,6 +83,7 @@ Future<Response> onRequest(RequestContext context) async {
         body['fullName'] as String,
         body['studentId'] as String? ?? '',
         body['major'] as String? ?? '',
+        body['academicYear'] as String? ?? '',
       );
       return Response.json(body: {'message': 'Cập nhật hồ sơ thành công'});
     }

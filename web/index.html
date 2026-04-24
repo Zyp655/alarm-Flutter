@@ -40,8 +40,11 @@
       if (_faceApiReady) return true;
       try {
         const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model/';
-        await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
-        await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl),
+          faceapi.nets.faceExpressionNet.loadFromUri(modelUrl),
+          faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
+        ]);
         _faceApiReady = true;
         return true;
       } catch(e) {
@@ -49,43 +52,46 @@
         return false;
       }
     }
-    async function detectExpression(videoElement) {
-      if (!_faceApiReady || !videoElement) return null;
-      try {
-        const detection = await faceapi
-          .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({inputSize: 160, scoreThreshold: 0.3}))
-          .withFaceExpressions();
-        if (!detection) return null;
-        const expr = detection.expressions;
-        let maxEmotion = 'neutral';
-        let maxConf = 0;
-        for (const [emotion, confidence] of Object.entries(expr)) {
-          if (confidence > maxConf) { maxConf = confidence; maxEmotion = emotion; }
-        }
-        return JSON.stringify({emotion: maxEmotion, confidence: maxConf});
-      } catch(e) {
-        return null;
-      }
-    }
-    async function captureFrame(videoElement) {
-      if (!videoElement) return null;
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-        canvas.getContext('2d').drawImage(videoElement, 0, 0);
-        return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-      } catch(e) {
-        return null;
-      }
-    }
+
     var EmotionCam = {
       video: null,
       stream: null,
+      _loopRunning: false,
+      _rafId: null,
+      _lastDetectTime: 0,
+      _detectIntervalMs: 100,
+      _detecting: false,
+
+      _emaAlpha: 0.15,
+      _ema: { neutral: 1, happy: 0, sad: 0, angry: 0, fearful: 0, disgusted: 0, surprised: 0 },
+      _noFaceCount: 0,
+      _noFaceEmaThreshold: 5,
+      _lastEmittedEmotion: '',
+      _lastEmittedConfidence: 0,
+      _frameCount: 0,
+
+      _smoothedEmotion: 'neutral',
+      _smoothedConfidence: 0,
+
+      _preprocessCanvas: null,
+      _preprocessCtx: null,
+      _adaptiveBrightnessTarget: 130,
+      _adaptiveContrastFloor: 1.2,
+      _adaptiveContrastCeil: 1.8,
+
+      _noseTipHistory: [],
+      _noseTipHistoryMax: 15,
+      _eyeAspectRatioHistory: [],
+      _earHistoryMax: 15,
+      _gazeStillnessThreshold: 3.5,
+      _eyeLockedThreshold: 0.22,
+      _isGazeStill: false,
+      _isEyeLocked: false,
+
       init: async function() {
         try {
           this.stream = await navigator.mediaDevices.getUserMedia({
-            video: {facingMode: 'user', width: {ideal: 160}, height: {ideal: 120}},
+            video: {facingMode: 'user', width: {ideal: 320}, height: {ideal: 240}},
             audio: false
           });
           this.video = document.createElement('video');
@@ -98,43 +104,266 @@
           this.video.style.objectFit = 'cover';
           this.video.style.transform = 'scaleX(-1)';
           await this.video.play();
-          console.log('[EmotionCam] Camera initialized');
+
+          this._preprocessCanvas = document.createElement('canvas');
+          this._preprocessCtx = this._preprocessCanvas.getContext('2d', { willReadFrequently: true });
+
+          console.log('[EmotionCam] Camera initialized (320x240) + Light Preprocessing + Gaze Tracking');
           return true;
         } catch(e) {
           console.error('[EmotionCam] Init error:', e);
           return false;
         }
       },
+
       getVideo: function() { return this.video; },
-      detect: async function() {
-        if (!_faceApiReady || !this.video) return null;
-        try {
-          var det = await faceapi
-            .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({inputSize: 160, scoreThreshold: 0.2}))
-            .withFaceExpressions();
-          if (!det) return null;
-          var e = det.expressions;
-          var confusionScore = (e.sad || 0) * 1.2 + (e.fearful || 0) * 1.0 + (e.surprised || 0) * 0.8 + (e.angry || 0) * 0.6 + (e.disgusted || 0) * 0.5;
-          var neutralScore = e.neutral || 0;
-          var happyScore = e.happy || 0;
-          if (happyScore > 0.5) return JSON.stringify({emotion: 'happy', confidence: happyScore});
-          if (confusionScore > 0.25 && neutralScore < 0.7) return JSON.stringify({emotion: 'confused', confidence: Math.min(confusionScore * 1.5, 1.0)});
-          if ((e.angry || 0) > 0.3) return JSON.stringify({emotion: 'angry', confidence: e.angry});
-          if (confusionScore > 0.15 && neutralScore < 0.5) return JSON.stringify({emotion: 'confused', confidence: confusionScore * 1.2});
-          return JSON.stringify({emotion: 'neutral', confidence: neutralScore});
-        } catch(e) { return null; }
+
+      _preprocessFrame: function() {
+        if (!this.video || !this._preprocessCtx) return this.video;
+        var w = this.video.videoWidth || 320;
+        var h = this.video.videoHeight || 240;
+        this._preprocessCanvas.width = w;
+        this._preprocessCanvas.height = h;
+        var ctx = this._preprocessCtx;
+
+        ctx.drawImage(this.video, 0, 0, w, h);
+        var imageData = ctx.getImageData(0, 0, w, h);
+        var data = imageData.data;
+
+        var totalLum = 0;
+        var sampleStep = 16;
+        var sampleCount = 0;
+        for (var s = 0; s < data.length; s += sampleStep * 4) {
+          totalLum += data[s] * 0.299 + data[s+1] * 0.587 + data[s+2] * 0.114;
+          sampleCount++;
+        }
+        var avgLum = totalLum / sampleCount;
+
+        if (avgLum > 100) return this._preprocessCanvas;
+
+        var brightnessRatio = this._adaptiveBrightnessTarget / Math.max(avgLum, 1);
+        brightnessRatio = Math.min(brightnessRatio, 2.5);
+        var contrastLevel = this._adaptiveContrastFloor +
+          (this._adaptiveContrastCeil - this._adaptiveContrastFloor) *
+          Math.min((100 - avgLum) / 100, 1.0);
+        var factor = (259 * (contrastLevel * 128 + 255)) / (255 * (259 - contrastLevel * 128));
+
+        for (var i = 0; i < data.length; i += 4) {
+          data[i]     = Math.min(255, Math.max(0, factor * (data[i]     * brightnessRatio - 128) + 128));
+          data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] * brightnessRatio - 128) + 128));
+          data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] * brightnessRatio - 128) + 128));
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        return this._preprocessCanvas;
       },
+
+      _eyeAspectRatio: function(eyePoints) {
+        var v1 = Math.hypot(eyePoints[1].x - eyePoints[5].x, eyePoints[1].y - eyePoints[5].y);
+        var v2 = Math.hypot(eyePoints[2].x - eyePoints[4].x, eyePoints[2].y - eyePoints[4].y);
+        var h  = Math.hypot(eyePoints[0].x - eyePoints[3].x, eyePoints[0].y - eyePoints[3].y);
+        return (h > 0) ? (v1 + v2) / (2.0 * h) : 0;
+      },
+
+      _processLandmarks: function(landmarks) {
+        var positions = landmarks.positions;
+        var noseTip = positions[30];
+
+        this._noseTipHistory.push({ x: noseTip.x, y: noseTip.y });
+        if (this._noseTipHistory.length > this._noseTipHistoryMax) {
+          this._noseTipHistory.shift();
+        }
+
+        if (this._noseTipHistory.length >= 5) {
+          var recent = this._noseTipHistory.slice(-5);
+          var avgX = 0, avgY = 0;
+          for (var i = 0; i < recent.length; i++) { avgX += recent[i].x; avgY += recent[i].y; }
+          avgX /= recent.length; avgY /= recent.length;
+          var maxDrift = 0;
+          for (var i = 0; i < recent.length; i++) {
+            var d = Math.hypot(recent[i].x - avgX, recent[i].y - avgY);
+            if (d > maxDrift) maxDrift = d;
+          }
+          this._isGazeStill = maxDrift < this._gazeStillnessThreshold;
+        }
+
+        var leftEye = [];
+        for (var i = 36; i <= 41; i++) leftEye.push(positions[i]);
+        var rightEye = [];
+        for (var i = 42; i <= 47; i++) rightEye.push(positions[i]);
+
+        var earLeft = this._eyeAspectRatio(leftEye);
+        var earRight = this._eyeAspectRatio(rightEye);
+        var earAvg = (earLeft + earRight) / 2.0;
+
+        this._eyeAspectRatioHistory.push(earAvg);
+        if (this._eyeAspectRatioHistory.length > this._earHistoryMax) {
+          this._eyeAspectRatioHistory.shift();
+        }
+
+        if (this._eyeAspectRatioHistory.length >= 5) {
+          var earRecent = this._eyeAspectRatioHistory.slice(-5);
+          var earSum = 0;
+          for (var i = 0; i < earRecent.length; i++) earSum += earRecent[i];
+          var earMean = earSum / earRecent.length;
+          var earVariance = 0;
+          for (var i = 0; i < earRecent.length; i++) {
+            earVariance += Math.pow(earRecent[i] - earMean, 2);
+          }
+          earVariance /= earRecent.length;
+          this._isEyeLocked = earAvg > this._eyeLockedThreshold && earVariance < 0.002;
+        }
+
+        return { gazeStill: this._isGazeStill, eyeLocked: this._isEyeLocked, earAvg: earAvg };
+      },
+
+      startLoop: function() {
+        if (this._loopRunning) return;
+        this._loopRunning = true;
+        this._lastDetectTime = 0;
+        this._frameCount = 0;
+        this._noFaceCount = 0;
+        this._ema = { neutral: 1, happy: 0, sad: 0, angry: 0, fearful: 0, disgusted: 0, surprised: 0 };
+        this._lastEmittedEmotion = '';
+        this._noseTipHistory = [];
+        this._eyeAspectRatioHistory = [];
+        this._isGazeStill = false;
+        this._isEyeLocked = false;
+        console.log('[EmotionCam] Real-time loop started (~10fps SSD + EMA + Gaze + AdaptiveLight)');
+        var self = this;
+        function loop(ts) {
+          if (!self._loopRunning) return;
+          self._rafId = requestAnimationFrame(loop);
+          if (ts - self._lastDetectTime < self._detectIntervalMs) return;
+          self._lastDetectTime = ts;
+          if (!self._detecting) {
+            self._detecting = true;
+            self._runDetection().then(function() { self._detecting = false; });
+          }
+        }
+        this._rafId = requestAnimationFrame(loop);
+      },
+
+      stopLoop: function() {
+        this._loopRunning = false;
+        if (this._rafId) {
+          cancelAnimationFrame(this._rafId);
+          this._rafId = null;
+        }
+      },
+
+      _runDetection: async function() {
+        if (!_faceApiReady || !this.video) return;
+        try {
+          var inputSource = this._preprocessFrame();
+
+          var det = await faceapi
+            .detectSingleFace(inputSource, new faceapi.SsdMobilenetv1Options({minConfidence: 0.3}))
+            .withFaceLandmarks()
+            .withFaceExpressions();
+
+          if (!det) {
+            this._noFaceCount++;
+            if (this._noFaceCount >= this._noFaceEmaThreshold) {
+              this._emitIfChanged('no_face', 0, null);
+            }
+            return;
+          }
+
+          this._noFaceCount = 0;
+          var expr = det.expressions;
+          var gazeData = this._processLandmarks(det.landmarks);
+          var a = this._emaAlpha;
+
+          this._ema.neutral  = a * (expr.neutral  || 0) + (1 - a) * this._ema.neutral;
+          this._ema.happy    = a * (expr.happy    || 0) + (1 - a) * this._ema.happy;
+          this._ema.sad      = a * (expr.sad      || 0) + (1 - a) * this._ema.sad;
+          this._ema.angry    = a * (expr.angry    || 0) + (1 - a) * this._ema.angry;
+          this._ema.fearful  = a * (expr.fearful  || 0) + (1 - a) * this._ema.fearful;
+          this._ema.disgusted= a * (expr.disgusted|| 0) + (1 - a) * this._ema.disgusted;
+          this._ema.surprised= a * (expr.surprised|| 0) + (1 - a) * this._ema.surprised;
+
+          this._frameCount++;
+          if (this._frameCount < 3) return;
+
+          var e = this._ema;
+          var confusionScore = e.sad * 1.2 + e.fearful * 1.0 + e.surprised * 0.8 + e.angry * 0.6 + e.disgusted * 0.5;
+          var emotion = 'neutral';
+          var confidence = e.neutral;
+
+          var gazeBoost = 1.0;
+          if (gazeData.gazeStill && gazeData.eyeLocked) {
+            gazeBoost = 1.6;
+          } else if (gazeData.gazeStill) {
+            gazeBoost = 1.3;
+          } else if (gazeData.eyeLocked) {
+            gazeBoost = 1.15;
+          }
+
+          if (e.happy > 0.4) {
+            emotion = 'happy';
+            confidence = e.happy;
+          } else if (confusionScore > 0.25 && e.neutral < 0.6) {
+            emotion = 'confused';
+            confidence = Math.min(confusionScore * 1.5 * gazeBoost, 1.0);
+          } else if (e.angry > 0.25) {
+            emotion = 'frustrated';
+            confidence = e.angry;
+          } else if (confusionScore > 0.15 && e.neutral < 0.45) {
+            emotion = 'confused';
+            confidence = Math.min(confusionScore * 1.2 * gazeBoost, 1.0);
+          } else if (confusionScore > 0.10 && gazeData.gazeStill && gazeData.eyeLocked && e.neutral < 0.7) {
+            emotion = 'confused';
+            confidence = Math.min(confusionScore * gazeBoost, 1.0);
+          }
+
+          this._smoothedEmotion = emotion;
+          this._smoothedConfidence = confidence;
+          this._emitIfChanged(emotion, confidence, gazeData);
+        } catch(err) {}
+      },
+
+      _emitIfChanged: function(emotion, confidence, gazeData) {
+        var changed = emotion !== this._lastEmittedEmotion;
+        var bigDelta = Math.abs(confidence - this._lastEmittedConfidence) > 0.15;
+        if (!changed && !bigDelta) return;
+
+        this._lastEmittedEmotion = emotion;
+        this._lastEmittedConfidence = confidence;
+        var msg = {
+          type: 'emotion_event',
+          emotion: emotion,
+          confidence: confidence
+        };
+        if (gazeData) {
+          msg.gazeStill = gazeData.gazeStill;
+          msg.eyeLocked = gazeData.eyeLocked;
+        }
+        window.postMessage(msg, '*');
+      },
+
+      detect: async function() {
+        return JSON.stringify({
+          emotion: this._smoothedEmotion || 'neutral',
+          confidence: this._smoothedConfidence || 0,
+          gazeStill: this._isGazeStill,
+          eyeLocked: this._isEyeLocked
+        });
+      },
+
       capture: function() {
         if (!this.video) return null;
         try {
           var c = document.createElement('canvas');
-          c.width = this.video.videoWidth || 160;
-          c.height = this.video.videoHeight || 120;
+          c.width = this.video.videoWidth || 320;
+          c.height = this.video.videoHeight || 240;
           c.getContext('2d').drawImage(this.video, 0, 0);
           return c.toDataURL('image/jpeg', 0.7).split(',')[1];
         } catch(e) { return null; }
       },
+
       stop: function() {
+        this.stopLoop();
         if (this.stream) {
           this.stream.getTracks().forEach(function(t) { t.stop(); });
           this.stream = null;
@@ -144,6 +373,16 @@
           this.video.srcObject = null;
           this.video = null;
         }
+        this._ema = { neutral: 1, happy: 0, sad: 0, angry: 0, fearful: 0, disgusted: 0, surprised: 0 };
+        this._noFaceCount = 0;
+        this._frameCount = 0;
+        this._lastEmittedEmotion = '';
+        this._noseTipHistory = [];
+        this._eyeAspectRatioHistory = [];
+        this._isGazeStill = false;
+        this._isEyeLocked = false;
+        this._preprocessCanvas = null;
+        this._preprocessCtx = null;
         console.log('[EmotionCam] Stopped');
       }
     };

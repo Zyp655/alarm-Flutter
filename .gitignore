@@ -55,3 +55,10 @@ backend/uploads/videos/
 .agent/
 .agents/
 .gemini/
+
+# Machine Learning Data
+scripts/confusion_model/frames/
+scripts/confusion_model/frames_v2/
+scripts/confusion_model/output/
+scripts/confusion_model/output_v3/
+scripts/confusion_model/*.zip

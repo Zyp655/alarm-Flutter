@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/database/database.dart';
 import 'package:backend/services/ai_service.dart';
+import 'package:backend/services/cache_service.dart';
 import 'package:drift/drift.dart';
 import 'package:backend/helpers/env_helper.dart';
 
@@ -21,6 +22,14 @@ Future<Response> onRequest(RequestContext context) async {
         statusCode: HttpStatus.badRequest,
         body: {'error': 'userId is required'},
       );
+    }
+
+    final cache = CacheService(db);
+    final cacheParams = {'userId': userId};
+    final cached = await cache.getAiCache('recommend', cacheParams);
+    if (cached != null) {
+      cached['cached'] = true;
+      return Response.json(body: cached);
     }
 
     final enrollments = await (db.select(db.enrollments)
@@ -125,7 +134,9 @@ Trả về JSON (KHÔNG có markdown):
         aiResult = null;
       }
 
-      return _buildResponse(incompleteLessons, weakTopics, strongTopics, aiResult);
+      final result = _buildResponseMap(incompleteLessons, weakTopics, strongTopics, aiResult);
+      await cache.setAiCache('recommend', cacheParams, result, ttlSeconds: 120);
+      return Response.json(body: result);
     } catch (_) {
       return _buildResponse(incompleteLessons, weakTopics, strongTopics, null);
     }
@@ -137,7 +148,7 @@ Trả về JSON (KHÔNG có markdown):
   }
 }
 
-Response _buildResponse(
+Map<String, dynamic> _buildResponseMap(
   List<Map<String, dynamic>> incompleteLessons,
   List<String> weakTopics,
   List<String> strongTopics,
@@ -164,7 +175,7 @@ Response _buildResponse(
     }
   }
 
-  return Response.json(body: {
+  return {
     'success': true,
     'studyPlan': aiResult?['studyPlan'] ??
         (weakTopics.isNotEmpty
@@ -183,5 +194,14 @@ Response _buildResponse(
     'totalIncomplete': incompleteLessons.length,
     'totalCompleted':
         incompleteLessons.isEmpty ? 0 : null,
-  });
+  };
+}
+
+Response _buildResponse(
+  List<Map<String, dynamic>> incompleteLessons,
+  List<String> weakTopics,
+  List<String> strongTopics,
+  Map<String, dynamic>? aiResult,
+) {
+  return Response.json(body: _buildResponseMap(incompleteLessons, weakTopics, strongTopics, aiResult));
 }

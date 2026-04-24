@@ -41,6 +41,9 @@ class _ProfileViewState extends State<ProfileView>
   late TextEditingController _msvController;
   late TextEditingController _departmentController;
   late TextEditingController _msgvController;
+  late TextEditingController _majorController;
+  late TextEditingController _academicYearController;
+  bool _isEditing = false;
   late AnimationController _animController;
 
   @override
@@ -50,6 +53,8 @@ class _ProfileViewState extends State<ProfileView>
     _msvController = TextEditingController();
     _departmentController = TextEditingController();
     _msgvController = TextEditingController();
+    _majorController = TextEditingController();
+    _academicYearController = TextEditingController();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -67,6 +72,8 @@ class _ProfileViewState extends State<ProfileView>
     _msvController.dispose();
     _departmentController.dispose();
     _msgvController.dispose();
+    _majorController.dispose();
+    _academicYearController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -75,6 +82,8 @@ class _ProfileViewState extends State<ProfileView>
     if (user.role == 0) {
       _classController.text = user.className ?? '';
       _msvController.text = user.studentId ?? '';
+      _majorController.text = user.major ?? '';
+      _academicYearController.text = user.academicYear ?? '';
     } else {
       _departmentController.text = user.department ?? '';
       _msgvController.text = user.teacherId ?? '';
@@ -464,6 +473,29 @@ class _ProfileViewState extends State<ProfileView>
                 ),
               ),
               const Spacer(),
+              if (!isTeacher)
+                IconButton(
+                  icon: Icon(_isEditing ? Icons.check : Icons.edit,
+                      size: 20, color: AppColors.primary),
+                  onPressed: () {
+                    if (_isEditing && userState is UserProfileLoaded) {
+                      final updatedUser = UserEntityExtended(
+                        id: userState.user.id,
+                        email: userState.user.email,
+                        fullName: userState.user.fullName,
+                        role: userState.user.role,
+                        className: _classController.text,
+                        studentId: _msvController.text,
+                        major: _majorController.text,
+                        academicYear: _academicYearController.text,
+                      );
+                      context.read<UserBloc>().add(UpdateUserProfile(updatedUser));
+                    }
+                    setState(() {
+                      _isEditing = !_isEditing;
+                    });
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -488,7 +520,7 @@ class _ProfileViewState extends State<ProfileView>
               label: 'Lớp',
               controller: _classController,
               icon: Icons.class_,
-              editable: false,
+              editable: _isEditing,
               isDark: isDark,
             ),
             const SizedBox(height: 12),
@@ -496,7 +528,23 @@ class _ProfileViewState extends State<ProfileView>
               label: 'Mã sinh viên',
               controller: _msvController,
               icon: Icons.badge,
-              editable: false,
+              editable: _isEditing,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+            _buildInfoField(
+              label: 'Chuyên ngành',
+              controller: _majorController,
+              icon: Icons.school,
+              editable: _isEditing,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+            _buildInfoField(
+              label: 'Năm học',
+              controller: _academicYearController,
+              icon: Icons.calendar_today,
+              editable: _isEditing,
               isDark: isDark,
             ),
           ],

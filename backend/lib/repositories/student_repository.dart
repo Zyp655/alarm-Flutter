@@ -13,7 +13,7 @@ class StudentRepository {
   }
 
   Future<void> updateProfile(
-      int userId, String name, String studentId, String major) async {
+      int userId, String name, String studentId, String major, String academicYear) async {
     final existing = await getProfile(userId);
 
     if (existing == null) {
@@ -22,6 +22,7 @@ class StudentRepository {
             fullName: name,
             studentId: Value(studentId),
             major: Value(major),
+            academicYear: Value(academicYear),
           ));
     } else {
       await (db.update(db.studentProfiles)
@@ -31,6 +32,7 @@ class StudentRepository {
           fullName: Value(name),
           studentId: Value(studentId),
           major: Value(major),
+          academicYear: Value(academicYear),
         ),
       );
     }

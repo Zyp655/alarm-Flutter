@@ -31,23 +31,31 @@ class VideoSegmentService {
     if (_openaiKey.isEmpty) throw Exception('OPENAI_API_KEY not configured');
     final aiService = AIService(openaiApiKey: _openaiKey);
 
-    final transcript = await _extractTranscript(aiService, lesson.contentUrl!);
-    if (transcript.isEmpty) throw Exception('Could not extract transcript');
+    final transcript = lesson.cachedTranscript ?? '';
+    if (transcript.isEmpty) {
+      throw Exception('No cached transcript. Run transcribe-video first.');
+    }
 
     final totalDurationSec = lesson.durationMinutes * 60.0;
 
     final segments =
         await _semanticSegmentation(aiService, transcript, totalDurationSec);
 
-    for (int i = 0; i < segments.length; i++) {
-      final seg = segments[i];
-      final quiz = await _generateSegmentQuiz(
+    final quizFutures = segments.asMap().entries.map((entry) {
+      final i = entry.key;
+      final seg = entry.value;
+      return _generateSegmentQuiz(
         aiService,
         seg['transcript'] as String,
         i,
         seg['summary'] as String? ?? '',
       );
+    }).toList();
 
+    final quizResults = await Future.wait(quizFutures);
+
+    for (int i = 0; i < segments.length; i++) {
+      final seg = segments[i];
       await db.into(db.videoSegments).insert(VideoSegmentsCompanion.insert(
             lessonId: lessonId,
             segmentIndex: i,
@@ -55,27 +63,13 @@ class VideoSegmentService {
             endTimestamp: (seg['end'] as num).toDouble(),
             transcript: seg['transcript'] as String,
             summary: Value(seg['summary'] as String?),
-            quizQuestion: jsonEncode(quiz),
+            quizQuestion: jsonEncode(quizResults[i]),
             createdAt: DateTime.now(),
           ));
     }
   }
 
-  Future<String> _extractTranscript(
-      AIService aiService, String videoUrl) async {
-    try {
-      final text = await aiService.chatWithAssistant(
-        history: [],
-        question:
-            'Extract and transcribe the audio content from this video lecture. '
-            'Return the full transcript with timestamps in format [MM:SS]. '
-            'Video URL: $videoUrl',
-      );
-      return text;
-    } catch (e) {
-      return '';
-    }
-  }
+
 
   Future<List<Map<String, dynamic>>> _semanticSegmentation(
     AIService aiService,

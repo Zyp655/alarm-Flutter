@@ -4,9 +4,18 @@ import '../../../../core/theme/app_colors.dart';
 import 'emotion_camera_web.dart' if (dart.library.io) 'emotion_camera_native.dart';
 
 class EmotionCameraWidget extends StatefulWidget {
-  final void Function(String emotion, double confidence) onEmotionDetected;
+  final void Function(String emotion, double confidence, {bool gazeStill, bool eyeLocked}) onEmotionDetected;
+  final void Function(bool isOwner)? onIdentityCheck;
+  final bool isDetectionPaused;
+  final int? userId;
 
-  const EmotionCameraWidget({super.key, required this.onEmotionDetected});
+  const EmotionCameraWidget({
+    super.key,
+    required this.onEmotionDetected,
+    this.onIdentityCheck,
+    this.isDetectionPaused = false,
+    this.userId,
+  });
 
   @override
   State<EmotionCameraWidget> createState() => _EmotionCameraWidgetState();
@@ -33,18 +42,32 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
       _platformCamera = PlatformCamera();
 
       _platformCamera!.onLocalDetection = (emotion, confidence) {
-        if (mounted) {
+        if (mounted && !widget.isDetectionPaused) {
           setState(() => _currentEmotion = emotion);
-          widget.onEmotionDetected(emotion, confidence);
+          widget.onEmotionDetected(
+            emotion,
+            confidence,
+            gazeStill: _platformCamera?.gazeStill ?? false,
+            eyeLocked: _platformCamera?.eyeLocked ?? false,
+          );
+        }
+      };
+
+      _platformCamera!.onIdentityCheck = (isOwner) {
+        if (mounted) {
+          widget.onIdentityCheck?.call(isOwner);
         }
       };
 
       await _platformCamera!.initialize();
 
+      if (widget.userId != null && !kIsWeb) {
+        _platformCamera!.setupVerificationGuard(widget.userId!);
+        _platformCamera!.startVerificationStream();
+      }
+
       if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
+        setState(() => _isInitializing = false);
       }
     } catch (e) {
       debugPrint('[EmotionCamera] init error: $e');
@@ -164,6 +187,8 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
         return AppColors.success;
       case 'happy':
         return AppColors.accent;
+      case 'no_face':
+        return Colors.red;
       default:
         return Colors.blueGrey;
     }
@@ -181,6 +206,8 @@ class _EmotionCameraWidgetState extends State<EmotionCameraWidget> {
         return '🎯 Tập trung';
       case 'happy':
         return '😊 Vui';
+      case 'no_face':
+        return '👻 Không có mặt';
       default:
         return '😐 Bình thường';
     }

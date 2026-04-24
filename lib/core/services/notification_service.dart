@@ -285,6 +285,33 @@ class NotificationService {
     );
   }
 
+  Future<void> showFaceAbsenceWarning() async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'face_absence_channel',
+          'Face Absence Warnings',
+          channelDescription: 'Cảnh báo khi sinh viên rời khỏi camera',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+        );
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: true,
+      ),
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id: 999999,
+      title: '⚠️ Cảnh báo: Không phát hiện khuôn mặt',
+      body: 'Bạn đã rời khỏi camera. Video đã tạm dừng, vui lòng quay lại để tiếp tục học.',
+      notificationDetails: details,
+    );
+  }
+
   Future<void> cancelAllStudyReminders() async {
     await flutterLocalNotificationsPlugin.cancelAll();
   }

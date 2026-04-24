@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class AIService {
@@ -412,7 +413,7 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
         'Authorization': 'Bearer $openaiApiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-4o',
+        'model': 'gpt-4o-mini',
         'messages': [
           {
             'role': 'system',
@@ -448,42 +449,12 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
       chunks.add(words.sublist(i, end).join(' '));
     }
 
-    final summaries = <String>[];
+    final futures = <Future<String>>[];
     for (var i = 0; i < chunks.length; i++) {
-      try {
-        final response = await http.post(
-          Uri.parse(baseUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $openaiApiKey',
-          },
-          body: jsonEncode({
-            'model': 'gpt-4o-mini',
-            'messages': [
-              {
-                'role': 'system',
-                'content':
-                    'Bạn là trợ lý tóm tắt nội dung. Hãy tóm tắt chi tiết đoạn nội dung bài giảng dưới đây, giữ lại TẤT CẢ khái niệm quan trọng, thuật ngữ chuyên môn, ví dụ, và thông tin kỹ thuật. Tóm tắt bằng tiếng Việt.',
-              },
-              {
-                'role': 'user',
-                'content':
-                    'Đây là phần ${i + 1}/${chunks.length} của bài giảng. Hãy tóm tắt chi tiết:\n\n${chunks[i]}',
-              },
-            ],
-            'temperature': 0.3,
-            'max_tokens': 1024,
-          }),
-        );
-        if (response.statusCode == 200) {
-          summaries.add(_extractChatContent(response.body));
-        }
-      } catch (_) {
-        summaries.add(
-          chunks[i].substring(0, chunks[i].length.clamp(0, 500)),
-        );
-      }
+      futures.add(_summarizeChunk(baseUrl, chunks[i], i, chunks.length));
     }
+
+    final summaries = await Future.wait(futures);
 
     return summaries
         .asMap()
@@ -492,12 +463,47 @@ Trả về kết quả dạng JSON (KHÔNG Markdown):
         .join('\n\n');
   }
 
+  Future<String> _summarizeChunk(
+      String baseUrl, String chunk, int index, int total) async {
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $openaiApiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o-mini',
+          'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'Bạn là trợ lý tóm tắt nội dung. Hãy tóm tắt chi tiết đoạn nội dung bài giảng dưới đây, giữ lại TẤT CẢ khái niệm quan trọng, thuật ngữ chuyên môn, ví dụ, và thông tin kỹ thuật. Tóm tắt bằng tiếng Việt.',
+            },
+            {
+              'role': 'user',
+              'content':
+                  'Đây là phần ${index + 1}/$total của bài giảng. Hãy tóm tắt chi tiết:\n\n$chunk',
+            },
+          ],
+          'temperature': 0.3,
+          'max_tokens': 1024,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return _extractChatContent(response.body);
+      }
+    } catch (_) {}
+    return chunk.substring(0, chunk.length.clamp(0, 500));
+  }
+
   Future<String> chatWithContext({
     required String lessonTitle,
     required String textContent,
     required List<Map<String, String>> history,
     required String question,
     String? persona,
+    String? userProfileContext,
   }) async {
     const baseUrl = 'https://api.openai.com/v1/chat/completions';
 
@@ -537,6 +543,7 @@ Quy tắc chung:
 1. LUÔN trả lời bằng tiếng Việt.
 2. Dùng markdown formatting (bold, bullet list, code block) để câu trả lời dễ đọc.
 3. Chỉ từ chối các câu hỏi hoàn toàn không liên quan đến học tập.
+${userProfileContext != null ? '\nThông tin người hỏi:\n$userProfileContext\n' : ''}
 ''';
 
     final messages = <Map<String, String>>[
@@ -627,7 +634,7 @@ Bạn là trợ lý học tập AI thông minh. Giải thích rõ ràng, dễ hi
         'Authorization': 'Bearer $openaiApiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-4o',
+        'model': 'gpt-4o-mini',
         'messages': [
           {
             'role': 'system',
@@ -1072,5 +1079,237 @@ Trả về JSON (CHỈ JSON):
         'OpenAI API Error: ${response.statusCode} - ${response.body}',
       );
     }
+  }
+
+  Stream<String> chatWithAssistantStream({
+    required List<Map<String, String>> history,
+    required String question,
+  }) async* {
+    const systemPrompt = '''
+Bạn là một Trợ lý Học thuật Cao cấp chuyên hỗ trợ sinh viên.
+Nhiệm vụ:
+- Với câu hỏi cơ bản: Trả lời ngắn gọn, súc tích, dễ hiểu.
+- Với câu hỏi nâng cao/chuyên sâu: Sử dụng tư duy logic đa bước, giải thích cặn kẽ lý thuyết và đưa ra ví dụ thực tiễn.
+Kiểm soát phạm vi:
+- Chỉ trả lời các câu hỏi liên quan đến kiến thức học thuật, kỹ năng sinh viên và định hướng nghề nghiệp.
+- Từ chối khéo léo các câu hỏi ngoài lề.
+Luôn trả lời bằng tiếng Việt.
+''';
+
+    final messages = <Map<String, dynamic>>[
+      {'role': 'system', 'content': systemPrompt},
+      ...history,
+      {'role': 'user', 'content': question},
+    ];
+
+    yield* _streamCompletion(messages);
+  }
+
+  Stream<String> chatWithContextStream({
+    required String lessonTitle,
+    required String textContent,
+    required List<Map<String, String>> history,
+    required String question,
+    String? persona,
+    String? userProfileContext,
+    String? imageBase64,
+  }) async* {
+    final hasContent = textContent.trim().length > 10;
+    final personaInstruction = _buildPersonaInstruction(persona);
+    final contentBlock = hasContent
+        ? 'Bài học: "$lessonTitle"\nNội dung bài học:\n"""\n$textContent\n"""'
+        : '';
+    final contextNote = hasContent
+        ? 'Ưu tiên trả lời dựa trên nội dung bài học.'
+        : 'Nội dung chi tiết chưa có sẵn. Dùng kiến thức chuyên môn về "$lessonTitle" để trả lời.';
+
+    final systemPrompt = '''
+$personaInstruction
+$contentBlock
+Ngữ cảnh: $contextNote
+Quy tắc: LUÔN trả lời bằng tiếng Việt. Dùng markdown formatting.
+${userProfileContext != null ? '\nThông tin người hỏi:\n$userProfileContext\n' : ''}
+''';
+
+    final messages = <Map<String, dynamic>>[
+      {'role': 'system', 'content': systemPrompt},
+      ...history,
+    ];
+
+    if (imageBase64 != null && imageBase64.isNotEmpty) {
+      messages.add({
+        'role': 'user',
+        'content': [
+          {'type': 'text', 'text': question},
+          {
+            'type': 'image_url',
+            'image_url': {
+              'url': 'data:image/jpeg;base64,$imageBase64',
+              'detail': 'high',
+            }
+          }
+        ]
+      });
+    } else {
+      messages.add({'role': 'user', 'content': question});
+    }
+
+    yield* _streamCompletion(messages);
+  }
+
+  Stream<String> _streamCompletion(List<Map<String, dynamic>> messages) async* {
+    const baseUrl = 'https://api.openai.com/v1/chat/completions';
+    final client = http.Client();
+    try {
+      final request = http.Request('POST', Uri.parse(baseUrl));
+      request.headers['Content-Type'] = 'application/json';
+      request.headers['Authorization'] = 'Bearer $openaiApiKey';
+      request.body = jsonEncode({
+        'model': 'gpt-4o-mini',
+        'messages': messages,
+        'temperature': 0.7,
+        'max_tokens': 2048,
+        'stream': true,
+      });
+
+      final streamedResponse = await client.send(request);
+      if (streamedResponse.statusCode != 200) {
+        final body = await streamedResponse.stream.bytesToString();
+        throw Exception('OpenAI Stream Error: ${streamedResponse.statusCode} - $body');
+      }
+
+      var buffer = '';
+      await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
+        buffer += chunk;
+        final lines = buffer.split('\n');
+        buffer = lines.removeLast();
+
+        for (final line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty || !trimmed.startsWith('data: ')) continue;
+          final data = trimmed.substring(6);
+          if (data == '[DONE]') return;
+
+          try {
+            final json = jsonDecode(data) as Map<String, dynamic>;
+            final choices = json['choices'] as List?;
+            if (choices != null && choices.isNotEmpty) {
+              final delta = choices[0]['delta'] as Map<String, dynamic>?;
+              final content = delta?['content'] as String?;
+              if (content != null && content.isNotEmpty) {
+                yield content;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<String?> _generateTTSBase64(String text) async {
+    const baseUrl = 'https://api.openai.com/v1/audio/speech';
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $openaiApiKey',
+        },
+        body: jsonEncode({
+          'model': 'tts-1',
+          'input': text,
+          'voice': 'nova',
+          'response_format': 'mp3',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return base64Encode(response.bodyBytes);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Stream<Map<String, dynamic>> streamChatWithAudioChunking({
+    required String lessonTitle,
+    required String textContent,
+    required List<Map<String, String>> history,
+    required String question,
+    String? persona,
+    String? imageBase64,
+  }) {
+    final controller = StreamController<Map<String, dynamic>>();
+    final textStream = chatWithContextStream(
+      lessonTitle: lessonTitle,
+      textContent: textContent,
+      history: history,
+      question: question,
+      persona: persona,
+      imageBase64: imageBase64,
+    );
+
+    var sentenceBuffer = StringBuffer();
+    final sentencesToProcess = <String>[];
+    bool isProcessingAudio = false;
+    bool isTextDone = false;
+
+    void checkClose() {
+      if (isTextDone && sentencesToProcess.isEmpty && !isProcessingAudio && !controller.isClosed) {
+        controller.close();
+      }
+    }
+
+    Future<void> processNextAudio() async {
+      if (isProcessingAudio || sentencesToProcess.isEmpty) return;
+      isProcessingAudio = true;
+
+      final sentence = sentencesToProcess.removeAt(0);
+      final audioBase64 = await _generateTTSBase64(sentence);
+      if (audioBase64 != null && !controller.isClosed) {
+        controller.add({'type': 'audio', 'base64': audioBase64});
+      }
+
+      isProcessingAudio = false;
+      if (sentencesToProcess.isNotEmpty) {
+        processNextAudio();
+      } else {
+        checkClose();
+      }
+    }
+
+    textStream.listen(
+      (chunk) {
+        controller.add({'type': 'text', 'content': chunk});
+        sentenceBuffer.write(chunk);
+        final currentBuffer = sentenceBuffer.toString();
+
+        final boundaryMatch = RegExp(r'[.!?\n]+').firstMatch(currentBuffer);
+        if (boundaryMatch != null) {
+          final endIdx = boundaryMatch.end;
+          final sentence = currentBuffer.substring(0, endIdx).trim();
+          if (sentence.replaceAll(RegExp(r'[^a-zA-Z0-9àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ]'), '').isNotEmpty) {
+            sentencesToProcess.add(sentence);
+            processNextAudio();
+          }
+          sentenceBuffer = StringBuffer(currentBuffer.substring(endIdx));
+        }
+      },
+      onDone: () {
+        final remaining = sentenceBuffer.toString().trim();
+        if (remaining.replaceAll(RegExp(r'[^a-zA-Z0-9àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ]'), '').isNotEmpty) {
+          sentencesToProcess.add(remaining);
+          processNextAudio();
+        }
+        isTextDone = true;
+        checkClose();
+      },
+      onError: (Object e) {
+        if (!controller.isClosed) controller.addError(e);
+      },
+    );
+
+    return controller.stream;
   }
 }

@@ -5,7 +5,7 @@ try:
     import mediapipe as mp
     _mp_face_detection = mp.solutions.face_detection
     _HAS_MEDIAPIPE = True
-except ImportError:
+except (ImportError, AttributeError):
     _HAS_MEDIAPIPE = False
 
 try:

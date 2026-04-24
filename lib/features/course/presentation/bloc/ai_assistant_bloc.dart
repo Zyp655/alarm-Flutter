@@ -1,5 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_constants.dart';
+import '../../../../core/utils/audio_stream_player.dart';
 import 'ai_assistant_event.dart';
 import 'ai_assistant_state.dart';
 
@@ -69,38 +73,70 @@ class AiAssistantBloc extends Bloc<AiAssistantEvent, AiAssistantState> {
       ),
     );
 
-    emit(AiChatLoading(List.from(currentMessages)));
+    currentMessages.add(
+      AiChatMessage(
+        role: 'assistant',
+        content: '',
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    emit(AiChatLoaded(List.from(currentMessages)));
 
     _persistMessage(event.userId, event.lessonId, 'user', event.question);
 
     try {
       final history = currentMessages
-          .where((m) => m != currentMessages.last)
+          .where((m) => m != currentMessages[currentMessages.length - 2] && m != currentMessages.last)
           .map((m) => {'role': m.role, 'content': m.content})
           .toList();
 
-      final response = await apiClient.post('/ai/chat', {
+      final wsUrl = Uri.parse(ApiConstants.baseUrl.replaceFirst('http', 'ws') + '/ai/chat_stream');
+      final channel = WebSocketChannel.connect(wsUrl);
+
+      channel.sink.add(jsonEncode({
         'lessonTitle': event.lessonTitle,
         'textContent': event.textContent,
         'history': history,
         'question': event.question,
         if (event.persona != null) 'persona': event.persona,
-      });
+        if (event.imageBase64 != null) 'imageBase64': event.imageBase64,
+        'lessonId': event.lessonId,
+      }));
 
-      final data = response as Map<String, dynamic>;
-      final answer = data['answer'] as String? ?? 'Không có câu trả lời.';
+      String streamingAnswer = '';
 
-      currentMessages.add(
-        AiChatMessage(
-          role: 'assistant',
-          content: answer,
-          timestamp: DateTime.now(),
-        ),
+      await emit.forEach(
+        channel.stream,
+        onData: (message) {
+          final data = jsonDecode(message as String) as Map<String, dynamic>;
+          if (data['type'] == 'text') {
+            streamingAnswer += data['content'] as String;
+            currentMessages.last = AiChatMessage(
+              role: 'assistant',
+              content: streamingAnswer,
+              timestamp: DateTime.now(),
+            );
+            return AiChatLoaded(List.from(currentMessages));
+          } else if (data['type'] == 'audio') {
+            AudioStreamPlayer().queueAudioBase64(data['base64'] as String);
+          } else if (data['type'] == 'done') {
+            channel.sink.close();
+          } else if (data['error'] != null) {
+            throw Exception(data['error']);
+          }
+          return state;
+        },
+        onError: (e, s) {
+          return AiError(
+            'Lỗi kết nối AI stream: ${e.toString()}',
+            previousMessages: currentMessages,
+          );
+        },
       );
 
-      _persistMessage(event.userId, event.lessonId, 'assistant', answer);
+      _persistMessage(event.userId, event.lessonId, 'assistant', streamingAnswer);
 
-      emit(AiChatLoaded(List.from(currentMessages)));
     } catch (e) {
       emit(
         AiError(

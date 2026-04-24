@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../../domain/entities/module_entity.dart';
 import '../bloc/learning_player_bloc.dart';
@@ -29,6 +30,7 @@ import '../../../analytics/presentation/bloc/analytics_bloc.dart';
 import '../../../analytics/presentation/bloc/analytics_event.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/notification_service.dart';
 import '../widgets/segment_quiz_overlay.dart';
 import '../widgets/verify_quiz_overlay.dart';
 import '../widgets/emotion_camera_widget.dart';
@@ -37,6 +39,11 @@ import '../services/confusion_detector.dart';
 import '../services/confusion_data_logger.dart';
 import '../widgets/self_report_widget.dart';
 import '../widgets/confusion_chat_overlay.dart';
+import '../widgets/face_absence_overlay.dart';
+import '../widgets/identity_mismatch_overlay.dart';
+import '../widgets/verifying_identity_overlay.dart';
+import '../services/face_verification_guard.dart';
+import '../../../auth/presentation/pages/face_register_page.dart';
 
 class LessonPlayerPage extends StatelessWidget {
   final LessonEntity lesson;
@@ -65,7 +72,6 @@ class LessonPlayerPage extends StatelessWidget {
           create: (_) => AiAssistantBloc(apiClient: sl<ApiClient>()),
         ),
         BlocProvider(create: (_) => sl<AnalyticsBloc>()),
-
       ],
       child: LessonPlayerView(
         lesson: lesson,
@@ -150,6 +156,43 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   Timer? _selfReportTimer;
   int _selfReportIntervalMinutes = 5;
 
+  bool _showFaceAbsenceOverlay = false;
+  int _noFaceStreakCount = 0;
+  static const _noFaceThreshold = 6;
+  bool _isVideoPaused = false;
+
+  bool _showIdentityMismatch = false;
+  int _identityMismatchStreak = 0;
+  static const _identityMismatchThreshold = 3;
+  bool _faceRegistrationChecked = false;
+
+  bool _isOwner = true;
+  bool _wasPlayingBeforeAutoPause = false;
+
+  bool get _isVerifyingIdentity =>
+      _wasPlayingBeforeAutoPause &&
+      !_showFaceAbsenceOverlay &&
+      !_showIdentityMismatch &&
+      !_isOwner;
+
+  void _autoPause() {
+    if (_videoController?.value.isPlaying == true) {
+      _wasPlayingBeforeAutoPause = true;
+      _videoController?.pause();
+    }
+  }
+
+  void _autoResume() {
+    if (_wasPlayingBeforeAutoPause &&
+        !_showFaceAbsenceOverlay &&
+        !_showIdentityMismatch &&
+        _isOwner) {
+      _videoController?.play();
+      _wasPlayingBeforeAutoPause = false;
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -181,6 +224,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
 
     _initializePlayer();
     _loadSegments();
+    _checkFaceRegistration();
 
     _analyticsBloc.add(
       TrackActivity(
@@ -189,6 +233,44 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         lessonId: widget.lesson.id,
       ),
     );
+  }
+
+  Future<void> _checkFaceRegistration() async {
+    final registered = await FaceVerificationGuard.isRegistered(widget.userId);
+    if (!registered && mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FaceRegisterPage(
+            userId: widget.userId,
+            onComplete: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    }
+    if (mounted) setState(() => _faceRegistrationChecked = true);
+  }
+
+  void _onIdentityCheck(bool isOwner) {
+    if (!mounted) return;
+    _isOwner = isOwner;
+    if (!isOwner) {
+      _identityMismatchStreak++;
+      if (_identityMismatchStreak >= _identityMismatchThreshold && !_showIdentityMismatch) {
+        _autoPause();
+        setState(() => _showIdentityMismatch = true);
+      }
+    } else {
+      if (_showIdentityMismatch) {
+        setState(() {
+          _showIdentityMismatch = false;
+          _identityMismatchStreak = 0;
+        });
+        _autoResume();
+      } else if (!_showFaceAbsenceOverlay) {
+        _autoResume();
+      }
+      _identityMismatchStreak = 0;
+    }
   }
 
   @override
@@ -255,7 +337,6 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     var finalUrl = ApiConstants.resolveFileUrl(widget.lesson.contentUrl!);
 
     try {
-
       _videoController = VideoPlayerController.networkUrl(Uri.parse(finalUrl));
       await _videoController!.initialize().timeout(
         const Duration(seconds: 15),
@@ -326,6 +407,11 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
       return;
     }
 
+    final isPlaying = _videoController!.value.isPlaying;
+    if (isPlaying != !_isVideoPaused) {
+      setState(() => _isVideoPaused = !isPlaying);
+    }
+
     if (_videoController!.value.hasError) {
       _setError(
         'Lỗi phát video. Video có thể bị hỏng hoặc định dạng không được hỗ trợ.',
@@ -364,7 +450,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
       }
     }
 
-    if (_previousPosition - currentPos > const Duration(seconds: 3) && !_isSeeking) {
+    if (_previousPosition - currentPos > const Duration(seconds: 3) &&
+        !_isSeeking) {
       _seekBackwardCount++;
       _confusionLogger.onRewind(
         _previousPosition.inSeconds,
@@ -377,7 +464,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         currentPos == _previousPosition) {
     } else if (!_videoController!.value.isPlaying &&
         _previousPosition != Duration.zero &&
-        (_videoController!.value.position - _previousPosition).abs() < const Duration(seconds: 1)) {
+        (_videoController!.value.position - _previousPosition).abs() <
+            const Duration(seconds: 1)) {
       _pauseCount++;
       _confusionLogger.onPause(currentPos.inSeconds);
     }
@@ -425,7 +513,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
       if (_videoController != null && _videoController!.value.isPlaying) {
         final totalSeconds = _videoController!.value.duration.inSeconds;
         final currentSeconds = _videoController!.value.position.inSeconds;
-        final reachedThreshold = totalSeconds > 0 &&
+        final reachedThreshold =
+            totalSeconds > 0 &&
             currentSeconds >= (totalSeconds * 0.9).round() &&
             !_hasMarkedComplete;
 
@@ -608,7 +697,11 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   }
 
   void _onConfusionDetected() {
-    if (_showConfusionPopup || _showQuizOverlay || _showVerifyOverlay || _showSelfReport) return;
+    if (_showConfusionPopup ||
+        _showQuizOverlay ||
+        _showVerifyOverlay ||
+        _showSelfReport)
+      return;
     _videoController?.pause();
     setState(() => _showConfusionPopup = true);
     _fetchConfusionExplanation();
@@ -648,7 +741,8 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
         final pts = response['contentPoints'] as List<dynamic>?;
         setState(() {
           _confusionExplanation = response['explanation'] as String?;
-          _confusionContentPoints = pts?.map((e) => e.toString()).toList() ?? [];
+          _confusionContentPoints =
+              pts?.map((e) => e.toString()).toList() ?? [];
           _confusionTimeStr = response['timeStr'] as String? ?? '';
           _isLoadingExplanation = false;
         });
@@ -663,7 +757,11 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
   }
 
   void _triggerSelfReport() {
-    if (_showSelfReport || _showConfusionPopup || _showQuizOverlay || _showVerifyOverlay) return;
+    if (_showSelfReport ||
+        _showConfusionPopup ||
+        _showQuizOverlay ||
+        _showVerifyOverlay)
+      return;
     if (_videoController == null || !_videoController!.value.isPlaying) return;
     _videoController?.pause();
     setState(() => _showSelfReport = true);
@@ -691,10 +789,30 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
     _videoController?.play();
   }
 
-  void _openAiFromConfusion([String? question]) {
+  void _openAiFromConfusion([String? question]) async {
     final prefilledMessage = question != null && question.isNotEmpty
         ? question
         : _confusionExplanation;
+        
+    String? imageBase64;
+    if (_videoController != null && widget.lesson.contentUrl != null) {
+      try {
+        final timeMs = _videoController!.value.position.inMilliseconds;
+        final uint8list = await VideoThumbnail.thumbnailData(
+          video: widget.lesson.contentUrl!,
+          imageFormat: ImageFormat.JPEG,
+          maxWidth: 800,
+          quality: 50,
+          timeMs: timeMs,
+        );
+        if (uint8list != null) {
+          imageBase64 = base64Encode(uint8list);
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
     setState(() {
       _showConfusionPopup = false;
       _confusionExplanation = null;
@@ -714,6 +832,7 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
           lessonId: widget.lesson.id,
           userId: widget.userId,
           initialMessage: prefilledMessage,
+          imageBase64: imageBase64,
         ),
       ),
     );
@@ -986,7 +1105,6 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -1173,8 +1291,33 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
             ),
           ),
         EmotionCameraWidget(
-          onEmotionDetected: (emotion, confidence) {
-            _confusionDetector.updateEmotion(emotion, confidence);
+          isDetectionPaused: _isVideoPaused,
+          userId: widget.userId,
+          onIdentityCheck: _onIdentityCheck,
+          onEmotionDetected: (emotion, confidence, {bool gazeStill = false, bool eyeLocked = false}) {
+            if (emotion == 'no_face') {
+              _isOwner = false;
+              _noFaceStreakCount++;
+              if (_noFaceStreakCount >= _noFaceThreshold &&
+                  !_showFaceAbsenceOverlay) {
+                _autoPause();
+                setState(() => _showFaceAbsenceOverlay = true);
+                NotificationService().showFaceAbsenceWarning();
+              }
+              return;
+            }
+            if (_showFaceAbsenceOverlay) {
+              setState(() {
+                _showFaceAbsenceOverlay = false;
+                _noFaceStreakCount = 0;
+              });
+              if (_isOwner) {
+                _autoResume();
+              }
+              return;
+            }
+            _noFaceStreakCount = 0;
+            _confusionDetector.updateEmotion(emotion, confidence, gazeStill: gazeStill, eyeLocked: eyeLocked);
             final pos = _videoController?.value.position.inSeconds ?? 0;
             _confusionLogger.addEmotionSnapshot(pos, emotion, confidence);
           },
@@ -1190,6 +1333,12 @@ class _LessonPlayerViewState extends State<LessonPlayerView>
               onAskQuestion: (question) => _openAiFromConfusion(question),
             ),
           ),
+        if (_showFaceAbsenceOverlay)
+          Positioned.fill(child: FaceAbsenceOverlay()),
+        if (_showIdentityMismatch)
+          Positioned.fill(child: IdentityMismatchOverlay()),
+        if (_isVerifyingIdentity)
+          Positioned.fill(child: const VerifyingIdentityOverlay()),
         if (_showSelfReport)
           Positioned(
             bottom: 0,

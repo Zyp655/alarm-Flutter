@@ -14,6 +14,7 @@ import '../bloc/ai_assistant_event.dart';
 import '../bloc/ai_assistant_state.dart';
 import '../../../../core/api/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/audio_stream_player.dart';
 
 class AiChatSheet extends StatefulWidget {
   final String lessonTitle;
@@ -22,6 +23,7 @@ class AiChatSheet extends StatefulWidget {
   final int? lessonId;
   final int? userId;
   final String? initialMessage;
+  final String? imageBase64;
 
   const AiChatSheet({
     super.key,
@@ -31,6 +33,7 @@ class AiChatSheet extends StatefulWidget {
     this.lessonId,
     this.userId,
     this.initialMessage,
+    this.imageBase64,
   });
 
   @override
@@ -48,6 +51,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   bool _transcribeFailed = false;
   String _videoTranscript = '';
   String? _selectedPersona;
+  bool _hasSentImage = false;
 
   static const _suggestedQuestions = [
     'Tóm tắt nội dung chính',
@@ -79,6 +83,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _controller.dispose();
     _scrollController.dispose();
     _recorder.dispose();
+    AudioStreamPlayer().stopAndClear();
     super.dispose();
   }
 
@@ -160,6 +165,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
 
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
+    
+    final sendImage = widget.imageBase64 != null && !_hasSentImage;
+    if (sendImage) {
+      setState(() => _hasSentImage = true);
+    }
+
     context.read<AiAssistantBloc>().add(
       AskAiQuestion(
         lessonTitle: widget.lessonTitle,
@@ -168,6 +179,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
         userId: widget.userId,
         lessonId: widget.lessonId,
         persona: _selectedPersona,
+        imageBase64: sendImage ? widget.imageBase64 : null,
       ),
     );
     _controller.clear();
@@ -274,6 +286,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
               _buildPersonaSelector(cs),
               if (_isTranscribingVideo) _buildVideoTranscribeBanner(cs),
               if (_transcribeFailed && !_isTranscribingVideo) _buildTranscribeFailedBanner(cs),
+              if (widget.imageBase64 != null && !_hasSentImage) _buildImagePreview(cs),
               if (_isRecording) _buildRecordingBanner(cs),
               if (_isTranscribing) _buildTranscribingBanner(cs),
               Expanded(
@@ -912,5 +925,44 @@ class _AiChatSheetState extends State<AiChatSheet> {
       return state.previousMessages!;
     }
     return [];
+  }
+
+  Widget _buildImagePreview(ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              base64Decode(widget.imageBase64!),
+              width: 60,
+              height: 40,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Ảnh chụp màn hình sẽ được gửi kèm câu hỏi để AI phân tích.',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+            onPressed: () {
+              setState(() => _hasSentImage = true);
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Hủy gửi ảnh',
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/services/ai_service.dart';
+import 'package:backend/services/cache_service.dart';
+import 'package:backend/database/database.dart';
 import 'package:backend/helpers/env_helper.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -21,6 +23,19 @@ Future<Response> onRequest(RequestContext context) async {
       );
     }
 
+    final db = context.read<AppDatabase>();
+    final cache = CacheService(db);
+    final cacheParams = {
+      'lesson': lessonTitle,
+      'len': textContent.length,
+    };
+
+    final cached = await cache.getAiCache('concept-map', cacheParams);
+    if (cached != null) {
+      cached['cached'] = true;
+      return Response.json(body: cached);
+    }
+
     final env = loadEnv();
     final apiKey = env['OPENAI_API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
@@ -35,6 +50,8 @@ Future<Response> onRequest(RequestContext context) async {
       lessonTitle: lessonTitle,
       textContent: textContent,
     );
+
+    await cache.setAiCache('concept-map', cacheParams, result, ttlSeconds: 600);
 
     return Response.json(body: result);
   } catch (e) {
