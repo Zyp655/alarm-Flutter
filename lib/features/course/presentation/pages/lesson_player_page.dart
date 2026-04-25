@@ -42,8 +42,10 @@ import '../widgets/confusion_chat_overlay.dart';
 import '../widgets/face_absence_overlay.dart';
 import '../widgets/identity_mismatch_overlay.dart';
 import '../widgets/verifying_identity_overlay.dart';
-import '../services/face_verification_guard.dart';
-import '../../../auth/presentation/pages/face_register_page.dart';
+import '../services/face_verification_guard_web.dart'
+    if (dart.library.io) '../services/face_verification_guard.dart';
+import '../../../auth/presentation/pages/face_register_page_web.dart'
+    if (dart.library.io) '../../../auth/presentation/pages/face_register_page.dart';
 
 class LessonPlayerPage extends StatelessWidget {
   final LessonEntity lesson;

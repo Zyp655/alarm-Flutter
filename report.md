@@ -18,3 +18,21 @@
 - **Giải pháp:** Thêm dòng `import 'package:drift/drift.dart';` vào đầu file `lib/services/embedding_service.dart`.
 
 **Kết quả:** Tất cả các lỗi syntax và lỗi build break trong backend đã được dọn sạch sẽ (Exit code của `dart analyze` đối với lỗi mức Error đã là 0). Backend có thể build và chạy bình thường.
+
+## 4. Lỗi GitHub Actions build web thất bại (tflite_flutter / dart:ffi)
+- **Lỗi/Bugs:** `flutter build web --release` thất bại với `Error: Only JS interop members may be 'external'` trong `tflite_flutter` package. Exit code 1.
+- **Nguyên nhân:** `lesson_player_page.dart` import trực tiếp `face_verification_guard.dart` và `face_register_page.dart`, cả hai file này đều import `camera`, `google_mlkit_face_detection`, và `tflite_flutter` — các package sử dụng `dart:ffi` không tương thích với web platform. Dù code không chạy trên web, compiler vẫn phải phân tích toàn bộ import tree.
+- **Giải pháp:**
+  - Tạo `face_verification_guard_web.dart` (stub no-op cho web)
+  - Tạo `face_register_page_web.dart` (stub hiển thị thông báo chỉ khả dụng trên mobile)
+  - Sử dụng conditional import trong `lesson_player_page.dart`: `import 'web_stub.dart' if (dart.library.io) 'native.dart'`
+
+## 5. Lỗi Wasm dry run warnings gây exit code 1
+- **Lỗi/Bugs:** Build thành công (`√ Built build\web`) nhưng exit code vẫn là 1 do Wasm dry run warnings từ package `pdfx`.
+- **Nguyên nhân:** Flutter 3.35.6 mặc định chạy Wasm compatibility check, `pdfx` có static interop warnings khiến process trả về exit code 1.
+- **Giải pháp:** Thêm flag `--no-wasm-dry-run` vào lệnh build trong workflow.
+
+## 6. Lỗi Node.js 16 deprecated trong GitHub Actions
+- **Lỗi/Bugs:** Warning `Node.js 16 actions are deprecated` từ `FirebaseExtended/action-hosting-deploy@v0`.
+- **Nguyên nhân:** Action version `@v0` sử dụng Node.js 16 đã bị deprecated, sẽ bị loại bỏ khỏi runner.
+- **Giải pháp:** Upgrade lên `FirebaseExtended/action-hosting-deploy@v0.6.0` hỗ trợ Node.js 20.
